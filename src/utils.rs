@@ -1,0 +1,56 @@
+use std::time::{SystemTime, UNIX_EPOCH};
+
+use sqlx::{Arguments, Execute};
+
+use crate::errors;
+
+pub async fn select_retry_or_panic(
+    pool: &sqlx::Pool<sqlx::Postgres>,
+    query: &str,
+    substitution_items: &[String],
+    retry_count: usize,
+) -> Result<Vec<sqlx::postgres::PgRow>, errors::ErrorKind> {
+    let mut interval = crate::INTERVAL;
+    let mut retry_attempt = 0usize;
+
+    loop {
+        if retry_attempt == retry_count {
+            return Err(errors::ErrorKind::DBError(format!(
+                "Failed to perform query to database after {} attempts. Stop trying.",
+                retry_count
+            )));
+        }
+        retry_attempt += 1;
+
+        let mut args = sqlx::postgres::PgArguments::default();
+        for item in substitution_items {
+            println!("{}", item);
+            args.add(item);
+        }
+        let a = sqlx::query_with(query, args);
+
+        match a.fetch_all(pool).await {
+            Ok(res) => return Ok(res),
+            Err(async_error) => {
+                // todo we print here select with non-filled placeholders. It would be better to get the final select statement here
+                println!(
+                         "Error occurred during {}:\nFailed SELECT:\n{}\n Retrying in {} milliseconds...",
+                         async_error,
+                    query,
+                         interval.as_millis(),
+                     );
+                tokio::time::sleep(interval).await;
+                if interval < crate::MAX_DELAY_TIME {
+                    interval *= 2;
+                }
+            }
+        }
+    }
+}
+
+pub fn get_latest_timestamp_nanos() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("Time went backwards")
+        .as_nanos() as u64
+}
