@@ -25,13 +25,8 @@ pub(crate) struct AccountBalanceResponse {
     // todo we don't have this for FTs
     // go to metadata each time
     pub token_id: String,
-    // todo staked
-    // return sum
     pub amount: super::types::U128,
-    // todo do we want to serve timestamp in response? google it
-    // add timestamp
-    // return corresponding block: timestamp
-
+    pub block_timestamp_nanos: super::types::U64,
 }
 
 /// Instead of utilizing HTTP status codes to describe node errors (which often

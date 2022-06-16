@@ -1,13 +1,14 @@
+use sqlx::postgres::PgRow;
 use sqlx::Arguments;
 
 use crate::errors;
 
-pub async fn select_retry_or_panic(
+pub async fn select_retry_or_panic<T: Send + Unpin + for<'r> sqlx::FromRow<'r, PgRow>>(
     pool: &sqlx::Pool<sqlx::Postgres>,
     query: &str,
     substitution_items: &[String],
     retry_count: usize,
-) -> Result<Vec<sqlx::postgres::PgRow>, errors::ErrorKind> {
+) -> Result<Vec<T>, errors::ErrorKind> {
     let mut interval = crate::INTERVAL;
     let mut retry_attempt = 0usize;
 
@@ -26,7 +27,10 @@ pub async fn select_retry_or_panic(
             args.add(item);
         }
 
-        match sqlx::query_with(query, args).fetch_all(pool).await {
+        match sqlx::query_as_with::<_, T, _>(query, args)
+            .fetch_all(pool)
+            .await
+        {
             Ok(res) => return Ok(res),
             Err(async_error) => {
                 // todo we print here select with non-filled placeholders. It would be better to get the final select statement here

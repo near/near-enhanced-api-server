@@ -6,11 +6,12 @@ use paperclip::actix::{
     OpenApiExt,
 };
 use sqlx::types::BigDecimal;
-use sqlx::Row;
+use std::ops::Add;
 
+mod api_models;
 pub mod config;
+mod db_models;
 mod errors;
-mod models;
 mod types;
 mod utils;
 
@@ -22,24 +23,17 @@ const MAX_DELAY_TIME: std::time::Duration = std::time::Duration::from_secs(120);
 ///
 /// This endpoint returns the balance of the given account_id,
 /// for the specified token_contract_id | near.
-async fn token_balance(
+async fn native_balance(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
-    request: web::Path<models::AccountBalanceRequest>,
-    params: web::Query<models::QueryParams>,
-) -> Result<Json<models::AccountBalanceResponse>, models::Error> {
-    if request.token_contract_id.to_string() != "near" {
-        return Err(errors::ErrorKind::NotImplemented(
-            "FT and other stuff is not implemented yet".to_string(),
-        )
-        .into());
-    }
-
+    request: web::Path<api_models::AccountBalanceRequest>,
+    params: web::Query<api_models::QueryParams>,
+) -> Result<Json<api_models::AccountBalanceResponse>, api_models::Error> {
     let db_result = match params.block_timestamp_nanos {
         Some(timestamp) => {
-            utils::select_retry_or_panic(
+            utils::select_retry_or_panic::<db_models::Aaa>(
                 &pool,
                 r"WITH t AS (
-                    SELECT affected_account_nonstaked_balance
+                    SELECT affected_account_nonstaked_balance nonstaked, affected_account_staked_balance staked, changed_in_block_timestamp block_timestamp
                     FROM account_changes
                     WHERE affected_account_id = $1 AND changed_in_block_timestamp <= $2::numeric(20, 0)
                     ORDER BY changed_in_block_timestamp DESC
@@ -51,10 +45,10 @@ async fn token_balance(
             ).await?
         }
         None => {
-            utils::select_retry_or_panic(
+            utils::select_retry_or_panic::<db_models::Aaa>(
                 &pool,
                 r"WITH t AS (
-                    SELECT affected_account_nonstaked_balance
+                    SELECT affected_account_nonstaked_balance nonstaked, affected_account_staked_balance staked, changed_in_block_timestamp block_timestamp
                     FROM account_changes
                     WHERE affected_account_id = $1
                     ORDER BY changed_in_block_timestamp DESC
@@ -69,19 +63,46 @@ async fn token_balance(
 
     match db_result.first() {
         Some(row) => {
-            let amount_bigdecimal: BigDecimal = row.get(0);
-            let amount = amount_bigdecimal
+            //todo put into function
+            let amount = (&row.nonstaked)
+                .add(&row.staked)
                 .to_string()
                 .parse::<u128>()
-                .expect("affected_account_nonstaked_balance expected to be u128");
-            Ok(Json(models::AccountBalanceResponse {
+                .expect("amount expected to be u128");
+            let timestamp = row
+                .block_timestamp
+                .to_string()
+                .parse::<u64>()
+                .expect("timestamp expected to be u64");
+            Ok(Json(api_models::AccountBalanceResponse {
                 token_kind: "near".to_string(),
                 token_id: "near".to_string(),
                 amount: amount.into(),
+                block_timestamp_nanos: timestamp.into(),
             }))
         }
         // todo sometimes it also does not exist (deleted), but we will show the balance
         None => Err(errors::ErrorKind::InvalidInput("account does not exist".to_string()).into()),
+    }
+}
+
+#[api_v2_operation]
+/// Get the user's balance
+///
+/// This endpoint returns the balance of the given account_id,
+/// for the specified token_contract_id | near.
+async fn token_balance(
+    pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
+    request: web::Path<api_models::AccountBalanceRequest>,
+    params: web::Query<api_models::QueryParams>,
+) -> Result<Json<api_models::AccountBalanceResponse>, api_models::Error> {
+    if request.token_contract_id.to_string() == "near" {
+        native_balance(pool, request, params).await
+    } else {
+        Err(errors::ErrorKind::NotImplemented(
+            "FT and other stuff is not implemented yet".to_string(),
+        )
+        .into())
     }
 }
 
@@ -117,8 +138,10 @@ pub fn start(
                 let error_message = err.to_string();
                 actix_web::error::InternalError::from_response(
                     err,
-                    models::Error::from_error_kind(errors::ErrorKind::InvalidInput(error_message))
-                        .error_response(),
+                    api_models::Error::from_error_kind(errors::ErrorKind::InvalidInput(
+                        error_message,
+                    ))
+                    .error_response(),
                 )
                 .into()
             });
