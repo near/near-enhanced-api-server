@@ -25,9 +25,8 @@ pub async fn select_retry_or_panic(
             println!("{}", item);
             args.add(item);
         }
-        let a = sqlx::query_with(query, args);
 
-        match a.fetch_all(pool).await {
+        match sqlx::query_with(query, args).fetch_all(pool).await {
             Ok(res) => return Ok(res),
             Err(async_error) => {
                 // todo we print here select with non-filled placeholders. It would be better to get the final select statement here

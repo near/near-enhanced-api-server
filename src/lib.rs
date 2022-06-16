@@ -35,15 +35,18 @@ async fn token_balance(
         )
         .into());
     }
-    // todo limit 1 in queries
+
     let db_result = match params.block_timestamp {
         Some(timestamp) => {
             utils::select_retry_or_panic(
                 &pool,
-                r"SELECT affected_account_nonstaked_balance
-                  FROM account_changes
-                  WHERE affected_account_id = $1 AND changed_in_block_timestamp <= $2::numeric(20, 0)
-                  ORDER BY changed_in_block_timestamp DESC
+                r"WITH t AS (
+                    SELECT affected_account_nonstaked_balance
+                    FROM account_changes
+                    WHERE affected_account_id = $1 AND changed_in_block_timestamp <= $2::numeric(20, 0)
+                    ORDER BY changed_in_block_timestamp DESC
+                  )
+                  SELECT * FROM t LIMIT 1
                  ",
                 &[request.account_id.0.to_string(), timestamp.to_string()],
                 10,
@@ -52,10 +55,13 @@ async fn token_balance(
         None => {
             utils::select_retry_or_panic(
                 &pool,
-                r"SELECT affected_account_nonstaked_balance
-                  FROM account_changes
-                  WHERE affected_account_id = $1
-                  ORDER BY changed_in_block_timestamp DESC
+                r"WITH t AS (
+                    SELECT affected_account_nonstaked_balance
+                    FROM account_changes
+                    WHERE affected_account_id = $1
+                    ORDER BY changed_in_block_timestamp DESC
+                  )
+                  SELECT * FROM t LIMIT 1
                  ",
                 &[request.account_id.0.to_string()],
                 10,
