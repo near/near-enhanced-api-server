@@ -8,6 +8,7 @@ rust-version = "1.58.0"
 edition = "2021"
 
 [dependencies]
+borsh = { version = "0.9.1" }
 derive_more = "0.99.9"
 dotenv = "0.15.0"
 hex = "0.4"

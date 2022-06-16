@@ -1413,6 +1413,7 @@ dependencies = [
  "actix-http",
  "actix-web",
  "awc",
+ "borsh",
  "derive_more",
  "dotenv",
  "futures",

@@ -27,8 +27,6 @@ async fn token_balance(
     request: web::Path<models::AccountBalanceRequest>,
     params: web::Query<models::QueryParams>,
 ) -> Result<Json<models::AccountBalanceResponse>, models::Error> {
-    // uppercase is prohibited todo btw why and where?, so I need to ask only for lowercase
-    // curl "http://127.0.0.1:3050/account/olga.near/tokens/NEAR?block_timestamp=1643622222648230771"
     if request.token_contract_id.to_string() != "near" {
         return Err(errors::ErrorKind::NotImplemented(
             "FT and other stuff is not implemented yet".to_string(),
@@ -36,7 +34,7 @@ async fn token_balance(
         .into());
     }
 
-    let db_result = match params.block_timestamp {
+    let db_result = match params.block_timestamp_nanos {
         Some(timestamp) => {
             utils::select_retry_or_panic(
                 &pool,
@@ -48,7 +46,7 @@ async fn token_balance(
                   )
                   SELECT * FROM t LIMIT 1
                  ",
-                &[request.account_id.0.to_string(), timestamp.to_string()],
+                &[request.account_id.0.to_string(), timestamp.0.to_string()],
                 10,
             ).await?
         }
@@ -79,7 +77,7 @@ async fn token_balance(
             Ok(Json(models::AccountBalanceResponse {
                 token_kind: "near".to_string(),
                 token_id: "near".to_string(),
-                amount,
+                amount: amount.into(),
             }))
         }
         // todo sometimes it also does not exist (deleted), but we will show the balance
@@ -125,8 +123,6 @@ pub fn start(
                 .into()
             });
 
-        // todo I don't like coins word. Yet new word to out collection of strange terminology, let's not add there anything
-        // todo `-` is not allowed in paths. Underscore, camelcase? google it
         App::new()
             .app_data(json_config)
             .wrap(actix_web::middleware::Logger::default())
@@ -134,7 +130,7 @@ pub fn start(
             .wrap(get_cors(&cors_allowed_origins))
             .wrap_api()
             .service(
-                web::resource("/account/{account_id}/tokens/{token_contract_id}")
+                web::resource("/account/{account_id}/coins/{token_contract_id}")
                     .route(web::get().to(token_balance)),
             )
             .with_json_spec_at("/api/spec")
@@ -154,6 +150,7 @@ pub fn start(
 }
 
 // TODO we need to add absolute value column for this query
+// go to rpc
 // Token Balance for a given Address(FT)
 // List of all the tokens with their balances
 // /accounts/<account-id>/coins | pagination + timestamp

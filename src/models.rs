@@ -10,17 +10,11 @@ pub(crate) struct AccountBalanceRequest {
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 pub(crate) struct QueryParams {
-    // // todo maybe height is better? but we have to make 2 queries instead of 1
-    // // todo naming: timestamp_nanos?
-    pub block_timestamp: Option<u64>,
-}
-
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
-pub(crate) struct PaginatedQueryParams {
-    // // todo maybe height is better? but we have to make 2 queries instead of 1
-    // // todo naming: timestamp_nanos?
-    pub block_timestamp: Option<u64>,
-    pub page: Option<u64>,
+    // todo die if both are given
+    //todo check secs and u32
+    pub block_timestamp_nanos: Option<super::types::U64>,
+    pub block_height: Option<super::types::U64>,
+    pub page: Option<u32>,
 }
 
 /// todo doc
@@ -29,10 +23,15 @@ pub(crate) struct PaginatedQueryParams {
 pub(crate) struct AccountBalanceResponse {
     pub token_kind: String,
     // todo we don't have this for FTs
+    // go to metadata each time
     pub token_id: String,
     // todo staked
-    pub amount: u128,
+    // return sum
+    pub amount: super::types::U128,
     // todo do we want to serve timestamp in response? google it
+    // add timestamp
+    // return corresponding block: timestamp
+
 }
 
 /// Instead of utilizing HTTP status codes to describe node errors (which often
