@@ -1,6 +1,4 @@
-use std::time::{SystemTime, UNIX_EPOCH};
-
-use sqlx::{Arguments, Execute};
+use sqlx::Arguments;
 
 use crate::errors;
 
@@ -46,11 +44,4 @@ pub async fn select_retry_or_panic(
             }
         }
     }
-}
-
-pub fn get_latest_timestamp_nanos() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .expect("Time went backwards")
-        .as_nanos() as u64
 }

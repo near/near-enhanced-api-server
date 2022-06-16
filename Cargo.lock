@@ -1406,7 +1406,7 @@ dependencies = [
 
 [[package]]
 name = "near-enhanced-api"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "actix",
  "actix-cors",

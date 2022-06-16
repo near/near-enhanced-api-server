@@ -7,9 +7,10 @@ pub enum ErrorKind {
     // InternalInvariantError(String),
     // InternalError(String),
     DBError(String),
+    NotImplemented(String),
 }
 
-pub(crate) type Result<T> = std::result::Result<T, ErrorKind>;
+// pub(crate) type Result<T> = std::result::Result<T, ErrorKind>;
 
 // impl From<actix::MailboxError> for ErrorKind {
 //     fn from(err: actix::MailboxError) -> Self {

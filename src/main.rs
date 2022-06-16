@@ -1,7 +1,6 @@
-use near_enhanced_api::start;
 use std::time::Duration;
 
-use near_enhanced_api::config;
+use near_enhanced_api::{config, start};
 
 #[tokio::main]
 async fn main() {

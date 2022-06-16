@@ -1,25 +1,38 @@
 use crate::errors::ErrorKind;
 use paperclip::actix::{api_v2_errors, Apiv2Schema};
 
-/// An AccountBalanceRequest is utilized to make a balance request on the
-/// /account/balance endpoint. If the block_identifier is populated, a
-/// historical balance query should be performed.
+/// todo doc
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 pub(crate) struct AccountBalanceRequest {
     pub account_id: super::types::AccountId,
-    // todo maybe height is better? but we have to make 2 queries instead of 1
-    // todo naming: timestamp_nanos?
+    pub token_contract_id: super::types::AccountId,
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
+pub(crate) struct QueryParams {
+    // // todo maybe height is better? but we have to make 2 queries instead of 1
+    // // todo naming: timestamp_nanos?
     pub block_timestamp: Option<u64>,
 }
 
-/// An AccountBalanceResponse is returned on the /account/balance endpoint. If
-/// an account has a balance for each AccountIdentifier describing it (ex: an
-/// ERC-20 token balance on a few smart contracts), an account balance request
-/// must be made with each AccountIdentifier.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
+pub(crate) struct PaginatedQueryParams {
+    // // todo maybe height is better? but we have to make 2 queries instead of 1
+    // // todo naming: timestamp_nanos?
+    pub block_timestamp: Option<u64>,
+    pub page: Option<u64>,
+}
+
+/// todo doc
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub(crate) struct AccountBalanceResponse {
+    pub token_kind: String,
+    // todo we don't have this for FTs
+    pub token_id: String,
+    // todo staked
     pub amount: u128,
+    // todo do we want to serve timestamp in response? google it
 }
 
 /// Instead of utilizing HTTP status codes to describe node errors (which often
@@ -84,6 +97,11 @@ impl Error {
             ErrorKind::DBError(message) => Self {
                 code: 500,
                 message: format!("DB Error: {}", message),
+                retriable: true,
+            },
+            ErrorKind::NotImplemented(message) => Self {
+                code: 500,
+                message: format!("Sorry! {}", message),
                 retriable: true,
             },
         }
