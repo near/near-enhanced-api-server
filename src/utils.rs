@@ -1,9 +1,10 @@
+use num_traits::ToPrimitive;
 use sqlx::postgres::PgRow;
 use sqlx::Arguments;
 
-use crate::errors;
+use crate::{errors, BigDecimal};
 
-pub async fn select_retry_or_panic<T: Send + Unpin + for<'r> sqlx::FromRow<'r, PgRow>>(
+pub(crate) async fn select_retry_or_panic<T: Send + Unpin + for<'r> sqlx::FromRow<'r, PgRow>>(
     pool: &sqlx::Pool<sqlx::Postgres>,
     query: &str,
     substitution_items: &[String],
@@ -47,4 +48,15 @@ pub async fn select_retry_or_panic<T: Send + Unpin + for<'r> sqlx::FromRow<'r, P
             }
         }
     }
+}
+
+pub(crate) fn to_u128(x: &BigDecimal) -> Result<u128, errors::ErrorKind> {
+    x.to_string()
+        .parse()
+        .map_err(|e| errors::ErrorKind::InternalError(format!("Failed to parse u128 {}: {}", x, e)))
+}
+
+pub(crate) fn to_u64(x: &BigDecimal) -> Result<u64, errors::ErrorKind> {
+    x.to_u64()
+        .ok_or_else(|| errors::ErrorKind::InternalError(format!("Failed to parse u64 {}", x)))
 }

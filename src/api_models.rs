@@ -10,8 +10,6 @@ pub(crate) struct AccountBalanceRequest {
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 pub(crate) struct QueryParams {
-    // todo die if both are given
-    //todo check secs and u32
     pub block_timestamp_nanos: Option<super::types::U64>,
     pub block_height: Option<super::types::U64>,
 }
@@ -19,7 +17,6 @@ pub(crate) struct QueryParams {
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 pub(crate) struct PaginatedQueryParams {
     // todo die if both are given
-    //todo check secs and u32
     pub block_timestamp_nanos: Option<super::types::U64>,
     pub block_height: Option<super::types::U64>,
     pub page: Option<u32>,
@@ -55,13 +52,6 @@ pub(crate) struct Error {
     /// An error is retriable if the same request may succeed if submitted
     /// again.
     pub retriable: bool,
-    /* Rosetta Spec also optionally provides:
-     *
-     * /// Often times it is useful to return context specific to the request that
-     * /// caused the error (i.e. a sample of the stack trace or impacted account)
-     * /// in addition to the standard error message.
-     * #[serde(skip_serializing_if = "Option::is_none")]
-     * pub details: Option<serde_json::Value>, */
 }
 
 impl std::fmt::Display for Error {
@@ -74,36 +64,27 @@ impl std::fmt::Display for Error {
 impl Error {
     pub(crate) fn from_error_kind(err: ErrorKind) -> Self {
         match err {
-            ErrorKind::InvalidInput(message) => Self {
-                code: 400,
-                message: format!("Invalid Input: {}", message),
-                retriable: false,
-            },
-            // crate::errors::ErrorKind::NotFound(message) => {
-            //     Self { code: 404, message: format!("Not Found: {}", message), retriable: false }
-            // }
-            // crate::errors::ErrorKind::WrongNetwork(message) => {
-            //     Self { code: 403, message: format!("Wrong Network: {}", message), retriable: false }
-            // }
-            // crate::errors::ErrorKind::Timeout(message) => {
-            //     Self { code: 504, message: format!("Timeout: {}", message), retriable: true }
-            // }
-            // crate::errors::ErrorKind::InternalInvariantError(message) => Self {
-            //     code: 501,
-            //     message: format!("Internal Invariant Error (please, report it): {}", message),
-            //     retriable: true,
-            // },
-            // crate::errors::ErrorKind::InternalError(message) => {
-            //     Self { code: 500, message: format!("Internal Error: {}", message), retriable: true }
-            // },
             ErrorKind::DBError(message) => Self {
                 code: 500,
                 message: format!("DB Error: {}", message),
                 retriable: true,
             },
+            ErrorKind::InvalidInput(message) => Self {
+                code: 400,
+                message: format!("Invalid Input: {}", message),
+                retriable: false,
+            },
+            ErrorKind::InternalError(message) => Self {
+                code: 500,
+                message: format!("Internal Error: {}", message),
+                retriable: true,
+            },
             ErrorKind::NotImplemented(message) => Self {
                 code: 500,
-                message: format!("Sorry! {}", message),
+                message: format!(
+                    "Sorry! Please wait a bit, we are working on that: {}",
+                    message
+                ),
                 retriable: true,
             },
         }
@@ -112,7 +93,7 @@ impl Error {
 
 impl<T> From<T> for Error
 where
-    T: Into<crate::errors::ErrorKind>,
+    T: Into<ErrorKind>,
 {
     fn from(err: T) -> Self {
         Self::from_error_kind(err.into())

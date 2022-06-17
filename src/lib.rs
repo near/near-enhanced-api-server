@@ -7,7 +7,6 @@ use paperclip::actix::{
     OpenApiExt,
 };
 use sqlx::types::BigDecimal;
-use std::ops::Add;
 
 mod api_models;
 pub mod config;
@@ -27,9 +26,7 @@ async fn native_balance(
 ) -> Result<Json<api_models::AccountBalanceResponse>, api_models::Error> {
     check_params(&params)?;
     let timestamp = get_timestamp_from_params(&pool, &params).await?;
-    if !account_exists(&pool, &request.account_id.0, timestamp).await? {
-        return Err(errors::ErrorKind::InvalidInput("account does not exist".to_string()).into());
-    }
+    check_account_exists(&pool, &request.account_id.0, timestamp).await?;
 
     let db_result =
             utils::select_retry_or_panic::<db_models::AccountChangesBalance>(
@@ -48,25 +45,20 @@ async fn native_balance(
 
     match db_result.first() {
         Some(row) => {
-            //todo put into function
-            let amount = (&row.nonstaked)
-                .add(&row.staked)
-                .to_string()
-                .parse::<u128>()
-                .expect("amount expected to be u128");
-            let timestamp = row
-                .block_timestamp
-                .to_string()
-                .parse::<u64>()
-                .expect("timestamp expected to be u64");
+            // TODO support nonstaked, staked amounts
+            let amount = utils::to_u128(&row.nonstaked)? + utils::to_u128(&row.staked)?;
             Ok(Json(api_models::AccountBalanceResponse {
                 token_kind: "near".to_string(),
                 token_id: "near".to_string(),
                 amount: amount.into(),
-                block_timestamp_nanos: timestamp.into(),
+                block_timestamp_nanos: utils::to_u64(&row.block_timestamp)?.into(),
             }))
         }
-        None => Err(errors::ErrorKind::InvalidInput("account does not exist".to_string()).into()),
+        None => Err(errors::ErrorKind::DBError(format!(
+            "Could not find the data in account_changes table for account_id {}",
+            request.account_id.0
+        ))
+        .into()),
     }
 }
 
@@ -96,6 +88,22 @@ fn check_params(params: &web::Query<api_models::QueryParams>) -> Result<(), api_
             "Both block_height and block_timestamp_nanos found. Please provide only one of values"
                 .to_string(),
         )
+        .into())
+    } else {
+        Ok(())
+    }
+}
+
+async fn check_account_exists(
+    pool: &web::Data<sqlx::Pool<sqlx::Postgres>>,
+    account_id: &near_primitives::types::AccountId,
+    block_timestamp: u64,
+) -> Result<(), api_models::Error> {
+    if !account_exists(pool, account_id, block_timestamp).await? {
+        Err(errors::ErrorKind::InvalidInput(format!(
+            "account_id {} does not exist at block_timestamp {}",
+            account_id, block_timestamp
+        ))
         .into())
     } else {
         Ok(())
@@ -197,10 +205,10 @@ async fn get_last_timestamp(
         &[],
         RETRY_COUNT,
     )
-        .await?
-        .first()
-        .and_then(|timestamp| timestamp.block_timestamp.to_u64())
-        .ok_or_else(|| errors::ErrorKind::DBError("blocks table is empty".to_string()).into())
+    .await?
+    .first()
+    .and_then(|timestamp| timestamp.block_timestamp.to_u64())
+    .ok_or_else(|| errors::ErrorKind::DBError("blocks table is empty".to_string()).into())
 }
 
 fn get_cors(cors_allowed_origins: &[String]) -> Cors {
