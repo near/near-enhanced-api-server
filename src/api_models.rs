@@ -14,6 +14,14 @@ pub(crate) struct QueryParams {
     //todo check secs and u32
     pub block_timestamp_nanos: Option<super::types::U64>,
     pub block_height: Option<super::types::U64>,
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
+pub(crate) struct PaginatedQueryParams {
+    // todo die if both are given
+    //todo check secs and u32
+    pub block_timestamp_nanos: Option<super::types::U64>,
+    pub block_height: Option<super::types::U64>,
     pub page: Option<u32>,
 }
 

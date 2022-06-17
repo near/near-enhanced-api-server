@@ -1419,6 +1419,7 @@ dependencies = [
  "futures",
  "hex",
  "near-primitives",
+ "num-traits",
  "paperclip",
  "serde",
  "serde_json",

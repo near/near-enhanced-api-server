@@ -1,5 +1,6 @@
 use actix_cors::Cors;
 use actix_web::{App, HttpServer, ResponseError};
+use num_traits::cast::ToPrimitive;
 use paperclip::actix::{
     api_v2_operation,
     web::{self, Json},
@@ -17,20 +18,21 @@ mod utils;
 
 const INTERVAL: std::time::Duration = std::time::Duration::from_millis(100);
 const MAX_DELAY_TIME: std::time::Duration = std::time::Duration::from_secs(120);
+const RETRY_COUNT: usize = 10;
 
-#[api_v2_operation]
-/// Get the user's balance
-///
-/// This endpoint returns the balance of the given account_id,
-/// for the specified token_contract_id | near.
 async fn native_balance(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     request: web::Path<api_models::AccountBalanceRequest>,
     params: web::Query<api_models::QueryParams>,
 ) -> Result<Json<api_models::AccountBalanceResponse>, api_models::Error> {
-    let db_result = match params.block_timestamp_nanos {
-        Some(timestamp) => {
-            utils::select_retry_or_panic::<db_models::Aaa>(
+    check_params(&params)?;
+    let timestamp = get_timestamp_from_params(&pool, &params).await?;
+    if !account_exists(&pool, &request.account_id.0, timestamp).await? {
+        return Err(errors::ErrorKind::InvalidInput("account does not exist".to_string()).into());
+    }
+
+    let db_result =
+            utils::select_retry_or_panic::<db_models::AccountChangesBalance>(
                 &pool,
                 r"WITH t AS (
                     SELECT affected_account_nonstaked_balance nonstaked, affected_account_staked_balance staked, changed_in_block_timestamp block_timestamp
@@ -40,26 +42,9 @@ async fn native_balance(
                   )
                   SELECT * FROM t LIMIT 1
                  ",
-                &[request.account_id.0.to_string(), timestamp.0.to_string()],
-                10,
-            ).await?
-        }
-        None => {
-            utils::select_retry_or_panic::<db_models::Aaa>(
-                &pool,
-                r"WITH t AS (
-                    SELECT affected_account_nonstaked_balance nonstaked, affected_account_staked_balance staked, changed_in_block_timestamp block_timestamp
-                    FROM account_changes
-                    WHERE affected_account_id = $1
-                    ORDER BY changed_in_block_timestamp DESC
-                  )
-                  SELECT * FROM t LIMIT 1
-                 ",
-                &[request.account_id.0.to_string()],
-                10,
-            ).await?
-        }
-    };
+                &[request.account_id.0.to_string(), timestamp.to_string()],
+                RETRY_COUNT,
+            ).await?;
 
     match db_result.first() {
         Some(row) => {
@@ -81,7 +66,6 @@ async fn native_balance(
                 block_timestamp_nanos: timestamp.into(),
             }))
         }
-        // todo sometimes it also does not exist (deleted), but we will show the balance
         None => Err(errors::ErrorKind::InvalidInput("account does not exist".to_string()).into()),
     }
 }
@@ -104,6 +88,119 @@ async fn token_balance(
         )
         .into())
     }
+}
+
+fn check_params(params: &web::Query<api_models::QueryParams>) -> Result<(), api_models::Error> {
+    if params.block_height.is_some() && params.block_timestamp_nanos.is_some() {
+        Err(errors::ErrorKind::InvalidInput(
+            "Both block_height and block_timestamp_nanos found. Please provide only one of values"
+                .to_string(),
+        )
+        .into())
+    } else {
+        Ok(())
+    }
+}
+
+async fn account_exists(
+    pool: &web::Data<sqlx::Pool<sqlx::Postgres>>,
+    account_id: &near_primitives::types::AccountId,
+    block_timestamp: u64,
+) -> Result<bool, api_models::Error> {
+    // for the given timestamp, account exists if
+    // 1. we have at least 1 row at action_receipt_actions table
+    // 2. last action_kind != DELETE_ACCOUNT
+    Ok(utils::select_retry_or_panic::<db_models::ActionKind>(
+        pool,
+        r"SELECT action_kind::text FROM action_receipt_actions
+          WHERE receipt_receiver_account_id = $1
+              AND action_receipt_actions.receipt_included_in_block_timestamp <= $2::numeric(20, 0)
+          ORDER BY receipt_included_in_block_timestamp DESC, index_in_action_receipt DESC
+          LIMIT 1",
+        &[account_id.to_string(), block_timestamp.to_string()],
+        RETRY_COUNT,
+    )
+    .await?
+    .first()
+    .map(|kind| kind.action_kind != "DELETE_ACCOUNT")
+    .unwrap_or_else(|| false))
+}
+
+async fn get_timestamp_from_params(
+    pool: &web::Data<sqlx::Pool<sqlx::Postgres>>,
+    params: &web::Query<api_models::QueryParams>,
+) -> Result<u64, api_models::Error> {
+    if let Some(block_height) = params.block_height {
+        utils::select_retry_or_panic::<db_models::BlockTimestamp>(
+            pool,
+            "SELECT block_timestamp FROM blocks WHERE block_height = $1::numeric(20, 0)",
+            &[block_height.0.to_string()],
+            RETRY_COUNT,
+        )
+        .await?
+        .first()
+        .and_then(|timestamp| timestamp.block_timestamp.to_u64())
+        .ok_or_else(|| {
+            errors::ErrorKind::DBError(format!("block_height {} is not found", block_height.0))
+                .into()
+        })
+    } else if let Some(block_timestamp) = params.block_timestamp_nanos {
+        let result_timestamp = utils::select_retry_or_panic::<db_models::BlockTimestamp>(
+            pool,
+            r"SELECT block_timestamp
+              FROM blocks
+              WHERE block_timestamp <= $1::numeric(20, 0)
+              ORDER BY block_timestamp DESC
+              LIMIT 1",
+            &[block_timestamp.0.to_string()],
+            RETRY_COUNT,
+        )
+        .await?
+        .first()
+        .and_then(|timestamp| timestamp.block_timestamp.to_u64());
+        match result_timestamp {
+            None => get_first_timestamp(pool).await,
+            Some(x) => Ok(x),
+        }
+    } else {
+        get_last_timestamp(pool).await
+    }
+}
+
+async fn get_first_timestamp(
+    pool: &web::Data<sqlx::Pool<sqlx::Postgres>>,
+) -> Result<u64, api_models::Error> {
+    utils::select_retry_or_panic::<db_models::BlockTimestamp>(
+        pool,
+        r"SELECT block_timestamp
+          FROM blocks
+          ORDER BY block_timestamp
+          LIMIT 1",
+        &[],
+        RETRY_COUNT,
+    )
+    .await?
+    .first()
+    .and_then(|timestamp| timestamp.block_timestamp.to_u64())
+    .ok_or_else(|| errors::ErrorKind::DBError("blocks table is empty".to_string()).into())
+}
+
+async fn get_last_timestamp(
+    pool: &web::Data<sqlx::Pool<sqlx::Postgres>>,
+) -> Result<u64, api_models::Error> {
+    utils::select_retry_or_panic::<db_models::BlockTimestamp>(
+        pool,
+        r"SELECT block_timestamp
+          FROM blocks
+          ORDER BY block_timestamp DESC
+          LIMIT 1",
+        &[],
+        RETRY_COUNT,
+    )
+        .await?
+        .first()
+        .and_then(|timestamp| timestamp.block_timestamp.to_u64())
+        .ok_or_else(|| errors::ErrorKind::DBError("blocks table is empty".to_string()).into())
 }
 
 fn get_cors(cors_allowed_origins: &[String]) -> Cors {
