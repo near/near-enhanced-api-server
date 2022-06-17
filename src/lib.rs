@@ -21,9 +21,9 @@ const RETRY_COUNT: usize = 10;
 
 async fn native_balance(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
-    request: web::Path<api_models::AccountBalanceRequest>,
+    request: web::Path<api_models::AccountBalanceRequestForContract>,
     params: web::Query<api_models::QueryParams>,
-) -> Result<Json<api_models::AccountBalanceResponse>, api_models::Error> {
+) -> api_models::Result<Json<api_models::AccountBalanceResponseForContract>> {
     check_params(&params)?;
     let timestamp = get_timestamp_from_params(&pool, &params).await?;
     check_account_exists(&pool, &request.account_id.0, timestamp).await?;
@@ -47,10 +47,12 @@ async fn native_balance(
         Some(row) => {
             // TODO support nonstaked, staked amounts
             let amount = utils::to_u128(&row.nonstaked)? + utils::to_u128(&row.staked)?;
-            Ok(Json(api_models::AccountBalanceResponse {
-                token_kind: "near".to_string(),
-                token_id: "near".to_string(),
-                amount: amount.into(),
+            Ok(Json(api_models::AccountBalanceResponseForContract {
+                coins_info: vec![api_models::CoinInfo {
+                    standard: "nearprotocol".to_string(),
+                    token_id: "near".to_string(),
+                    amount: amount.into(),
+                }],
                 block_timestamp_nanos: utils::to_u64(&row.block_timestamp)?.into(),
             }))
         }
@@ -62,6 +64,23 @@ async fn native_balance(
     }
 }
 
+// [
+//   {“standard”: “nep141”, “token_id”: “USN“, “amount“: 10},
+//   {“standard”: “nepXXX”, “token_id”: “MT_FROL_GOLD“, “amount“: 10},
+//   {“standard”: “nepXXX”, “token_id”: “MT_FROL_SILVER“, “amount“: 1},
+// ]
+async fn ft_balance_for_contract(
+    pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
+    request: web::Path<api_models::AccountBalanceRequestForContract>,
+    params: web::Query<api_models::QueryParams>,
+) -> api_models::Result<Json<api_models::AccountBalanceResponseForContract>> {
+    check_params(&params)?;
+    let timestamp = get_timestamp_from_params(&pool, &params).await?;
+    check_account_exists(&pool, &request.account_id.0, timestamp).await?;
+
+    todo!("not implemented yet")
+}
+
 #[api_v2_operation]
 /// Get the user's balance
 ///
@@ -69,20 +88,17 @@ async fn native_balance(
 /// for the specified token_contract_id | near.
 async fn token_balance(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
-    request: web::Path<api_models::AccountBalanceRequest>,
+    request: web::Path<api_models::AccountBalanceRequestForContract>,
     params: web::Query<api_models::QueryParams>,
-) -> Result<Json<api_models::AccountBalanceResponse>, api_models::Error> {
+) -> api_models::Result<Json<api_models::AccountBalanceResponseForContract>> {
     if request.token_contract_id.to_string() == "near" {
         native_balance(pool, request, params).await
     } else {
-        Err(errors::ErrorKind::NotImplemented(
-            "FT and other stuff is not implemented yet".to_string(),
-        )
-        .into())
+        ft_balance_for_contract(pool, request, params).await
     }
 }
 
-fn check_params(params: &web::Query<api_models::QueryParams>) -> Result<(), api_models::Error> {
+fn check_params(params: &web::Query<api_models::QueryParams>) -> api_models::Result<()> {
     if params.block_height.is_some() && params.block_timestamp_nanos.is_some() {
         Err(errors::ErrorKind::InvalidInput(
             "Both block_height and block_timestamp_nanos found. Please provide only one of values"
@@ -98,7 +114,7 @@ async fn check_account_exists(
     pool: &web::Data<sqlx::Pool<sqlx::Postgres>>,
     account_id: &near_primitives::types::AccountId,
     block_timestamp: u64,
-) -> Result<(), api_models::Error> {
+) -> api_models::Result<()> {
     if !account_exists(pool, account_id, block_timestamp).await? {
         Err(errors::ErrorKind::InvalidInput(format!(
             "account_id {} does not exist at block_timestamp {}",
@@ -114,7 +130,7 @@ async fn account_exists(
     pool: &web::Data<sqlx::Pool<sqlx::Postgres>>,
     account_id: &near_primitives::types::AccountId,
     block_timestamp: u64,
-) -> Result<bool, api_models::Error> {
+) -> api_models::Result<bool> {
     // for the given timestamp, account exists if
     // 1. we have at least 1 row at action_receipt_actions table
     // 2. last action_kind != DELETE_ACCOUNT
@@ -137,7 +153,7 @@ async fn account_exists(
 async fn get_timestamp_from_params(
     pool: &web::Data<sqlx::Pool<sqlx::Postgres>>,
     params: &web::Query<api_models::QueryParams>,
-) -> Result<u64, api_models::Error> {
+) -> api_models::Result<u64> {
     if let Some(block_height) = params.block_height {
         utils::select_retry_or_panic::<db_models::BlockTimestamp>(
             pool,
@@ -177,7 +193,7 @@ async fn get_timestamp_from_params(
 
 async fn get_first_timestamp(
     pool: &web::Data<sqlx::Pool<sqlx::Postgres>>,
-) -> Result<u64, api_models::Error> {
+) -> api_models::Result<u64> {
     utils::select_retry_or_panic::<db_models::BlockTimestamp>(
         pool,
         r"SELECT block_timestamp
@@ -195,7 +211,7 @@ async fn get_first_timestamp(
 
 async fn get_last_timestamp(
     pool: &web::Data<sqlx::Pool<sqlx::Postgres>>,
-) -> Result<u64, api_models::Error> {
+) -> api_models::Result<u64> {
     utils::select_retry_or_panic::<db_models::BlockTimestamp>(
         pool,
         r"SELECT block_timestamp
@@ -243,10 +259,8 @@ pub fn start(
                 let error_message = err.to_string();
                 actix_web::error::InternalError::from_response(
                     err,
-                    api_models::Error::from_error_kind(errors::ErrorKind::InvalidInput(
-                        error_message,
-                    ))
-                    .error_response(),
+                    errors::Error::from_error_kind(errors::ErrorKind::InvalidInput(error_message))
+                        .error_response(),
                 )
                 .into()
             });
@@ -258,7 +272,7 @@ pub fn start(
             .wrap(get_cors(&cors_allowed_origins))
             .wrap_api()
             .service(
-                web::resource("/account/{account_id}/coins/{token_contract_id}")
+                web::resource("/accounts/{account_id}/coins/{token_contract_id}")
                     .route(web::get().to(token_balance)),
             )
             .with_json_spec_at("/api/spec")
