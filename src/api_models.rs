@@ -15,9 +15,14 @@ pub(crate) struct AccountBalanceRequest {
 pub(crate) struct AccountBalanceResponse {
     // todo we don't have this for FTs
     // go to metadata each time
-    pub coins_by_contracts: Vec<CoinByContractInfo>,
+    pub balances: Vec<CoinByContractInfo>,
     pub block_timestamp_nanos: super::types::U64,
-    pub page: u32,
+    pub block_height: super::types::U64,
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
+pub(crate) struct AccountNearBalanceRequestForContract {
+    pub account_id: super::types::AccountId,
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
@@ -32,8 +37,9 @@ pub(crate) struct AccountBalanceRequestForContract {
 pub(crate) struct AccountBalanceResponseForContract {
     // todo we don't have this for FTs
     // go to metadata each time
-    pub coins_info: Vec<CoinInfo>,
+    pub balances: Vec<CoinInfo>,
     pub block_timestamp_nanos: super::types::U64,
+    pub block_height: super::types::U64,
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]

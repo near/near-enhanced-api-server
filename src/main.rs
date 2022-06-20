@@ -9,7 +9,9 @@ async fn main() {
     let pool = sqlx::PgPool::connect(url)
         .await
         .expect("failed to connect to the database");
-    start(config::Config::default(), pool);
+    let rpc_client =
+        near_jsonrpc_client::JsonRpcClient::connect("https://archival-rpc.mainnet.near.org");
+    start(config::Config::default(), pool, rpc_client);
     loop {
         tokio::time::sleep(Duration::from_secs(100)).await;
     }

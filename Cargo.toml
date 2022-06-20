@@ -29,3 +29,5 @@ tracing = "0.1.13"
 validator = "0.12"
 
 near-primitives = "0.14.0"
+near-jsonrpc-client = "0.4.0-beta.0"
+near-jsonrpc-primitives = "0.14.0"

@@ -4,6 +4,7 @@ use sqlx::Arguments;
 
 use crate::{errors, BigDecimal};
 
+// TODO we actually don't need retries, right?
 pub(crate) async fn select_retry_or_panic<T: Send + Unpin + for<'r> sqlx::FromRow<'r, PgRow>>(
     pool: &sqlx::Pool<sqlx::Postgres>,
     query: &str,

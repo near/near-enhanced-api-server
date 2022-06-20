@@ -6,6 +6,7 @@ pub enum ErrorKind {
     InvalidInput(String),
     InternalError(String),
     NotImplemented(String),
+    RPCError(String),
 }
 
 /// Instead of utilizing HTTP status codes to describe node errors (which often
@@ -61,6 +62,11 @@ impl Error {
                 ),
                 retriable: true,
             },
+            ErrorKind::RPCError(message) => Self {
+                code: 500,
+                message: format!("RPC error: {}", message),
+                retriable: true,
+            },
         }
     }
 }
@@ -78,5 +84,21 @@ impl actix_web::ResponseError for Error {
     fn error_response(&self) -> actix_web::HttpResponse {
         let data = paperclip::actix::web::Json(self);
         actix_web::HttpResponse::InternalServerError().json(data)
+    }
+}
+
+impl
+    From<
+        near_jsonrpc_client::errors::JsonRpcError<
+            near_jsonrpc_primitives::types::query::RpcQueryError,
+        >,
+    > for ErrorKind
+{
+    fn from(
+        error: near_jsonrpc_client::errors::JsonRpcError<
+            near_jsonrpc_primitives::types::query::RpcQueryError,
+        >,
+    ) -> Self {
+        Self::RPCError(format!("{:#?}", error))
     }
 }

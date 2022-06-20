@@ -1,7 +1,10 @@
 use std::fmt;
 
 use borsh::{BorshDeserialize, BorshSerialize};
+use paperclip::v2::{models::DataType, schema::TypedData};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+use crate::{api_models, db_models, errors, utils};
 
 #[derive(
     Eq,
@@ -27,7 +30,6 @@ impl fmt::Debug for AccountId {
     }
 }
 
-use paperclip::v2::{models::DataType, schema::TypedData};
 impl TypedData for AccountId {
     fn data_type() -> DataType {
         DataType::String
@@ -92,5 +94,21 @@ impl TypedData for U64 {
 impl TypedData for U128 {
     fn data_type() -> DataType {
         DataType::String
+    }
+}
+
+pub struct Block {
+    pub timestamp: u64,
+    pub height: u64,
+}
+
+impl TryFrom<&db_models::Block> for Block {
+    type Error = errors::Error;
+
+    fn try_from(block: &db_models::Block) -> api_models::Result<Self> {
+        Ok(Self {
+            timestamp: utils::to_u64(&block.block_timestamp)?,
+            height: utils::to_u64(&block.block_height)?,
+        })
     }
 }
