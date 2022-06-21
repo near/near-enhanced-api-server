@@ -29,9 +29,9 @@ const RETRY_COUNT: usize = 10;
 /// for the specified token_contract_id | near.
 async fn native_balance(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
-    request: web::Path<api_models::AccountNearBalanceRequestForContract>,
+    request: web::Path<api_models::BalanceRequest>,
     params: web::Query<api_models::QueryParams>,
-) -> api_models::Result<Json<api_models::AccountBalanceResponseForContract>> {
+) -> api_models::Result<Json<api_models::BalanceResponse>> {
     check_params(&params)?;
     let block = get_block_from_params(&pool, &params).await?;
     check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
@@ -55,10 +55,11 @@ async fn native_balance(
         Some(balance) => {
             // TODO support nonstaked, staked amounts
             let amount = utils::to_u128(&balance.nonstaked)? + utils::to_u128(&balance.staked)?;
-            Ok(Json(api_models::AccountBalanceResponseForContract {
+            Ok(Json(api_models::BalanceResponse {
                 balances: vec![api_models::CoinInfo {
                     standard: "nearprotocol".to_string(),
                     token_id: "near".to_string(),
+                    contract_account_id: None,
                     amount: amount.into(),
                 }],
                 block_timestamp_nanos: types::U64::from(block.timestamp),
@@ -83,25 +84,19 @@ async fn native_balance(
 //   {“standard”: “nepXXX”, “token_id”: “MT_FROL_GOLD“, “amount“: 10},
 //   {“standard”: “nepXXX”, “token_id”: “MT_FROL_SILVER“, “amount“: 1},
 // ]
-async fn ft_balance_by_contract(
+async fn ft_balance(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
-    request: web::Path<api_models::AccountBalanceRequestForContract>,
+    request: web::Path<api_models::BalanceRequest>,
     params: web::Query<api_models::QueryParams>,
-) -> api_models::Result<Json<api_models::AccountBalanceResponseForContract>> {
-    if request.token_contract_id.to_string() == "near" {
-        return Err(errors::ErrorKind::InvalidInput(
-            "For native balance, please use NEAR (uppercase)".to_string(),
-        )
-        .into());
-    }
+) -> api_models::Result<Json<api_models::BalanceResponse>> {
     check_params(&params)?;
     let block = get_block_from_params(&pool, &params).await?;
     check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
 
-    let db_result = utils::select_retry_or_panic::<db_models::AccountId>(
+    let contracts = utils::select_retry_or_panic::<db_models::AccountId>(
         &pool,
-        r"SELECT DISTINCT emitted_by_contract_account_id
+        r"SELECT DISTINCT emitted_by_contract_account_id account_id
               FROM assets__fungible_token_events
               WHERE token_old_owner_account_id = $1 OR token_new_owner_account_id = $1
              ",
@@ -111,24 +106,71 @@ async fn ft_balance_by_contract(
         ],
         RETRY_COUNT,
     )
-    .await?
-    .iter()
-    .filter_map(|contract| {
-        match near_primitives::types::AccountId::from_str(&contract.account_id) {
-            Ok(contract_id) => {
-                let a = rpc_calls::get_balance(
-                    &rpc_client,
-                    contract_id,
-                    request.account_id.0.clone(),
-                    block.height,
-                );
-                Some(123)
-            }
-            Err(_) => None,
+    .await?;
+    let mut balances: Vec<api_models::CoinInfo> = vec![];
+    for contract in contracts {
+        if let Ok(contract_id) = near_primitives::types::AccountId::from_str(&contract.account_id) {
+            let balance = rpc_calls::get_ft_balance(
+                &rpc_client,
+                contract_id.clone(),
+                request.account_id.0.clone(),
+                block.height,
+            )
+            .await?;
+            balances.push(api_models::CoinInfo {
+                standard: "nep141".to_string(),
+                token_id: "todo".to_string(),
+                contract_account_id: Some(contract_id.to_string()),
+                amount: balance.into(),
+            });
         }
-    });
+    }
 
-    todo!("not implemented yet");
+    Ok(Json(api_models::BalanceResponse {
+        balances,
+        block_timestamp_nanos: types::U64::from(block.timestamp),
+        block_height: types::U64::from(block.height),
+    }))
+}
+
+#[api_v2_operation]
+/// Get the user's balance
+///
+/// This endpoint returns the balance of the given account_id,
+/// for the specified token_contract_id | near.
+// [
+//   {“standard”: “nep141”, “token_id”: “USN“, “amount“: 10},
+//   {“standard”: “nepXXX”, “token_id”: “MT_FROL_GOLD“, “amount“: 10},
+//   {“standard”: “nepXXX”, “token_id”: “MT_FROL_SILVER“, “amount“: 1},
+// ]
+async fn ft_balance_for_contract(
+    pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
+    rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
+    request: web::Path<api_models::BalanceRequestForContract>,
+    params: web::Query<api_models::QueryParams>,
+) -> api_models::Result<Json<api_models::BalanceResponse>> {
+    check_params(&params)?;
+    let block = get_block_from_params(&pool, &params).await?;
+    check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
+
+    let balance = rpc_calls::get_ft_balance(
+        &rpc_client,
+        request.contract_account_id.0.clone(),
+        request.account_id.0.clone(),
+        block.height,
+    )
+    .await?;
+
+    Ok(Json(api_models::BalanceResponse {
+        balances: vec![api_models::CoinInfo {
+            standard: "nep141".to_string(),
+            token_id: "todo".to_string(),
+            contract_account_id: Some(request.contract_account_id.to_string()),
+            amount: balance.into(),
+        }],
+        block_timestamp_nanos: types::U64::from(block.timestamp),
+        block_height: types::U64::from(block.height),
+    }))
 }
 
 fn check_params(params: &web::Query<api_models::QueryParams>) -> api_models::Result<()> {
@@ -314,15 +356,15 @@ pub fn start(
                 web::resource("/accounts/{account_id}/coins/NEAR")
                     .route(web::get().to(native_balance)),
             )
-            // .service(
-            //     web::resource("/accounts/{account_id}/coins/near")
-            //         .route(web::get().to(native_balance)),
-            // )
-            // todo NEAR will go here and fail    near
             .service(
-                web::resource("/accounts/{account_id}/coins/{token_contract_id}")
-                    .route(web::get().to(ft_balance_by_contract)),
+                web::resource("/accounts/{account_id}/coins/near")
+                    .route(web::get().to(native_balance)),
             )
+            .service(
+                web::resource("/accounts/{account_id}/coins/{contract_account_id}")
+                    .route(web::get().to(ft_balance_for_contract)),
+            )
+            .service(web::resource("/accounts/{account_id}/coins").route(web::get().to(ft_balance)))
             .with_json_spec_at("/api/spec")
             .build()
     })

@@ -1,5 +1,8 @@
 use paperclip::actix::{api_v2_errors, Apiv2Schema};
 
+use near_jsonrpc_client::errors::JsonRpcError;
+use near_jsonrpc_primitives::types::query::RpcQueryError;
+
 #[derive(Debug, strum::EnumIter)]
 pub enum ErrorKind {
     DBError(String),
@@ -87,18 +90,14 @@ impl actix_web::ResponseError for Error {
     }
 }
 
-impl
-    From<
-        near_jsonrpc_client::errors::JsonRpcError<
-            near_jsonrpc_primitives::types::query::RpcQueryError,
-        >,
-    > for ErrorKind
-{
-    fn from(
-        error: near_jsonrpc_client::errors::JsonRpcError<
-            near_jsonrpc_primitives::types::query::RpcQueryError,
-        >,
-    ) -> Self {
+impl From<JsonRpcError<RpcQueryError>> for ErrorKind {
+    fn from(error: JsonRpcError<RpcQueryError>) -> Self {
         Self::RPCError(format!("{:#?}", error))
+    }
+}
+
+impl From<serde_json::Error> for ErrorKind {
+    fn from(error: serde_json::Error) -> Self {
+        Self::InternalError(format!("Serialization failure: {:#?}", error))
     }
 }

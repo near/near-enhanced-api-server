@@ -1,6 +1,8 @@
-use crate::api_models;
+use near_jsonrpc_primitives::types::query::QueryResponseKind;
 
-pub(crate) async fn get_balance(
+use crate::{api_models, errors, types};
+
+pub(crate) async fn get_ft_balance(
     rpc_client: &near_jsonrpc_client::JsonRpcClient,
     contract_id: near_primitives::types::AccountId,
     account_id: near_primitives::types::AccountId,
@@ -25,6 +27,13 @@ pub(crate) async fn get_balance(
 
     let response = rpc_client.call(request).await?;
 
-    let a = 0;
-    todo!("not implemented yet");
+    match response.kind {
+        QueryResponseKind::CallResult(result) => {
+            Ok(serde_json::from_slice::<types::U128>(&result.result)?.0)
+        }
+        _ => Err(errors::ErrorKind::RPCError(
+            "Unexpected type of the response after CallFunction request".to_string(),
+        )
+        .into()),
+    }
 }
