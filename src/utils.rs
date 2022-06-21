@@ -4,6 +4,9 @@ use sqlx::Arguments;
 
 use crate::{errors, BigDecimal};
 
+const INTERVAL: std::time::Duration = std::time::Duration::from_millis(100);
+const MAX_DELAY_TIME: std::time::Duration = std::time::Duration::from_secs(120);
+
 // TODO we actually don't need retries, right?
 pub(crate) async fn select_retry_or_panic<T: Send + Unpin + for<'r> sqlx::FromRow<'r, PgRow>>(
     pool: &sqlx::Pool<sqlx::Postgres>,
@@ -11,7 +14,7 @@ pub(crate) async fn select_retry_or_panic<T: Send + Unpin + for<'r> sqlx::FromRo
     substitution_items: &[String],
     retry_count: usize,
 ) -> Result<Vec<T>, errors::ErrorKind> {
-    let mut interval = crate::INTERVAL;
+    let mut interval = INTERVAL;
     let mut retry_attempt = 0usize;
 
     loop {
@@ -43,7 +46,7 @@ pub(crate) async fn select_retry_or_panic<T: Send + Unpin + for<'r> sqlx::FromRo
                          interval.as_millis(),
                      );
                 tokio::time::sleep(interval).await;
-                if interval < crate::MAX_DELAY_TIME {
+                if interval < MAX_DELAY_TIME {
                     interval *= 2;
                 }
             }

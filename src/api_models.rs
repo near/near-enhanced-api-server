@@ -20,8 +20,6 @@ pub(crate) struct BalanceRequestForContract {
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub(crate) struct BalanceResponse {
-    // todo we don't have this for FTs
-    // go to metadata each time
     pub balances: Vec<CoinInfo>,
     pub block_timestamp_nanos: super::types::U64,
     pub block_height: super::types::U64,
@@ -31,6 +29,7 @@ pub(crate) struct BalanceResponse {
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub(crate) struct CoinInfo {
     // todo use enums here?
+    // todo add metadata fields
     pub standard: String,
     pub token_id: String,
     pub contract_account_id: Option<String>,

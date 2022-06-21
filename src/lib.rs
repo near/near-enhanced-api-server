@@ -6,8 +6,8 @@ use paperclip::actix::{
     OpenApiExt,
 };
 use sqlx::types::BigDecimal;
-use std::str::FromStr;
 
+mod api;
 mod api_models;
 pub mod config;
 mod db_models;
@@ -16,11 +16,34 @@ mod rpc_calls;
 mod types;
 mod utils;
 
-const INTERVAL: std::time::Duration = std::time::Duration::from_millis(100);
-const MAX_DELAY_TIME: std::time::Duration = std::time::Duration::from_secs(120);
-const RETRY_COUNT: usize = 10;
-
 // todo write creds to the doc
+
+#[api_v2_operation]
+/// Get the user's balance
+///
+/// This endpoint returns the balance of the given account_id,
+/// for the specified token_contract_id | near.
+async fn balance(
+    pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
+    rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
+    request: web::Path<api_models::BalanceRequest>,
+    params: web::Query<api_models::QueryParams>,
+) -> api_models::Result<Json<api_models::BalanceResponse>> {
+    //todo pagination
+    check_params(&params)?;
+    let block = get_block_from_params(&pool, &params).await?;
+    check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
+    let mut balances = api::native_balance(&pool, &block, &request.account_id.0).await?;
+    let mut ft = api::ft_balance(&pool, &rpc_client, &block, &request.account_id.0).await?;
+    balances.append(&mut ft);
+    // todo MT
+
+    Ok(Json(api_models::BalanceResponse {
+        balances,
+        block_timestamp_nanos: types::U64::from(block.timestamp),
+        block_height: types::U64::from(block.height),
+    }))
+}
 
 #[api_v2_operation]
 /// Get the user's balance
@@ -36,42 +59,11 @@ async fn native_balance(
     let block = get_block_from_params(&pool, &params).await?;
     check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
 
-    let db_result =
-            utils::select_retry_or_panic::<db_models::AccountChangesBalance>(
-                &pool,
-                r"WITH t AS (
-                    SELECT affected_account_nonstaked_balance nonstaked, affected_account_staked_balance staked
-                    FROM account_changes
-                    WHERE affected_account_id = $1 AND changed_in_block_timestamp <= $2::numeric(20, 0)
-                    ORDER BY changed_in_block_timestamp DESC
-                  )
-                  SELECT * FROM t LIMIT 1
-                 ",
-                &[request.account_id.0.to_string(), block.timestamp.to_string()],
-                RETRY_COUNT,
-            ).await?;
-
-    match db_result.first() {
-        Some(balance) => {
-            // TODO support nonstaked, staked amounts
-            let amount = utils::to_u128(&balance.nonstaked)? + utils::to_u128(&balance.staked)?;
-            Ok(Json(api_models::BalanceResponse {
-                balances: vec![api_models::CoinInfo {
-                    standard: "nearprotocol".to_string(),
-                    token_id: "near".to_string(),
-                    contract_account_id: None,
-                    amount: amount.into(),
-                }],
-                block_timestamp_nanos: types::U64::from(block.timestamp),
-                block_height: types::U64::from(block.height),
-            }))
-        }
-        None => Err(errors::ErrorKind::DBError(format!(
-            "Could not find the data in account_changes table for account_id {}",
-            request.account_id.0
-        ))
-        .into()),
-    }
+    Ok(Json(api_models::BalanceResponse {
+        balances: api::native_balance(&pool, &block, &request.account_id.0).await?,
+        block_timestamp_nanos: types::U64::from(block.timestamp),
+        block_height: types::U64::from(block.height),
+    }))
 }
 
 #[api_v2_operation]
@@ -94,44 +86,8 @@ async fn ft_balance(
     let block = get_block_from_params(&pool, &params).await?;
     check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
 
-    let contracts = utils::select_retry_or_panic::<db_models::AccountId>(
-        &pool,
-        r"SELECT DISTINCT emitted_by_contract_account_id account_id
-              FROM assets__fungible_token_events
-              WHERE token_old_owner_account_id = $1 OR token_new_owner_account_id = $1
-             ",
-        &[
-            request.account_id.0.to_string(),
-            block.timestamp.to_string(),
-        ],
-        RETRY_COUNT,
-    )
-    .await?;
-    let mut balances: Vec<api_models::CoinInfo> = vec![];
-    for contract in contracts {
-        if let Ok(contract_id) = near_primitives::types::AccountId::from_str(&contract.account_id) {
-            let (balance, token_id) = (
-                rpc_calls::get_ft_balance(
-                    &rpc_client,
-                    contract_id.clone(),
-                    request.account_id.0.clone(),
-                    block.height,
-                )
-                .await?,
-                rpc_calls::get_ft_name(&rpc_client, contract_id.clone(), block.height).await?,
-            );
-
-            balances.push(api_models::CoinInfo {
-                standard: "nep141".to_string(),
-                token_id,
-                contract_account_id: Some(contract_id.to_string()),
-                amount: balance.into(),
-            });
-        }
-    }
-
     Ok(Json(api_models::BalanceResponse {
-        balances,
+        balances: api::ft_balance(&pool, &rpc_client, &block, &request.account_id.0).await?,
         block_timestamp_nanos: types::U64::from(block.timestamp),
         block_height: types::U64::from(block.height),
     }))
@@ -157,29 +113,59 @@ async fn ft_balance_for_contract(
     let block = get_block_from_params(&pool, &params).await?;
     check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
 
-    let (balance, token_id) = (
-        rpc_calls::get_ft_balance(
-            &rpc_client,
-            request.contract_account_id.0.clone(),
-            request.account_id.0.clone(),
-            block.height,
-        )
-        .await?,
-        rpc_calls::get_ft_name(
-            &rpc_client,
-            request.contract_account_id.0.clone(),
-            block.height,
-        )
-        .await?,
-    );
+    Ok(Json(api_models::BalanceResponse {
+        balances: vec![
+            api::ft_balance_for_contract(
+                &rpc_client,
+                &block,
+                &request.contract_account_id.0,
+                &request.account_id.0,
+            )
+            .await?,
+        ],
+        block_timestamp_nanos: types::U64::from(block.timestamp),
+        block_height: types::U64::from(block.height),
+    }))
+}
+
+#[api_v2_operation]
+/// Get the user's balance
+///
+/// This endpoint returns the balance of the given account_id,
+/// for the specified token_contract_id | near.
+// [
+//   {“standard”: “nep141”, “token_id”: “USN“, “amount“: 10},
+//   {“standard”: “nepXXX”, “token_id”: “MT_FROL_GOLD“, “amount“: 10},
+//   {“standard”: “nepXXX”, “token_id”: “MT_FROL_SILVER“, “amount“: 1},
+// ]
+async fn balance_for_contract(
+    pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
+    rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
+    request: web::Path<api_models::BalanceRequestForContract>,
+    params: web::Query<api_models::QueryParams>,
+) -> api_models::Result<Json<api_models::BalanceResponse>> {
+    // if request.token_contract_id.to_string() == "near" {
+    //     return Err(errors::ErrorKind::InvalidInput(
+    //         "For native balance, please use NEAR (uppercase)".to_string(),
+    //     )
+    //         .into());
+    // }
+
+    check_params(&params)?;
+    let block = get_block_from_params(&pool, &params).await?;
+    check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
 
     Ok(Json(api_models::BalanceResponse {
-        balances: vec![api_models::CoinInfo {
-            standard: "nep141".to_string(),
-            token_id,
-            contract_account_id: Some(request.contract_account_id.to_string()),
-            amount: balance.into(),
-        }],
+        balances: vec![
+            api::ft_balance_for_contract(
+                &rpc_client,
+                &block,
+                &request.contract_account_id.0,
+                &request.account_id.0,
+            )
+            .await?,
+            // todo MT
+        ],
         block_timestamp_nanos: types::U64::from(block.timestamp),
         block_height: types::U64::from(block.height),
     }))
@@ -202,7 +188,7 @@ async fn check_account_exists(
     account_id: &near_primitives::types::AccountId,
     block_timestamp: u64,
 ) -> api_models::Result<()> {
-    if !account_exists(pool, account_id, block_timestamp).await? {
+    if !api::account_exists(pool, account_id, block_timestamp).await? {
         Err(errors::ErrorKind::InvalidInput(format!(
             "account_id {} does not exist at block_timestamp {}",
             account_id, block_timestamp
@@ -213,32 +199,7 @@ async fn check_account_exists(
     }
 }
 
-async fn account_exists(
-    pool: &web::Data<sqlx::Pool<sqlx::Postgres>>,
-    account_id: &near_primitives::types::AccountId,
-    block_timestamp: u64,
-) -> api_models::Result<bool> {
-    // for the given timestamp, account exists if
-    // 1. we have at least 1 row at action_receipt_actions table
-    // 2. last successful action_kind != DELETE_ACCOUNT
-    // TODO we are loosing +1 second here, it's painful
-    Ok(utils::select_retry_or_panic::<db_models::ActionKind>(
-        pool,
-        r"SELECT action_kind::text
-          FROM action_receipt_actions JOIN execution_outcomes ON action_receipt_actions.receipt_id = execution_outcomes.receipt_id
-          WHERE receipt_predecessor_account_id = $1
-              AND action_receipt_actions.receipt_included_in_block_timestamp <= $2::numeric(20, 0)
-              AND execution_outcomes.status IN ('SUCCESS_VALUE', 'SUCCESS_RECEIPT_ID')
-          ORDER BY receipt_included_in_block_timestamp DESC, index_in_action_receipt DESC
-          LIMIT 1",
-        &[account_id.to_string(), block_timestamp.to_string()],
-        RETRY_COUNT,
-    )
-    .await?
-    .first()
-    .map(|kind| kind.action_kind != "DELETE_ACCOUNT")
-    .unwrap_or_else(|| false))
-}
+const RETRY_COUNT: usize = 10;
 
 async fn get_block_from_params(
     pool: &web::Data<sqlx::Pool<sqlx::Postgres>>,
@@ -364,19 +325,28 @@ pub fn start(
             .app_data(web::Data::new(rpc_client.clone()))
             .wrap(get_cors(&cors_allowed_origins))
             .wrap_api()
+            // todo I like the ability to write both near and NEAR, but it produces 2 lines in the doc
+            // todo I want to add stats collection to the api
+            .service(web::resource("/accounts/{account_id}/coins").route(web::get().to(balance)))
             .service(
                 web::resource("/accounts/{account_id}/coins/NEAR")
                     .route(web::get().to(native_balance)),
             )
+            // .service(
+            //     web::resource("/accounts/{account_id}/coins/near")
+            //         .route(web::get().to(native_balance)),
+            // )
             .service(
-                web::resource("/accounts/{account_id}/coins/near")
-                    .route(web::get().to(native_balance)),
+                web::resource("/accounts/{account_id}/coins/FT").route(web::get().to(ft_balance)),
             )
             .service(
                 web::resource("/accounts/{account_id}/coins/{contract_account_id}")
+                    .route(web::get().to(balance_for_contract)),
+            )
+            .service(
+                web::resource("/accounts/{account_id}/coins/FT/{contract_account_id}")
                     .route(web::get().to(ft_balance_for_contract)),
             )
-            .service(web::resource("/accounts/{account_id}/coins").route(web::get().to(ft_balance)))
             .with_json_spec_at("/api/spec")
             .build()
     })
@@ -392,22 +362,3 @@ pub fn start(
 
     handle
 }
-
-// TODO we need to add absolute value column for this query
-// go to rpc
-// Token Balance for a given Address(FT)
-// List of all the tokens with their balances
-// /accounts/<account-id>/coins | pagination + timestamp
-//
-
-// SELECT 'nep141' as standard, emitted_by_contract_account_id as token_id, amount, emitted_by_contract_account_id as contract_account_id
-// FROM assets__fungible_token_events
-// WHERE
-
-//
-// [
-//   {“standard”: “nearprotocol“, “token_id”: “NEAR“, “amount“: 10},
-//   {“standard”: “nep141”, “token_id”: “USN“, “amount“: 10, “contract_account_id”: “<token-contract-id>“},
-//   {“standard”: “nep245”, “token_id”: “MT_FROL_GOLD“, “amount“: 10, “contract_account_id”: “<token-contract-id>“},
-//   {“standard”: “nep245”, “token_id”: “MT_FROL_SILVER“, “amount“: 1, “contract_account_id”: “<token-contract-id>“}
-// ]
