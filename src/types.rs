@@ -97,6 +97,7 @@ impl TypedData for U128 {
     }
 }
 
+// Helper for parsing the data collected from DB
 pub struct Block {
     pub timestamp: u64,
     pub height: u64,
@@ -111,4 +112,33 @@ impl TryFrom<&db_models::Block> for Block {
             height: utils::to_u64(&block.block_height)?,
         })
     }
+}
+
+// Taken from https://github.com/near/near-sdk-rs/blob/master/near-sdk/src/json_types/vector.rs
+/// Helper class to serialize/deserialize `Vec<u8>` to base64 string.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, BorshDeserialize, BorshSerialize)]
+pub struct Base64VecU8(pub Vec<u8>);
+
+impl From<Vec<u8>> for Base64VecU8 {
+    fn from(v: Vec<u8>) -> Self {
+        Self(v)
+    }
+}
+
+impl From<Base64VecU8> for Vec<u8> {
+    fn from(v: Base64VecU8) -> Vec<u8> {
+        v.0
+    }
+}
+
+// Taken from https://github.com/near/near-sdk-rs/blob/master/near-contract-standards/src/fungible_token/metadata.rs
+#[derive(BorshDeserialize, BorshSerialize, Clone, Deserialize, Serialize)]
+pub struct FungibleTokenMetadata {
+    pub spec: String,
+    pub name: String,
+    pub symbol: String,
+    pub icon: Option<String>,
+    pub reference: Option<String>,
+    pub reference_hash: Option<Base64VecU8>,
+    pub decimals: u8,
 }

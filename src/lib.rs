@@ -110,16 +110,20 @@ async fn ft_balance(
     let mut balances: Vec<api_models::CoinInfo> = vec![];
     for contract in contracts {
         if let Ok(contract_id) = near_primitives::types::AccountId::from_str(&contract.account_id) {
-            let balance = rpc_calls::get_ft_balance(
-                &rpc_client,
-                contract_id.clone(),
-                request.account_id.0.clone(),
-                block.height,
-            )
-            .await?;
+            let (balance, token_id) = (
+                rpc_calls::get_ft_balance(
+                    &rpc_client,
+                    contract_id.clone(),
+                    request.account_id.0.clone(),
+                    block.height,
+                )
+                .await?,
+                rpc_calls::get_ft_name(&rpc_client, contract_id.clone(), block.height).await?,
+            );
+
             balances.push(api_models::CoinInfo {
                 standard: "nep141".to_string(),
-                token_id: "todo".to_string(),
+                token_id,
                 contract_account_id: Some(contract_id.to_string()),
                 amount: balance.into(),
             });
@@ -153,18 +157,26 @@ async fn ft_balance_for_contract(
     let block = get_block_from_params(&pool, &params).await?;
     check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
 
-    let balance = rpc_calls::get_ft_balance(
-        &rpc_client,
-        request.contract_account_id.0.clone(),
-        request.account_id.0.clone(),
-        block.height,
-    )
-    .await?;
+    let (balance, token_id) = (
+        rpc_calls::get_ft_balance(
+            &rpc_client,
+            request.contract_account_id.0.clone(),
+            request.account_id.0.clone(),
+            block.height,
+        )
+        .await?,
+        rpc_calls::get_ft_name(
+            &rpc_client,
+            request.contract_account_id.0.clone(),
+            block.height,
+        )
+        .await?,
+    );
 
     Ok(Json(api_models::BalanceResponse {
         balances: vec![api_models::CoinInfo {
             standard: "nep141".to_string(),
-            token_id: "todo".to_string(),
+            token_id,
             contract_account_id: Some(request.contract_account_id.to_string()),
             amount: balance.into(),
         }],

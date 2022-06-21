@@ -25,11 +25,39 @@ pub(crate) async fn get_ft_balance(
         },
     };
 
-    let response = rpc_client.call(request).await?;
-
-    match response.kind {
+    match rpc_client.call(request).await?.kind {
         QueryResponseKind::CallResult(result) => {
             Ok(serde_json::from_slice::<types::U128>(&result.result)?.0)
+        }
+        _ => Err(errors::ErrorKind::RPCError(
+            "Unexpected type of the response after CallFunction request".to_string(),
+        )
+        .into()),
+    }
+}
+
+pub(crate) async fn get_ft_name(
+    rpc_client: &near_jsonrpc_client::JsonRpcClient,
+    contract_id: near_primitives::types::AccountId,
+    block_height: u64,
+) -> api_models::Result<String> {
+    let request = near_jsonrpc_client::methods::query::RpcQueryRequest {
+        block_reference: near_primitives::types::BlockReference::BlockId(
+            near_primitives::types::BlockId::Height(block_height),
+        ),
+        request: near_primitives::views::QueryRequest::CallFunction {
+            account_id: contract_id,
+            method_name: "ft_metadata".to_string(),
+            args: near_primitives::types::FunctionArgs::from(
+                serde_json::json!({}).to_string().into_bytes(),
+            ),
+        },
+    };
+
+    match rpc_client.call(request).await?.kind {
+        QueryResponseKind::CallResult(result) => {
+            let metadata = serde_json::from_slice::<types::FungibleTokenMetadata>(&result.result)?;
+            Ok(metadata.name)
         }
         _ => Err(errors::ErrorKind::RPCError(
             "Unexpected type of the response after CallFunction request".to_string(),
