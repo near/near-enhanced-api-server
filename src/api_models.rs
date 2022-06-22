@@ -18,9 +18,28 @@ pub(crate) struct BalanceRequestForContract {
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
+pub(crate) struct FtMetadataRequest {
+    pub contract_account_id: super::types::AccountId,
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub(crate) struct BalanceResponse {
     pub balances: Vec<CoinInfo>,
+    pub block_timestamp_nanos: super::types::U64,
+    pub block_height: super::types::U64,
+}
+
+// todo it does not work for MT
+// https://nomicon.io/Standards/Tokens/MultiToken/Metadata
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub(crate) struct FtMetadataResponse {
+    pub symbol: String,
+    pub decimals: u8,
+    pub icon: Option<String>,
+    // todo not sure we want to add it here, but for consistency, we have to
+    // it will also make the caching much harder
     pub block_timestamp_nanos: super::types::U64,
     pub block_height: super::types::U64,
 }
@@ -32,7 +51,7 @@ pub(crate) struct CoinInfo {
     // todo add metadata fields
     pub standard: String,
     pub contract_account_id: Option<String>,
-    pub amount: super::types::U128,
+    pub balance: super::types::U128,
     pub symbol: String,
     pub decimals: u8,
     pub icon: Option<String>,

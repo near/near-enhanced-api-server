@@ -31,7 +31,7 @@ pub(crate) async fn native_balance(
             Ok(vec![api_models::CoinInfo {
                 standard: "nearprotocol".to_string(),
                 contract_account_id: None,
-                amount: amount.into(),
+                balance: amount.into(),
                 symbol: "NEAR".to_string(),
                 decimals: 24,
                 icon: None, // todo is the a right link to NEAR icon?
@@ -93,7 +93,7 @@ pub(crate) async fn ft_balance_for_contract(
     Ok(api_models::CoinInfo {
         standard: "nep141".to_string(),
         contract_account_id: Some(contract_id.to_string()),
-        amount: balance.into(),
+        balance: balance.into(),
         symbol: metadata.symbol,
         decimals: metadata.decimals,
         icon: metadata.icon,
