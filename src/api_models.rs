@@ -23,9 +23,23 @@ pub(crate) struct FtMetadataRequest {
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
+pub(crate) struct FtHistoryRequest {
+    pub account_id: super::types::AccountId,
+    pub contract_account_id: super::types::AccountId,
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub(crate) struct BalanceResponse {
     pub balances: Vec<CoinInfo>,
+    pub block_timestamp_nanos: super::types::U64,
+    pub block_height: super::types::U64,
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub(crate) struct FtHistoryResponse {
+    pub history: Vec<FtHistoryInfo>,
     pub block_timestamp_nanos: super::types::U64,
     pub block_height: super::types::U64,
 }
@@ -50,11 +64,22 @@ pub(crate) struct CoinInfo {
     // todo use enums here?
     // todo add metadata fields
     pub standard: String,
-    pub contract_account_id: Option<String>,
+    pub contract_account_id: Option<super::types::AccountId>,
     pub balance: super::types::U128,
     pub symbol: String,
     pub decimals: u8,
     pub icon: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub(crate) struct FtHistoryInfo {
+    pub action_kind: String, // mint transfer burn
+    pub affected_account_id: Option<super::types::AccountId>,
+    pub delta_balance: super::types::I128,
+    pub balance: super::types::U128,
+    pub block_timestamp_nanos: super::types::U64,
+    pub block_height: super::types::U64,
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]

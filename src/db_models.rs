@@ -21,3 +21,13 @@ pub(crate) struct ActionKind {
 pub(crate) struct AccountId {
     pub account_id: String,
 }
+
+#[derive(sqlx::FromRow)]
+pub(crate) struct FtHistoryInfo {
+    pub block_height: BigDecimal,
+    pub block_timestamp: BigDecimal,
+    pub amount: String,
+    pub event_kind: String,
+    pub old_owner_id: String,
+    pub new_owner_id: String,
+}

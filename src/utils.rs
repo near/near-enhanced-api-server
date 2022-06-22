@@ -60,6 +60,17 @@ pub(crate) fn to_u128(x: &BigDecimal) -> Result<u128, errors::ErrorKind> {
         .map_err(|e| errors::ErrorKind::InternalError(format!("Failed to parse u128 {}: {}", x, e)))
 }
 
+// pub(crate) fn to_i128(x: &BigDecimal) -> Result<i128, errors::ErrorKind> {
+//     x.to_string()
+//         .parse()
+//         .map_err(|e| errors::ErrorKind::InternalError(format!("Failed to parse i128 {}: {}", x, e)))
+// }
+
+pub(crate) fn string_to_i128(x: &String) -> Result<i128, errors::ErrorKind> {
+    x.parse()
+        .map_err(|e| errors::ErrorKind::InternalError(format!("Failed to parse i128 {}: {}", x, e)))
+}
+
 pub(crate) fn to_u64(x: &BigDecimal) -> Result<u64, errors::ErrorKind> {
     x.to_u64()
         .ok_or_else(|| errors::ErrorKind::InternalError(format!("Failed to parse u64 {}", x)))

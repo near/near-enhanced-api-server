@@ -79,23 +79,18 @@ macro_rules! impl_str_type {
                 })?))
             }
         }
+
+        impl TypedData for $iden {
+            fn data_type() -> DataType {
+                DataType::String
+            }
+        }
     };
 }
 
 impl_str_type!(U128, u128);
 impl_str_type!(U64, u64);
-
-impl TypedData for U64 {
-    fn data_type() -> DataType {
-        DataType::String
-    }
-}
-
-impl TypedData for U128 {
-    fn data_type() -> DataType {
-        DataType::String
-    }
-}
+impl_str_type!(I128, i128);
 
 // Helper for parsing the data collected from DB
 pub struct Block {

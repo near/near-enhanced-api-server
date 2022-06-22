@@ -197,6 +197,31 @@ async fn ft_metadata(
     }))
 }
 
+#[api_v2_operation]
+async fn ft_history_for_contract(
+    pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
+    rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
+    request: web::Path<api_models::FtHistoryRequest>,
+    params: web::Query<api_models::QueryParams>,
+) -> api_models::Result<Json<api_models::FtHistoryResponse>> {
+    check_params(&params)?;
+    let block = get_block_from_params(&pool, &params).await?;
+    check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
+
+    Ok(Json(api_models::FtHistoryResponse {
+        history: api::ft_history(
+            &pool,
+            &rpc_client,
+            &block,
+            &request.contract_account_id.0,
+            &request.account_id.0,
+        )
+        .await?,
+        block_timestamp_nanos: types::U64::from(block.timestamp),
+        block_height: types::U64::from(block.height),
+    }))
+}
+
 fn check_params(params: &web::Query<api_models::QueryParams>) -> api_models::Result<()> {
     if params.block_height.is_some() && params.block_timestamp_nanos.is_some() {
         Err(errors::ErrorKind::InvalidInput(
@@ -209,6 +234,7 @@ fn check_params(params: &web::Query<api_models::QueryParams>) -> api_models::Res
     }
 }
 
+// todo do we need check_contract_exists? (now we will just fail when we make the call to rpc)
 async fn check_account_exists(
     pool: &web::Data<sqlx::Pool<sqlx::Postgres>>,
     account_id: &near_primitives::types::AccountId,
@@ -225,7 +251,7 @@ async fn check_account_exists(
     }
 }
 
-const RETRY_COUNT: usize = 10;
+const RETRY_COUNT: usize = 1;
 
 async fn get_block_from_params(
     pool: &web::Data<sqlx::Pool<sqlx::Postgres>>,
@@ -372,6 +398,10 @@ pub fn start(
             .service(
                 web::resource("/accounts/{account_id}/coins/FT/{contract_account_id}")
                     .route(web::get().to(ft_balance_for_contract)),
+            )
+            .service(
+                web::resource("/accounts/{account_id}/coins/FT/{contract_account_id}/history")
+                    .route(web::get().to(ft_history_for_contract)),
             )
             // todo it's hard to create one endpoint to rule them all, I prefer to have 3 different endpoints
             // https://nomicon.io/Standards/Tokens/FungibleToken/Metadata

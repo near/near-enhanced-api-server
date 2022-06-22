@@ -101,3 +101,9 @@ impl From<serde_json::Error> for ErrorKind {
         Self::InternalError(format!("Serialization failure: {:#?}", error))
     }
 }
+
+impl From<near_primitives::account::id::ParseAccountError> for ErrorKind {
+    fn from(error: near_primitives::account::id::ParseAccountError) -> Self {
+        Self::InternalError(format!("Could not parse account: {:#?}", error))
+    }
+}
