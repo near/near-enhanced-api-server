@@ -30,9 +30,11 @@ pub(crate) async fn native_balance(
             let amount = utils::to_u128(&balance.nonstaked)? + utils::to_u128(&balance.staked)?;
             Ok(vec![api_models::CoinInfo {
                 standard: "nearprotocol".to_string(),
-                token_id: "near".to_string(),
                 contract_account_id: None,
                 amount: amount.into(),
+                symbol: "NEAR".to_string(),
+                decimals: 24,
+                icon: None, // todo is the a right link to NEAR icon?
             }])
         }
         None => Err(errors::ErrorKind::DBError(format!(
@@ -77,7 +79,7 @@ pub(crate) async fn ft_balance_for_contract(
     contract_id: &near_primitives::types::AccountId,
     account_id: &near_primitives::types::AccountId,
 ) -> api_models::Result<api_models::CoinInfo> {
-    let (balance, token_id) = (
+    let (balance, metadata) = (
         rpc_calls::get_ft_balance(
             rpc_client,
             contract_id.clone(),
@@ -85,14 +87,16 @@ pub(crate) async fn ft_balance_for_contract(
             block.height,
         )
         .await?,
-        rpc_calls::get_ft_name(rpc_client, contract_id.clone(), block.height).await?,
+        rpc_calls::get_ft_metadata(rpc_client, contract_id.clone(), block.height).await?,
     );
 
     Ok(api_models::CoinInfo {
         standard: "nep141".to_string(),
-        token_id,
         contract_account_id: Some(contract_id.to_string()),
         amount: balance.into(),
+        symbol: metadata.symbol,
+        decimals: metadata.decimals,
+        icon: metadata.icon,
     })
 }
 

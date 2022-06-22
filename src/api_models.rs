@@ -31,9 +31,11 @@ pub(crate) struct CoinInfo {
     // todo use enums here?
     // todo add metadata fields
     pub standard: String,
-    pub token_id: String,
     pub contract_account_id: Option<String>,
     pub amount: super::types::U128,
+    pub symbol: String,
+    pub decimals: u8,
+    pub icon: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
