@@ -137,3 +137,16 @@ pub struct FungibleTokenMetadata {
     pub reference_hash: Option<Base64VecU8>,
     pub decimals: u8,
 }
+
+// Taken from https://github.com/near/near-sdk-rs/blob/master/near-contract-standards/src/non_fungible_token/metadata.rs
+/// Metadata for the NFT contract itself.
+#[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct NFTContractMetadata {
+    pub spec: String,              // required, essentially a version like "nft-1.0.0"
+    pub name: String,              // required, ex. "Mosaics"
+    pub symbol: String,            // required, ex. "MOSIAC"
+    pub icon: Option<String>,      // Data URL
+    pub base_uri: Option<String>, // Centralized gateway known to have reliable access to decentralized storage assets referenced by `reference` or `media` URLs
+    pub reference: Option<String>, // URL to a JSON file with more info
+    pub reference_hash: Option<Base64VecU8>, // Base64-encoded sha256 hash of JSON from reference field. Required if `reference` is included.
+}

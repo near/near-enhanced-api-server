@@ -222,6 +222,24 @@ async fn ft_history_for_contract(
     }))
 }
 
+#[api_v2_operation]
+async fn nft_count(
+    pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
+    rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
+    request: web::Path<api_models::BalanceRequest>,
+    params: web::Query<api_models::QueryParams>,
+) -> api_models::Result<Json<api_models::NftCountResponse>> {
+    check_params(&params)?;
+    let block = get_block_from_params(&pool, &params).await?;
+    check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
+
+    Ok(Json(api_models::NftCountResponse {
+        nfts: api::nft_count(&pool, &rpc_client, &block, &request.account_id.0).await?,
+        block_timestamp_nanos: types::U64::from(block.timestamp),
+        block_height: types::U64::from(block.height),
+    }))
+}
+
 fn check_params(params: &web::Query<api_models::QueryParams>) -> api_models::Result<()> {
     if params.block_height.is_some() && params.block_timestamp_nanos.is_some() {
         Err(errors::ErrorKind::InvalidInput(
@@ -399,14 +417,20 @@ pub fn start(
                 web::resource("/accounts/{account_id}/coins/FT/{contract_account_id}")
                     .route(web::get().to(ft_balance_for_contract)),
             )
+            // todo I skip native balance history because we need other table for that
             .service(
                 web::resource("/accounts/{account_id}/coins/FT/{contract_account_id}/history")
                     .route(web::get().to(ft_history_for_contract)),
             )
+            // todo what about allowance? how do we want to compute that
             // todo it's hard to create one endpoint to rule them all, I prefer to have 3 different endpoints
             // https://nomicon.io/Standards/Tokens/FungibleToken/Metadata
             // https://nomicon.io/Standards/Tokens/NonFungibleToken/Metadata
             // https://nomicon.io/Standards/Tokens/MultiToken/Metadata
+            .service(
+                web::resource("/accounts/{account_id}/collectibles")
+                    .route(web::get().to(nft_count)),
+            )
             .service(
                 web::resource("/coins/FT/{contract_account_id}").route(web::get().to(ft_metadata)),
             )

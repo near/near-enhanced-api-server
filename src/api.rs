@@ -1,3 +1,4 @@
+use num_traits::ToPrimitive;
 use std::str::FromStr;
 
 use crate::{api_models, db_models, errors, rpc_calls, types, utils};
@@ -195,6 +196,47 @@ pub(crate) async fn ft_history(
                 account_id, contract_id
             ))
             .into());
+        }
+    }
+    Ok(result)
+}
+
+pub(crate) async fn nft_count(
+    pool: &sqlx::Pool<sqlx::Postgres>,
+    rpc_client: &near_jsonrpc_client::JsonRpcClient,
+    block: &types::Block,
+    account_id: &near_primitives::types::AccountId,
+) -> api_models::Result<Vec<api_models::NftContractInfo>> {
+    let contracts = utils::select_retry_or_panic::<db_models::NftCount>(
+        pool,
+        r"SELECT emitted_by_contract_account_id contract_id, count(*) count
+          FROM assets__non_fungible_token_events
+          WHERE token_new_owner_account_id = $1
+              AND emitted_at_block_timestamp <= $2::numeric(20, 0)
+          GROUP BY emitted_by_contract_account_id
+         ",
+        &[account_id.to_string(), block.timestamp.to_string()],
+        RETRY_COUNT,
+    )
+    .await?;
+
+    let mut result: Vec<api_models::NftContractInfo> = vec![];
+    for contract in contracts {
+        if let Ok(contract_id) = near_primitives::types::AccountId::from_str(&contract.contract_id)
+        {
+            let nft_count = contract.count.to_u32().ok_or_else(|| {
+                errors::ErrorKind::InternalError(format!("Failed to parse u32 {}", contract.count))
+            })?;
+            let metadata =
+                rpc_calls::get_nft_general_metadata(rpc_client, contract_id.clone(), block.height)
+                    .await?;
+            result.push(api_models::NftContractInfo {
+                contract_account_id: contract_id.into(),
+                nft_count,
+                name: metadata.name,
+                symbol: metadata.symbol,
+                icon: metadata.icon,
+            });
         }
     }
     Ok(result)

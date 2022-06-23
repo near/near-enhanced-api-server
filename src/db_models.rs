@@ -31,3 +31,9 @@ pub(crate) struct FtHistoryInfo {
     pub old_owner_id: String,
     pub new_owner_id: String,
 }
+
+#[derive(sqlx::FromRow)]
+pub(crate) struct NftCount {
+    pub contract_id: String,
+    pub count: i64,
+}

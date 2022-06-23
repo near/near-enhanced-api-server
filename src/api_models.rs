@@ -60,12 +60,21 @@ pub(crate) struct FtMetadataResponse {
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub(crate) struct NftCountResponse {
+    pub nfts: Vec<NftContractInfo>,
+    pub block_timestamp_nanos: super::types::U64,
+    pub block_height: super::types::U64,
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub(crate) struct CoinInfo {
     // todo use enums here?
     // todo add metadata fields
     pub standard: String,
     pub contract_account_id: Option<super::types::AccountId>,
     pub balance: super::types::U128,
+    // todo do we want to add here staked/unstaked? these fields will appear in all the coins
     pub symbol: String,
     pub decimals: u8,
     pub icon: Option<String>,
@@ -80,6 +89,16 @@ pub(crate) struct FtHistoryInfo {
     pub balance: super::types::U128,
     pub block_timestamp_nanos: super::types::U64,
     pub block_height: super::types::U64,
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub(crate) struct NftContractInfo {
+    pub contract_account_id: super::types::AccountId,
+    pub nft_count: u32,
+    pub name: String,
+    pub symbol: String,
+    pub icon: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
