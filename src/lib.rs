@@ -28,17 +28,20 @@ async fn balance(
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     request: web::Path<api_models::BalanceRequest>,
     params: web::Query<api_models::QueryParams>,
-) -> api_models::Result<Json<api_models::BalanceResponse>> {
+) -> api_models::Result<Json<api_models::BalancesResponse>> {
     //todo pagination
     check_params(&params)?;
     let block = get_block_from_params(&pool, &params).await?;
     check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
-    let mut balances = api::native_balance(&pool, &block, &request.account_id.0).await?;
-    let mut ft = api::ft_balance(&pool, &rpc_client, &block, &request.account_id.0).await?;
-    balances.append(&mut ft);
-    // todo MT
 
-    Ok(Json(api_models::BalanceResponse {
+    let mut balances: Vec<api_models::Coin> =
+        vec![api::native_balance(&pool, &block, &request.account_id.0)
+            .await?
+            .into()];
+    balances.append(&mut api::ft_balance(&pool, &rpc_client, &block, &request.account_id.0).await?);
+    // todo add mt
+
+    Ok(Json(api_models::BalancesResponse {
         balances,
         block_timestamp_nanos: types::U64::from(block.timestamp),
         block_height: types::U64::from(block.height),
@@ -54,118 +57,84 @@ async fn native_balance(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     request: web::Path<api_models::BalanceRequest>,
     params: web::Query<api_models::QueryParams>,
-) -> api_models::Result<Json<api_models::BalanceResponse>> {
+) -> api_models::Result<Json<api_models::NearBalanceResponse>> {
     check_params(&params)?;
     let block = get_block_from_params(&pool, &params).await?;
     check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
 
-    Ok(Json(api_models::BalanceResponse {
-        balances: api::native_balance(&pool, &block, &request.account_id.0).await?,
-        block_timestamp_nanos: types::U64::from(block.timestamp),
-        block_height: types::U64::from(block.height),
-    }))
+    Ok(Json(
+        api::native_balance(&pool, &block, &request.account_id.0).await?,
+    ))
 }
 
 #[api_v2_operation]
-/// Get the user's balance
-///
-/// This endpoint returns the balance of the given account_id,
-/// for the specified token_contract_id | near.
-// [
-//   {“standard”: “nep141”, “token_id”: “USN“, “amount“: 10},
-//   {“standard”: “nepXXX”, “token_id”: “MT_FROL_GOLD“, “amount“: 10},
-//   {“standard”: “nepXXX”, “token_id”: “MT_FROL_SILVER“, “amount“: 1},
-// ]
-async fn ft_balance(
-    pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
-    rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
-    request: web::Path<api_models::BalanceRequest>,
-    params: web::Query<api_models::QueryParams>,
-) -> api_models::Result<Json<api_models::BalanceResponse>> {
-    check_params(&params)?;
-    let block = get_block_from_params(&pool, &params).await?;
-    check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
-
-    Ok(Json(api_models::BalanceResponse {
-        balances: api::ft_balance(&pool, &rpc_client, &block, &request.account_id.0).await?,
-        block_timestamp_nanos: types::U64::from(block.timestamp),
-        block_height: types::U64::from(block.height),
-    }))
-}
-
-#[api_v2_operation]
-/// Get the user's balance
-///
-/// This endpoint returns the balance of the given account_id,
-/// for the specified token_contract_id | near.
-// [
-//   {“standard”: “nep141”, “token_id”: “USN“, “amount“: 10},
-//   {“standard”: “nepXXX”, “token_id”: “MT_FROL_GOLD“, “amount“: 10},
-//   {“standard”: “nepXXX”, “token_id”: “MT_FROL_SILVER“, “amount“: 1},
-// ]
-async fn ft_balance_for_contract(
-    pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
-    rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
-    request: web::Path<api_models::BalanceRequestForContract>,
-    params: web::Query<api_models::QueryParams>,
-) -> api_models::Result<Json<api_models::BalanceResponse>> {
-    check_params(&params)?;
-    let block = get_block_from_params(&pool, &params).await?;
-    check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
-
-    Ok(Json(api_models::BalanceResponse {
-        balances: vec![
-            api::ft_balance_for_contract(
-                &rpc_client,
-                &block,
-                &request.contract_account_id.0,
-                &request.account_id.0,
-            )
-            .await?,
-        ],
-        block_timestamp_nanos: types::U64::from(block.timestamp),
-        block_height: types::U64::from(block.height),
-    }))
-}
-
-#[api_v2_operation]
-/// Get the user's balance
-///
-/// This endpoint returns the balance of the given account_id,
-/// for the specified token_contract_id | near.
-// [
-//   {“standard”: “nep141”, “token_id”: “USN“, “amount“: 10},
-//   {“standard”: “nepXXX”, “token_id”: “MT_FROL_GOLD“, “amount“: 10},
-//   {“standard”: “nepXXX”, “token_id”: “MT_FROL_SILVER“, “amount“: 1},
-// ]
 async fn balance_for_contract(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
-    request: web::Path<api_models::BalanceRequestForContract>,
+    request: web::Path<api_models::BalanceByContractRequest>,
     params: web::Query<api_models::QueryParams>,
-) -> api_models::Result<Json<api_models::BalanceResponse>> {
-    // if request.token_contract_id.to_string() == "near" {
-    //     return Err(errors::ErrorKind::InvalidInput(
-    //         "For native balance, please use NEAR (uppercase)".to_string(),
-    //     )
-    //         .into());
-    // }
+) -> api_models::Result<Json<api_models::BalancesResponse>> {
+    if request.contract_account_id.to_string() == "near" {
+        return Err(errors::ErrorKind::InvalidInput(
+            "For native balance, please use NEAR (uppercase)".to_string(),
+        )
+        .into());
+    }
 
     check_params(&params)?;
     let block = get_block_from_params(&pool, &params).await?;
     check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
 
-    Ok(Json(api_models::BalanceResponse {
-        balances: vec![
-            api::ft_balance_for_contract(
-                &rpc_client,
-                &block,
-                &request.contract_account_id.0,
-                &request.account_id.0,
-            )
-            .await?,
-            // todo MT
-        ],
+    // todo add mt
+    let mut balances: Vec<api_models::Coin> = vec![];
+    if let Some(ft) = api::ft_balance_for_contract(
+        &rpc_client,
+        &block,
+        &request.contract_account_id.0,
+        &request.account_id.0,
+    )
+    .await?
+    {
+        balances.push(ft);
+    }
+
+    Ok(Json(api_models::BalancesResponse {
+        balances,
+        block_timestamp_nanos: types::U64::from(block.timestamp),
+        block_height: types::U64::from(block.height),
+    }))
+}
+
+// todo native history endpoint
+#[api_v2_operation]
+async fn history_for_contract(
+    pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
+    rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
+    request: web::Path<api_models::BalanceHistoryRequest>,
+    params: web::Query<api_models::QueryParams>,
+) -> api_models::Result<Json<api_models::HistoryResponse>> {
+    if request.contract_account_id.to_string() == "near" {
+        return Err(errors::ErrorKind::InvalidInput(
+            "For native history, please use NEAR (uppercase)".to_string(),
+        )
+        .into());
+    }
+    check_params(&params)?;
+    let block = get_block_from_params(&pool, &params).await?;
+    check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
+
+    let history = api::ft_history(
+        &pool,
+        &rpc_client,
+        &block,
+        &request.contract_account_id.0,
+        &request.account_id.0,
+    )
+    .await?;
+    // todo add mt
+
+    Ok(Json(api_models::HistoryResponse {
+        history,
         block_timestamp_nanos: types::U64::from(block.timestamp),
         block_height: types::U64::from(block.height),
     }))
@@ -175,46 +144,17 @@ async fn balance_for_contract(
 async fn ft_metadata(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
-    request: web::Path<api_models::FtMetadataRequest>,
+    request: web::Path<api_models::ContractMetadataRequest>,
     params: web::Query<api_models::QueryParams>,
 ) -> api_models::Result<Json<api_models::FtMetadataResponse>> {
     check_params(&params)?;
     let block = get_block_from_params(&pool, &params).await?;
 
-    let metadata = rpc_calls::get_ft_metadata(
-        &rpc_client,
-        request.contract_account_id.0.clone(),
-        block.height,
-    )
-    .await?;
-
     Ok(Json(api_models::FtMetadataResponse {
-        symbol: metadata.symbol,
-        decimals: metadata.decimals,
-        icon: metadata.icon,
-        block_timestamp_nanos: types::U64::from(block.timestamp),
-        block_height: types::U64::from(block.height),
-    }))
-}
-
-#[api_v2_operation]
-async fn ft_history_for_contract(
-    pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
-    rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
-    request: web::Path<api_models::FtHistoryRequest>,
-    params: web::Query<api_models::QueryParams>,
-) -> api_models::Result<Json<api_models::FtHistoryResponse>> {
-    check_params(&params)?;
-    let block = get_block_from_params(&pool, &params).await?;
-    check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
-
-    Ok(Json(api_models::FtHistoryResponse {
-        history: api::ft_history(
-            &pool,
+        metadata: rpc_calls::get_ft_metadata(
             &rpc_client,
-            &block,
-            &request.contract_account_id.0,
-            &request.account_id.0,
+            request.contract_account_id.0.clone(),
+            block.height,
         )
         .await?,
         block_timestamp_nanos: types::U64::from(block.timestamp),
@@ -234,7 +174,7 @@ async fn nft_count(
     check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
 
     Ok(Json(api_models::NftCountResponse {
-        nfts: api::nft_count(&pool, &rpc_client, &block, &request.account_id.0).await?,
+        nft_count: api::nft_count(&pool, &rpc_client, &block, &request.account_id.0).await?,
         block_timestamp_nanos: types::U64::from(block.timestamp),
         block_height: types::U64::from(block.height),
     }))
@@ -395,34 +335,21 @@ pub fn start(
             .app_data(web::Data::new(rpc_client.clone()))
             .wrap(get_cors(&cors_allowed_origins))
             .wrap_api()
-            // todo I like the ability to write both near and NEAR, but it produces 2 lines in the doc
             // todo I want to add stats collection to the api
             .service(web::resource("/accounts/{account_id}/coins").route(web::get().to(balance)))
             .service(
                 web::resource("/accounts/{account_id}/coins/NEAR")
                     .route(web::get().to(native_balance)),
             )
-            // .service(
-            //     web::resource("/accounts/{account_id}/coins/near")
-            //         .route(web::get().to(native_balance)),
-            // )
-            .service(
-                web::resource("/accounts/{account_id}/coins/FT").route(web::get().to(ft_balance)),
-            )
             .service(
                 web::resource("/accounts/{account_id}/coins/{contract_account_id}")
                     .route(web::get().to(balance_for_contract)),
             )
-            .service(
-                web::resource("/accounts/{account_id}/coins/FT/{contract_account_id}")
-                    .route(web::get().to(ft_balance_for_contract)),
-            )
             // todo I skip native balance history because we need other table for that
             .service(
-                web::resource("/accounts/{account_id}/coins/FT/{contract_account_id}/history")
-                    .route(web::get().to(ft_history_for_contract)),
+                web::resource("/accounts/{account_id}/coins/{contract_account_id}/history")
+                    .route(web::get().to(history_for_contract)),
             )
-            // todo what about allowance? how do we want to compute that
             // todo it's hard to create one endpoint to rule them all, I prefer to have 3 different endpoints
             // https://nomicon.io/Standards/Tokens/FungibleToken/Metadata
             // https://nomicon.io/Standards/Tokens/NonFungibleToken/Metadata
@@ -431,8 +358,18 @@ pub fn start(
                 web::resource("/accounts/{account_id}/collectibles")
                     .route(web::get().to(nft_count)),
             )
+            // .service(
+            //     web::resource("/accounts/{account_id}/collectibles/{contract_account_id}")
+            //         .route(web::get().to(nft_balance)),
+            // )
+            // todo history for native
+            // todo /accounts/<account-id>/collectibles/<token-contract-id>/<token-id>/history
+            // todo /accounts/<account-id>/collectibles/<token-contract-id> | pagination + timestamp
+            // todo /accounts/<account-id>/collectibles/<token-contract-id>/<token-id> same as prev, but the answer is short
+            // todo design metadata for native, mt, nft
             .service(
-                web::resource("/coins/FT/{contract_account_id}").route(web::get().to(ft_metadata)),
+                web::resource("/nep141/metadata/{contract_account_id}")
+                    .route(web::get().to(ft_metadata)),
             )
             .with_json_spec_at("/api/spec")
             .build()

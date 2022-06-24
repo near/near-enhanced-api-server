@@ -9,7 +9,7 @@ pub(crate) async fn native_balance(
     pool: &sqlx::Pool<sqlx::Postgres>,
     block: &types::Block,
     account_id: &near_primitives::types::AccountId,
-) -> api_models::Result<Vec<api_models::CoinInfo>> {
+) -> api_models::Result<api_models::NearBalanceResponse> {
     let balances =
         utils::select_retry_or_panic::<db_models::AccountChangesBalance>(
             pool,
@@ -27,16 +27,21 @@ pub(crate) async fn native_balance(
 
     match balances.first() {
         Some(balance) => {
-            // TODO support nonstaked, staked amounts
-            let amount = utils::to_u128(&balance.nonstaked)? + utils::to_u128(&balance.staked)?;
-            Ok(vec![api_models::CoinInfo {
-                standard: "nearprotocol".to_string(),
-                contract_account_id: None,
-                balance: amount.into(),
-                symbol: "NEAR".to_string(),
-                decimals: 24,
-                icon: None, // todo is the a right link to NEAR icon?
-            }])
+            let available = utils::to_u128(&balance.nonstaked)?;
+            let staked = utils::to_u128(&balance.staked)?;
+            Ok(api_models::NearBalanceResponse {
+                balance: (available + staked).into(),
+                available: available.into(),
+                staked: staked.into(),
+                metadata: api_models::CoinMetadata {
+                    name: "NEAR blockchain native token".to_string(),
+                    symbol: "NEAR".to_string(),
+                    icon: None, // todo
+                    decimals: 24,
+                },
+                block_timestamp_nanos: block.timestamp.into(),
+                block_height: block.height.into(),
+            })
         }
         None => Err(errors::ErrorKind::DBError(format!(
             "Could not find the data in account_changes table for account_id {}",
@@ -51,7 +56,7 @@ pub(crate) async fn ft_balance(
     rpc_client: &near_jsonrpc_client::JsonRpcClient,
     block: &types::Block,
     account_id: &near_primitives::types::AccountId,
-) -> api_models::Result<Vec<api_models::CoinInfo>> {
+) -> api_models::Result<Vec<api_models::Coin>> {
     let contracts = utils::select_retry_or_panic::<db_models::AccountId>(
         pool,
         r"SELECT DISTINCT emitted_by_contract_account_id account_id
@@ -64,11 +69,14 @@ pub(crate) async fn ft_balance(
     )
     .await?;
 
-    let mut balances: Vec<api_models::CoinInfo> = vec![];
+    let mut balances: Vec<api_models::Coin> = vec![];
     for contract in contracts {
         if let Ok(contract_id) = near_primitives::types::AccountId::from_str(&contract.account_id) {
-            balances
-                .push(ft_balance_for_contract(rpc_client, block, &contract_id, account_id).await?);
+            if let Some(ft) =
+                ft_balance_for_contract(rpc_client, block, &contract_id, account_id).await?
+            {
+                balances.push(ft);
+            }
         }
     }
     Ok(balances)
@@ -80,7 +88,8 @@ pub(crate) async fn ft_balance_for_contract(
     block: &types::Block,
     contract_id: &near_primitives::types::AccountId,
     account_id: &near_primitives::types::AccountId,
-) -> api_models::Result<api_models::CoinInfo> {
+) -> api_models::Result<Option<api_models::Coin>> {
+    // todo test on contract that does not implement nep141
     let (balance, metadata) = (
         rpc_calls::get_ft_balance(
             rpc_client,
@@ -92,14 +101,17 @@ pub(crate) async fn ft_balance_for_contract(
         rpc_calls::get_ft_metadata(rpc_client, contract_id.clone(), block.height).await?,
     );
 
-    Ok(api_models::CoinInfo {
+    Ok(Some(api_models::Coin {
         standard: "nep141".to_string(),
         contract_account_id: Some(contract_id.clone().into()),
         balance: balance.into(),
-        symbol: metadata.symbol,
-        decimals: metadata.decimals,
-        icon: metadata.icon,
-    })
+        metadata: api_models::CoinMetadata {
+            name: metadata.name,
+            symbol: metadata.symbol,
+            icon: metadata.icon,
+            decimals: metadata.decimals,
+        },
+    }))
 }
 
 pub(crate) async fn ft_history(
@@ -108,7 +120,7 @@ pub(crate) async fn ft_history(
     block: &types::Block,
     contract_id: &near_primitives::types::AccountId,
     account_id: &near_primitives::types::AccountId,
-) -> api_models::Result<Vec<api_models::FtHistoryInfo>> {
+) -> api_models::Result<Vec<api_models::HistoryInfo>> {
     let mut last_balance = rpc_calls::get_ft_balance(
         rpc_client,
         contract_id.clone(),
@@ -116,6 +128,12 @@ pub(crate) async fn ft_history(
         block.height,
     )
     .await?;
+
+    let metadata: api_models::CoinMetadata =
+        rpc_calls::get_ft_metadata(rpc_client, contract_id.clone(), block.height)
+            .await?
+            .into();
+
     // we collect the data from DB in straight order, then iter by rev order
     // the final result goes from latest to the earliest data
     let account_id = account_id.to_string();
@@ -143,11 +161,11 @@ pub(crate) async fn ft_history(
     )
     .await?;
 
-    let mut result: Vec<api_models::FtHistoryInfo> = vec![];
+    let mut result: Vec<api_models::HistoryInfo> = vec![];
     for db_info in ft_history_info.iter().rev() {
         let mut delta = utils::string_to_i128(&db_info.amount)?;
         let balance = last_balance;
-        let affected_account_id = if account_id == db_info.old_owner_id {
+        let involved_account_id = if account_id == db_info.old_owner_id {
             delta = -delta;
             if db_info.new_owner_id.is_empty() {
                 None
@@ -180,11 +198,12 @@ pub(crate) async fn ft_history(
         // todo rewrite this
         last_balance = ((last_balance as i128) - delta) as u128;
 
-        result.push(api_models::FtHistoryInfo {
+        result.push(api_models::HistoryInfo {
             action_kind: db_info.event_kind.clone(),
-            affected_account_id: affected_account_id.map(|id| id.into()),
+            involved_account_id: involved_account_id.map(|id| id.into()),
             delta_balance: delta.into(),
             balance: balance.into(),
+            metadata: metadata.clone(),
             block_timestamp_nanos: utils::to_u64(&db_info.block_timestamp)?.into(),
             block_height: utils::to_u64(&db_info.block_height)?.into(),
         });
@@ -201,12 +220,15 @@ pub(crate) async fn ft_history(
     Ok(result)
 }
 
+// todo do we want to recheck the count by rpc? at least sometimes
 pub(crate) async fn nft_count(
     pool: &sqlx::Pool<sqlx::Postgres>,
     rpc_client: &near_jsonrpc_client::JsonRpcClient,
     block: &types::Block,
     account_id: &near_primitives::types::AccountId,
-) -> api_models::Result<Vec<api_models::NftContractInfo>> {
+) -> api_models::Result<Vec<api_models::NftsByContractInfo>> {
+    // todo do we want to show zeros here? as the tokens that we had at one time, but not now
+    // now we don't show them
     let contracts = utils::select_retry_or_panic::<db_models::NftCount>(
         pool,
         r"SELECT emitted_by_contract_account_id contract_id, count(*) count
@@ -220,7 +242,7 @@ pub(crate) async fn nft_count(
     )
     .await?;
 
-    let mut result: Vec<api_models::NftContractInfo> = vec![];
+    let mut result: Vec<api_models::NftsByContractInfo> = vec![];
     for contract in contracts {
         if let Ok(contract_id) = near_primitives::types::AccountId::from_str(&contract.contract_id)
         {
@@ -230,12 +252,18 @@ pub(crate) async fn nft_count(
             let metadata =
                 rpc_calls::get_nft_general_metadata(rpc_client, contract_id.clone(), block.height)
                     .await?;
-            result.push(api_models::NftContractInfo {
+            result.push(api_models::NftsByContractInfo {
                 contract_account_id: contract_id.into(),
                 nft_count,
-                name: metadata.name,
-                symbol: metadata.symbol,
-                icon: metadata.icon,
+                metadata: api_models::NftContractMetadata {
+                    spec: metadata.spec,
+                    name: metadata.name,
+                    symbol: metadata.symbol,
+                    icon: metadata.icon,
+                    base_uri: metadata.base_uri,
+                    reference: metadata.reference,
+                    reference_hash: utils::base64_to_string(&metadata.reference_hash)?,
+                },
             });
         }
     }

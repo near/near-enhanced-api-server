@@ -2,7 +2,7 @@ use num_traits::ToPrimitive;
 use sqlx::postgres::PgRow;
 use sqlx::Arguments;
 
-use crate::{errors, BigDecimal};
+use crate::{api_models, errors, types, BigDecimal};
 
 const INTERVAL: std::time::Duration = std::time::Duration::from_millis(100);
 const MAX_DELAY_TIME: std::time::Duration = std::time::Duration::from_secs(120);
@@ -54,10 +54,10 @@ pub(crate) async fn select_retry_or_panic<T: Send + Unpin + for<'r> sqlx::FromRo
     }
 }
 
-pub(crate) fn to_u128(x: &BigDecimal) -> Result<u128, errors::ErrorKind> {
-    x.to_string()
-        .parse()
-        .map_err(|e| errors::ErrorKind::InternalError(format!("Failed to parse u128 {}: {}", x, e)))
+pub(crate) fn to_u128(x: &BigDecimal) -> api_models::Result<u128> {
+    x.to_string().parse().map_err(|e| {
+        errors::ErrorKind::InternalError(format!("Failed to parse u128 {}: {}", x, e)).into()
+    })
 }
 
 // pub(crate) fn to_i128(x: &BigDecimal) -> Result<i128, errors::ErrorKind> {
@@ -66,12 +66,24 @@ pub(crate) fn to_u128(x: &BigDecimal) -> Result<u128, errors::ErrorKind> {
 //         .map_err(|e| errors::ErrorKind::InternalError(format!("Failed to parse i128 {}: {}", x, e)))
 // }
 
-pub(crate) fn string_to_i128(x: &String) -> Result<i128, errors::ErrorKind> {
-    x.parse()
-        .map_err(|e| errors::ErrorKind::InternalError(format!("Failed to parse i128 {}: {}", x, e)))
+pub(crate) fn string_to_i128(x: &String) -> api_models::Result<i128> {
+    x.parse().map_err(|e| {
+        errors::ErrorKind::InternalError(format!("Failed to parse i128 {}: {}", x, e)).into()
+    })
 }
 
-pub(crate) fn to_u64(x: &BigDecimal) -> Result<u64, errors::ErrorKind> {
-    x.to_u64()
-        .ok_or_else(|| errors::ErrorKind::InternalError(format!("Failed to parse u64 {}", x)))
+pub(crate) fn to_u64(x: &BigDecimal) -> api_models::Result<u64> {
+    x.to_u64().ok_or_else(|| {
+        errors::ErrorKind::InternalError(format!("Failed to parse u64 {}", x)).into()
+    })
+}
+
+pub(crate) fn base64_to_string(
+    value: &Option<types::Base64VecU8>,
+) -> api_models::Result<Option<String>> {
+    Ok(if let Some(v) = value {
+        Some(serde_json::to_string(&v)?)
+    } else {
+        None
+    })
 }
