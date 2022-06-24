@@ -255,17 +255,49 @@ pub(crate) async fn nft_count(
             result.push(api_models::NftsByContractInfo {
                 contract_account_id: contract_id.into(),
                 nft_count,
-                metadata: api_models::NftContractMetadata {
-                    spec: metadata.spec,
-                    name: metadata.name,
-                    symbol: metadata.symbol,
-                    icon: metadata.icon,
-                    base_uri: metadata.base_uri,
-                    reference: metadata.reference,
-                    reference_hash: utils::base64_to_string(&metadata.reference_hash)?,
-                },
+                metadata,
             });
         }
+    }
+    Ok(result)
+}
+
+pub(crate) async fn nft_by_contract(
+    pool: &sqlx::Pool<sqlx::Postgres>,
+    rpc_client: &near_jsonrpc_client::JsonRpcClient,
+    block: &types::Block,
+    contract_id: &near_primitives::types::AccountId,
+    account_id: &near_primitives::types::AccountId,
+) -> api_models::Result<Vec<api_models::NftItemMetadata>> {
+    let tokens = utils::select_retry_or_panic::<db_models::NftId>(
+        pool,
+        r"SELECT token_id
+          FROM assets__non_fungible_token_events
+          WHERE emitted_by_contract_account_id = $1
+              AND token_new_owner_account_id = $2
+              AND emitted_at_block_timestamp <= $3::numeric(20, 0)
+
+         ",
+        &[
+            contract_id.to_string(),
+            account_id.to_string(),
+            block.timestamp.to_string(),
+        ],
+        RETRY_COUNT,
+    )
+    .await?;
+
+    let mut result: Vec<api_models::NftItemMetadata> = vec![];
+    for token in tokens {
+        result.push(
+            rpc_calls::get_nft_metadata(
+                rpc_client,
+                contract_id.clone(),
+                token.token_id,
+                block.height,
+            )
+            .await?,
+        );
     }
     Ok(result)
 }

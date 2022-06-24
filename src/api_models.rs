@@ -31,6 +31,14 @@ pub(crate) struct ContractMetadataRequest {
     pub contract_account_id: super::types::AccountId,
 }
 
+/// Includes Native, FT, later will include MT
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
+pub(crate) struct NftItemRequest {
+    pub account_id: super::types::AccountId,
+    pub contract_account_id: super::types::AccountId,
+    pub token_id: String,
+}
+
 // *** Responses ***
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
@@ -96,7 +104,28 @@ pub(crate) struct NftCountResponse {
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub(crate) struct NftBalanceResponse {
     pub nfts: Vec<NftItemMetadata>,
-    pub metadata: NftContractMetadata,
+    pub contract_metadata: NftContractMetadata,
+    pub block_timestamp_nanos: super::types::U64,
+    pub block_height: super::types::U64,
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub(crate) struct NftHistoryResponse {
+    pub history: Vec<NftHistoryInfo>,
+    // todo also types::Token?
+    pub token_metadata: NftItemMetadata,
+    pub contract_metadata: NftContractMetadata,
+    pub block_timestamp_nanos: super::types::U64,
+    pub block_height: super::types::U64,
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub(crate) struct NftItemResponse {
+    // todo I need to pass here types::Token
+    pub nft: NftItemMetadata,
+    pub contract_metadata: NftContractMetadata,
     pub block_timestamp_nanos: super::types::U64,
     pub block_height: super::types::U64,
 }
@@ -120,6 +149,16 @@ pub(crate) struct HistoryInfo {
     pub delta_balance: super::types::I128,
     pub balance: super::types::U128,
     pub metadata: CoinMetadata,
+    pub block_timestamp_nanos: super::types::U64,
+    pub block_height: super::types::U64,
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub(crate) struct NftHistoryInfo {
+    pub action_kind: String, // mint transfer burn
+    pub old_account_id: Option<super::types::AccountId>,
+    pub new_account_id: Option<super::types::AccountId>,
     pub block_timestamp_nanos: super::types::U64,
     pub block_height: super::types::U64,
 }

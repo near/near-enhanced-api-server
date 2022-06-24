@@ -163,6 +163,28 @@ async fn ft_metadata(
 }
 
 #[api_v2_operation]
+async fn nft_metadata(
+    pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
+    rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
+    request: web::Path<api_models::ContractMetadataRequest>,
+    params: web::Query<api_models::QueryParams>,
+) -> api_models::Result<Json<api_models::NftMetadataResponse>> {
+    check_params(&params)?;
+    let block = get_block_from_params(&pool, &params).await?;
+
+    Ok(Json(api_models::NftMetadataResponse {
+        metadata: rpc_calls::get_nft_general_metadata(
+            &rpc_client,
+            request.contract_account_id.0.clone(),
+            block.height,
+        )
+        .await?,
+        block_timestamp_nanos: types::U64::from(block.timestamp),
+        block_height: types::U64::from(block.height),
+    }))
+}
+
+#[api_v2_operation]
 async fn nft_count(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
@@ -178,6 +200,77 @@ async fn nft_count(
         block_timestamp_nanos: types::U64::from(block.timestamp),
         block_height: types::U64::from(block.height),
     }))
+}
+
+#[api_v2_operation]
+async fn nft_list_by_contract(
+    pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
+    rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
+    request: web::Path<api_models::BalanceByContractRequest>,
+    params: web::Query<api_models::QueryParams>,
+) -> api_models::Result<Json<api_models::NftBalanceResponse>> {
+    check_params(&params)?;
+    let block = get_block_from_params(&pool, &params).await?;
+    check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
+
+    Ok(Json(api_models::NftBalanceResponse {
+        nfts: api::nft_by_contract(
+            &pool,
+            &rpc_client,
+            &block,
+            &request.contract_account_id.0,
+            &request.account_id.0,
+        )
+        .await?,
+        contract_metadata: rpc_calls::get_nft_general_metadata(
+            &rpc_client,
+            request.contract_account_id.0.clone(),
+            block.height,
+        )
+        .await?,
+        block_timestamp_nanos: types::U64::from(block.timestamp),
+        block_height: types::U64::from(block.height),
+    }))
+}
+
+#[api_v2_operation]
+async fn nft_item_by_contract(
+    pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
+    rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
+    request: web::Path<api_models::NftItemRequest>,
+    params: web::Query<api_models::QueryParams>,
+) -> api_models::Result<Json<api_models::NftItemResponse>> {
+    check_params(&params)?;
+    let block = get_block_from_params(&pool, &params).await?;
+    check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
+
+    Ok(Json(api_models::NftItemResponse {
+        nft: rpc_calls::get_nft_metadata(
+            &rpc_client,
+            request.contract_account_id.0.clone(),
+            request.token_id.clone(),
+            block.height,
+        )
+        .await?,
+        contract_metadata: rpc_calls::get_nft_general_metadata(
+            &rpc_client,
+            request.contract_account_id.0.clone(),
+            block.height,
+        )
+        .await?,
+        block_timestamp_nanos: types::U64::from(block.timestamp),
+        block_height: types::U64::from(block.height),
+    }))
+}
+
+#[api_v2_operation]
+async fn nft_history(
+    pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
+    rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
+    request: web::Path<api_models::NftItemRequest>,
+    params: web::Query<api_models::QueryParams>,
+) -> api_models::Result<Json<api_models::NftHistoryResponse>> {
+    todo!("not implemented yet");
 }
 
 fn check_params(params: &web::Query<api_models::QueryParams>) -> api_models::Result<()> {
@@ -345,7 +438,6 @@ pub fn start(
                 web::resource("/accounts/{account_id}/coins/{contract_account_id}")
                     .route(web::get().to(balance_for_contract)),
             )
-            // todo I skip native balance history because we need other table for that
             .service(
                 web::resource("/accounts/{account_id}/coins/{contract_account_id}/history")
                     .route(web::get().to(history_for_contract)),
@@ -358,19 +450,32 @@ pub fn start(
                 web::resource("/accounts/{account_id}/collectibles")
                     .route(web::get().to(nft_count)),
             )
-            // .service(
-            //     web::resource("/accounts/{account_id}/collectibles/{contract_account_id}")
-            //         .route(web::get().to(nft_balance)),
-            // )
+            .service(
+                web::resource("/accounts/{account_id}/collectibles/{contract_account_id}")
+                    .route(web::get().to(nft_list_by_contract)),
+            )
+            .service(
+                web::resource(
+                    "/accounts/{account_id}/collectibles/{contract_account_id}/{token_id}",
+                )
+                .route(web::get().to(nft_item_by_contract)),
+            )
+            .service(
+                web::resource(
+                    "/accounts/{account_id}/collectibles/{contract_account_id}/{token_id}/history",
+                )
+                .route(web::get().to(nft_history)),
+            )
             // todo history for native
-            // todo /accounts/<account-id>/collectibles/<token-contract-id>/<token-id>/history
-            // todo /accounts/<account-id>/collectibles/<token-contract-id> | pagination + timestamp
-            // todo /accounts/<account-id>/collectibles/<token-contract-id>/<token-id> same as prev, but the answer is short
-            // todo design metadata for native, mt, nft
             .service(
                 web::resource("/nep141/metadata/{contract_account_id}")
                     .route(web::get().to(ft_metadata)),
             )
+            .service(
+                web::resource("/nep171/metadata/{contract_account_id}")
+                    .route(web::get().to(nft_metadata)),
+            )
+            // todo mt metadata
             .with_json_spec_at("/api/spec")
             .build()
     })

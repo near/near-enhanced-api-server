@@ -168,6 +168,19 @@ pub struct TokenMetadata {
     pub reference_hash: Option<Base64VecU8>, // Base64-encoded sha256 hash of JSON from reference field. Required if `reference` is included.
 }
 
+// Taken from https://github.com/near/near-sdk-rs/blob/master/near-contract-standards/src/non_fungible_token/token.rs
+/// Note that token IDs for NFTs are strings on NEAR. It's still fine to use autoincrementing numbers as unique IDs if desired, but they should be stringified. This is to make IDs more future-proof as chain-agnostic conventions and standards arise, and allows for more flexibility with considerations like bridging NFTs across chains, etc.
+pub type TokenId = String;
+
+/// In this implementation, the Token struct takes two extensions standards (metadata and approval) as optional fields, as they are frequently used in modern NFTs.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct Token {
+    pub token_id: TokenId,
+    pub owner_id: AccountId,
+    pub metadata: Option<TokenMetadata>,
+    pub approved_account_ids: Option<std::collections::HashMap<AccountId, u64>>,
+}
+
 impl From<api_models::FtContractMetadata> for api_models::CoinMetadata {
     fn from(metadata: api_models::FtContractMetadata) -> Self {
         api_models::CoinMetadata {
@@ -187,5 +200,42 @@ impl From<api_models::NearBalanceResponse> for api_models::Coin {
             contract_account_id: None,
             metadata: near_coin.metadata,
         }
+    }
+}
+
+impl TryFrom<NFTContractMetadata> for api_models::NftContractMetadata {
+    type Error = errors::Error;
+
+    fn try_from(metadata: NFTContractMetadata) -> api_models::Result<Self> {
+        Ok(Self {
+            spec: metadata.spec,
+            name: metadata.name,
+            symbol: metadata.symbol,
+            icon: metadata.icon,
+            base_uri: metadata.base_uri,
+            reference: metadata.reference,
+            reference_hash: utils::base64_to_string(&metadata.reference_hash)?,
+        })
+    }
+}
+
+impl TryFrom<TokenMetadata> for api_models::NftItemMetadata {
+    type Error = errors::Error;
+
+    fn try_from(metadata: TokenMetadata) -> api_models::Result<Self> {
+        Ok(Self {
+            title: metadata.title,
+            description: metadata.description,
+            media: metadata.media,
+            media_hash: utils::base64_to_string(&metadata.media_hash)?,
+            copies: metadata.copies,
+            issued_at: metadata.issued_at,
+            expires_at: metadata.expires_at,
+            starts_at: metadata.starts_at,
+            updated_at: metadata.updated_at,
+            extra: metadata.extra,
+            reference: metadata.reference,
+            reference_hash: utils::base64_to_string(&metadata.reference_hash)?,
+        })
     }
 }

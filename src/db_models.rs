@@ -37,3 +37,8 @@ pub(crate) struct NftCount {
     pub contract_id: String,
     pub count: i64,
 }
+
+#[derive(sqlx::FromRow)]
+pub(crate) struct NftId {
+    pub token_id: String,
+}
