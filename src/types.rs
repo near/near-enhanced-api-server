@@ -196,7 +196,7 @@ impl From<api_models::NearBalanceResponse> for api_models::Coin {
     fn from(near_coin: api_models::NearBalanceResponse) -> Self {
         api_models::Coin {
             standard: "nearprotocol".to_string(),
-            balance: near_coin.balance,
+            balance: near_coin.total_balance,
             contract_account_id: None,
             metadata: near_coin.metadata,
         }

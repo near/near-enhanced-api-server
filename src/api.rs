@@ -30,9 +30,9 @@ pub(crate) async fn native_balance(
             let available = utils::to_u128(&balance.nonstaked)?;
             let staked = utils::to_u128(&balance.staked)?;
             Ok(api_models::NearBalanceResponse {
-                balance: (available + staked).into(),
-                available: available.into(),
-                staked: staked.into(),
+                total_balance: (available + staked).into(),
+                available_balance: available.into(),
+                staked_balance: staked.into(),
                 metadata: api_models::CoinMetadata {
                     name: "NEAR blockchain native token".to_string(),
                     symbol: "NEAR".to_string(),

@@ -52,9 +52,9 @@ pub(crate) struct BalancesResponse {
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub(crate) struct NearBalanceResponse {
-    pub balance: super::types::U128,
-    pub available: super::types::U128, // todo naming
-    pub staked: super::types::U128,
+    pub total_balance: super::types::U128,
+    pub available_balance: super::types::U128, // todo naming
+    pub staked_balance: super::types::U128,
     pub metadata: CoinMetadata,
     pub block_timestamp_nanos: super::types::U64,
     pub block_height: super::types::U64,
@@ -76,13 +76,13 @@ pub(crate) struct FtMetadataResponse {
     pub block_height: super::types::U64,
 }
 
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
-#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
-pub(crate) struct MtMetadataResponse {
-    pub metadata: MtContractMetadata,
-    pub block_timestamp_nanos: super::types::U64,
-    pub block_height: super::types::U64,
-}
+// #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
+// #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+// pub(crate) struct MtMetadataResponse {
+//     pub metadata: MtContractMetadata,
+//     pub block_timestamp_nanos: super::types::U64,
+//     pub block_height: super::types::U64,
+// }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
@@ -122,6 +122,15 @@ pub(crate) struct NftHistoryResponse {
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub(crate) struct NearHistoryResponse {
+    pub history: Vec<NearHistoryInfo>,
+    pub metadata: CoinMetadata,
+    pub block_timestamp_nanos: super::types::U64,
+    pub block_height: super::types::U64,
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub(crate) struct NftItemResponse {
     // todo I need to pass here types::Token
     pub nft: NftItemMetadata,
@@ -139,6 +148,23 @@ pub(crate) struct Coin {
     pub balance: super::types::U128,
     pub contract_account_id: Option<super::types::AccountId>,
     pub metadata: CoinMetadata,
+}
+
+// todo do we want to give the info about failed tx?
+// todo + tx hash/receipt id for all the data
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub(crate) struct NearHistoryInfo {
+    pub involved_account_id: Option<super::types::AccountId>,
+    pub delta_balance: super::types::I128,
+    pub delta_available_balance: super::types::I128,
+    pub delta_staked_balance: super::types::I128,
+    pub total_balance: super::types::U128,
+    pub available_balance: super::types::U128, // todo naming
+    pub staked_balance: super::types::U128,
+    pub cause: String,
+    pub block_timestamp_nanos: super::types::U64,
+    pub block_height: super::types::U64,
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
@@ -192,13 +218,13 @@ pub(crate) struct FtContractMetadata {
     pub decimals: u8,
 }
 
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
-#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
-pub(crate) struct MtContractMetadata {
-    pub spec: String,
-    pub name: String,
-    //     todo
-}
+// #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
+// #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+// pub(crate) struct MtContractMetadata {
+//     pub spec: String,
+//     pub name: String,
+//     //     todo
+// }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
@@ -232,15 +258,13 @@ pub(crate) struct NftItemMetadata {
 // ---
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
-pub(crate) struct QueryParams {
+pub(crate) struct BlockParams {
     pub block_timestamp_nanos: Option<super::types::U64>,
     pub block_height: Option<super::types::U64>,
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
-pub(crate) struct PaginatedQueryParams {
-    // todo die if both are given
-    pub block_timestamp_nanos: Option<super::types::U64>,
-    pub block_height: Option<super::types::U64>,
+pub(crate) struct PaginationParams {
     pub page: Option<u32>,
+    pub limit: Option<u32>,
 }
