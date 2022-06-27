@@ -1,3 +1,4 @@
+use crate::utils::add_items;
 use actix_cors::Cors;
 use actix_web::{App, HttpServer, ResponseError};
 use paperclip::actix::{
@@ -6,6 +7,7 @@ use paperclip::actix::{
     OpenApiExt,
 };
 use sqlx::types::BigDecimal;
+use validator::HasLen;
 
 mod api;
 mod api_models;
@@ -20,7 +22,7 @@ mod utils;
 // todo MT
 // todo statistics collection
 // todo learn how to return page/limit info in the headers response
-const MAX_LIMIT: u32 = 100;
+const MAX_PAGE_LIMIT: u32 = 100;
 
 #[api_v2_operation]
 /// Get the user's balance
@@ -53,15 +55,37 @@ async fn coin_balances(
     block_params: web::Query<api_models::BlockParams>,
     pagination_params: web::Query<api_models::PaginationParams>,
 ) -> api_models::Result<Json<api_models::BalancesResponse>> {
-    check_pagination(&pagination_params)?;
+    let mut pagination = check_and_get_pagination(&pagination_params)?;
     let block = get_block_from_params(&pool, &block_params).await?;
     check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
 
-    let mut balances: Vec<api_models::Coin> =
-        vec![api::native_balance(&pool, &block, &request.account_id.0)
-            .await?
-            .into()];
-    balances.append(&mut api::ft_balance(&pool, &rpc_client, &block, &request.account_id.0).await?);
+    // ordering: near, then fts by contract_id, then mts by contract_id and symbol
+    let mut balances: Vec<api_models::Coin> = vec![];
+    if pagination.offset == 0 {
+        balances.push(
+            api::native_balance(&pool, &block, &request.account_id.0)
+                .await?
+                .into(),
+        );
+        add_items(&mut pagination, 1)?;
+    }
+    if pagination.limit > 0 {
+        let fts = &mut api::ft_balance(
+            &pool,
+            &rpc_client,
+            &block,
+            &request.account_id.0,
+            &pagination,
+        )
+        .await?;
+        balances.append(fts);
+        add_items(&mut pagination, fts.length() as u32)?;
+    }
+    // todo remember here could be mt
+    // if pagination.limit > 0 {
+    //     //...
+    //     add_items(&mut pagination, ...)?;
+    // }
 
     Ok(Json(api_models::BalancesResponse {
         balances,
@@ -83,7 +107,7 @@ async fn balance_by_contract(
         )
         .into());
     }
-
+    // todo remember here could be mt
     check_block_params(&block_params)?;
     let block = get_block_from_params(&pool, &block_params).await?;
     check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
@@ -115,11 +139,12 @@ async fn nft_balance_overview(
     block_params: web::Query<api_models::BlockParams>,
     pagination_params: web::Query<api_models::PaginationParams>,
 ) -> api_models::Result<Json<api_models::NftCountResponse>> {
-    check_pagination(&pagination_params)?;
+    let pagination = check_and_get_pagination(&pagination_params)?;
     check_block_params(&block_params)?;
     let block = get_block_from_params(&pool, &block_params).await?;
     check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
 
+    // todo pages
     Ok(Json(api_models::NftCountResponse {
         nft_count: api::nft_count(&pool, &rpc_client, &block, &request.account_id.0).await?,
         block_timestamp_nanos: types::U64::from(block.timestamp),
@@ -136,11 +161,12 @@ async fn nft_balance_detailed(
     block_params: web::Query<api_models::BlockParams>,
     pagination_params: web::Query<api_models::PaginationParams>,
 ) -> api_models::Result<Json<api_models::NftBalanceResponse>> {
-    check_pagination(&pagination_params)?;
+    let pagination = check_and_get_pagination(&pagination_params)?;
     check_block_params(&block_params)?;
     let block = get_block_from_params(&pool, &block_params).await?;
     check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
 
+    // todo pages
     Ok(Json(api_models::NftBalanceResponse {
         nfts: api::nft_by_contract(
             &pool,
@@ -216,11 +242,13 @@ async fn coin_history(
         )
         .into());
     }
-    check_pagination(&pagination_params)?;
+    let pagination = check_and_get_pagination(&pagination_params)?;
     check_block_params(&block_params)?;
     let block = get_block_from_params(&pool, &block_params).await?;
     check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
 
+    // todo remember here could be mt
+    // todo pages
     let history = api::ft_history(
         &pool,
         &rpc_client,
@@ -304,15 +332,22 @@ fn check_block_params(params: &web::Query<api_models::BlockParams>) -> api_model
     }
 }
 
-fn check_pagination(params: &web::Query<api_models::PaginationParams>) -> api_models::Result<()> {
+fn check_and_get_pagination(
+    params: &web::Query<api_models::PaginationParams>,
+) -> api_models::Result<types::Pagination> {
     if let Some(limit) = params.limit {
-        if limit > MAX_LIMIT {
-            return Err(
-                errors::ErrorKind::InvalidInput(format!("Max limit is {}", MAX_LIMIT)).into(),
-            );
+        if limit > MAX_PAGE_LIMIT || limit == 0 {
+            return Err(errors::ErrorKind::InvalidInput(format!(
+                "Limit should be in range [1, {}]",
+                MAX_PAGE_LIMIT
+            ))
+            .into());
         }
     }
-    Ok(())
+    Ok(types::Pagination {
+        offset: params.offset.unwrap_or(0),
+        limit: params.limit.unwrap_or(20),
+    })
 }
 
 // todo do we need check_contract_exists? (now we will just fail when we make the call to rpc)

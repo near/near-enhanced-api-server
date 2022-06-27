@@ -44,6 +44,7 @@ pub(crate) struct NftItemRequest {
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub(crate) struct BalancesResponse {
+    // todo remember here could be mt
     pub balances: Vec<Coin>,
     pub block_timestamp_nanos: super::types::U64,
     pub block_height: super::types::U64,
@@ -63,6 +64,7 @@ pub(crate) struct NearBalanceResponse {
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub(crate) struct HistoryResponse {
+    // todo remember here could be mt
     pub history: Vec<HistoryInfo>,
     pub block_timestamp_nanos: super::types::U64,
     pub block_height: super::types::U64,
@@ -142,6 +144,7 @@ pub(crate) struct NftItemResponse {
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub(crate) struct Coin {
+    // todo remember here could be mt
     pub standard: String,
     pub balance: super::types::U128,
     pub contract_account_id: Option<super::types::AccountId>,
@@ -168,6 +171,7 @@ pub(crate) struct NearHistoryInfo {
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub(crate) struct HistoryInfo {
+    // todo remember here could be mt
     pub action_kind: String, // mint transfer burn
     pub involved_account_id: Option<super::types::AccountId>,
     pub delta_balance: super::types::I128,
@@ -198,6 +202,7 @@ pub(crate) struct NftsByContractInfo {
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub(crate) struct CoinMetadata {
+    // todo remember here could be mt
     pub name: String,
     pub symbol: String,
     pub icon: Option<String>,
@@ -273,6 +278,6 @@ pub(crate) struct BlockParams {
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 pub(crate) struct PaginationParams {
-    pub page: Option<u32>,
+    pub offset: Option<u32>,
     pub limit: Option<u32>,
 }

@@ -56,15 +56,32 @@ pub(crate) async fn ft_balance(
     rpc_client: &near_jsonrpc_client::JsonRpcClient,
     block: &types::Block,
     account_id: &near_primitives::types::AccountId,
+    pagination: &types::Pagination,
 ) -> api_models::Result<Vec<api_models::Coin>> {
     let contracts = utils::select_retry_or_panic::<db_models::AccountId>(
         pool,
-        r"SELECT DISTINCT emitted_by_contract_account_id account_id
+        r"WITH
+            accounts AS (
+              SELECT DISTINCT emitted_by_contract_account_id account_id
               FROM assets__fungible_token_events
               WHERE (token_old_owner_account_id = $1 OR token_new_owner_account_id = $1)
-                    AND emitted_at_block_timestamp <= $2::numeric(20, 0)
-             ",
-        &[account_id.to_string(), block.timestamp.to_string()],
+                  AND emitted_at_block_timestamp <= $2::numeric(20, 0)
+              ORDER BY emitted_by_contract_account_id
+              ),
+            t AS (
+              SELECT row_number() OVER (ORDER BY account_id) - 1 rownumber, account_id
+              FROM accounts
+              )
+            SELECT account_id
+            FROM t
+            WHERE rownumber >= $3::numeric(20, 0) AND rownumber < $4::numeric(20, 0);
+         ",
+        &[
+            account_id.to_string(),
+            block.timestamp.to_string(),
+            pagination.offset.to_string(),
+            (pagination.offset + pagination.limit).to_string(),
+        ],
         RETRY_COUNT,
     )
     .await?;

@@ -109,6 +109,13 @@ impl TryFrom<&db_models::Block> for Block {
     }
 }
 
+// Helper for parsing the data from user
+// https://stackoverflow.com/questions/35590359/should-paging-be-zero-indexed-within-an-api
+pub struct Pagination {
+    pub offset: u32,
+    pub limit: u32,
+}
+
 // Taken from https://github.com/near/near-sdk-rs/blob/master/near-sdk/src/json_types/vector.rs
 /// Helper class to serialize/deserialize `Vec<u8>` to base64 string.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, BorshDeserialize, BorshSerialize)]
