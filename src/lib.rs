@@ -127,6 +127,7 @@ async fn nft_balance_overview(
     }))
 }
 
+// todo re-check the answer, it's strange. Owner account id does not match
 #[api_v2_operation]
 async fn nft_balance_detailed(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,

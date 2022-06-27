@@ -268,7 +268,7 @@ pub(crate) async fn nft_by_contract(
     block: &types::Block,
     contract_id: &near_primitives::types::AccountId,
     account_id: &near_primitives::types::AccountId,
-) -> api_models::Result<Vec<api_models::NftItemMetadata>> {
+) -> api_models::Result<Vec<api_models::NonFungibleToken>> {
     let tokens = utils::select_retry_or_panic::<db_models::NftId>(
         pool,
         r"SELECT token_id
@@ -287,7 +287,7 @@ pub(crate) async fn nft_by_contract(
     )
     .await?;
 
-    let mut result: Vec<api_models::NftItemMetadata> = vec![];
+    let mut result: Vec<api_models::NonFungibleToken> = vec![];
     for token in tokens {
         result.push(
             rpc_calls::get_nft_metadata(

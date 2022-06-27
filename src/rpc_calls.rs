@@ -110,7 +110,7 @@ pub(crate) async fn get_nft_metadata(
     contract_id: near_primitives::types::AccountId,
     token_id: String,
     block_height: u64,
-) -> api_models::Result<api_models::NftItemMetadata> {
+) -> api_models::Result<api_models::NonFungibleToken> {
     let request = near_jsonrpc_client::methods::query::RpcQueryRequest {
         block_reference: near_primitives::types::BlockReference::BlockId(
             near_primitives::types::BlockId::Height(block_height),
@@ -127,12 +127,8 @@ pub(crate) async fn get_nft_metadata(
     };
 
     match rpc_client.call(request).await?.kind {
-        QueryResponseKind::CallResult(result) => api_models::NftItemMetadata::try_from(
-            serde_json::from_slice::<types::Token>(&result.result)?
-                .metadata
-                .ok_or_else(|| {
-                    errors::ErrorKind::RPCError("NFT requires to have metadata filled".to_string())
-                })?,
+        QueryResponseKind::CallResult(result) => api_models::NonFungibleToken::try_from(
+            serde_json::from_slice::<types::Token>(&result.result)?,
         ),
         _ => Err(errors::ErrorKind::RPCError(
             "Unexpected type of the response after CallFunction request".to_string(),

@@ -219,23 +219,31 @@ impl TryFrom<NFTContractMetadata> for api_models::NftContractMetadata {
     }
 }
 
-impl TryFrom<TokenMetadata> for api_models::NftItemMetadata {
+impl TryFrom<Token> for api_models::NonFungibleToken {
     type Error = errors::Error;
 
-    fn try_from(metadata: TokenMetadata) -> api_models::Result<Self> {
+    fn try_from(token: Token) -> api_models::Result<Self> {
+        let metadata = token.metadata.ok_or_else(|| {
+            errors::ErrorKind::RPCError("NFT requires to have metadata filled".to_string())
+        })?;
+
         Ok(Self {
-            title: metadata.title,
-            description: metadata.description,
-            media: metadata.media,
-            media_hash: utils::base64_to_string(&metadata.media_hash)?,
-            copies: metadata.copies,
-            issued_at: metadata.issued_at,
-            expires_at: metadata.expires_at,
-            starts_at: metadata.starts_at,
-            updated_at: metadata.updated_at,
-            extra: metadata.extra,
-            reference: metadata.reference,
-            reference_hash: utils::base64_to_string(&metadata.reference_hash)?,
+            token_id: token.token_id,
+            owner_account_id: token.owner_id.0.to_string(),
+            metadata: Some(api_models::NftItemMetadata {
+                title: metadata.title,
+                description: metadata.description,
+                media: metadata.media,
+                media_hash: utils::base64_to_string(&metadata.media_hash)?,
+                copies: metadata.copies,
+                issued_at: metadata.issued_at,
+                expires_at: metadata.expires_at,
+                starts_at: metadata.starts_at,
+                updated_at: metadata.updated_at,
+                extra: metadata.extra,
+                reference: metadata.reference,
+                reference_hash: utils::base64_to_string(&metadata.reference_hash)?,
+            }),
         })
     }
 }

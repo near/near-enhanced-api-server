@@ -103,7 +103,7 @@ pub(crate) struct NftCountResponse {
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub(crate) struct NftBalanceResponse {
-    pub nfts: Vec<NftItemMetadata>,
+    pub nfts: Vec<NonFungibleToken>,
     pub contract_metadata: NftContractMetadata,
     pub block_timestamp_nanos: super::types::U64,
     pub block_height: super::types::U64,
@@ -113,8 +113,7 @@ pub(crate) struct NftBalanceResponse {
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub(crate) struct NftHistoryResponse {
     pub history: Vec<NftHistoryInfo>,
-    // todo also types::Token?
-    pub token_metadata: NftItemMetadata,
+    pub token_metadata: NonFungibleToken,
     pub contract_metadata: NftContractMetadata,
     pub block_timestamp_nanos: super::types::U64,
     pub block_height: super::types::U64,
@@ -132,8 +131,7 @@ pub(crate) struct NearHistoryResponse {
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub(crate) struct NftItemResponse {
-    // todo I need to pass here types::Token
-    pub nft: NftItemMetadata,
+    pub nft: NonFungibleToken,
     pub contract_metadata: NftContractMetadata,
     pub block_timestamp_nanos: super::types::U64,
     pub block_height: super::types::U64,
@@ -236,6 +234,16 @@ pub(crate) struct NftContractMetadata {
     pub base_uri: Option<String>, // Centralized gateway known to have reliable access to decentralized storage assets referenced by `reference` or `media` URLs
     pub reference: Option<String>, // URL to a JSON file with more info
     pub reference_hash: Option<String>, // Base64-encoded sha256 hash of JSON from reference field. Required if `reference` is included.
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub(crate) struct NonFungibleToken {
+    pub token_id: String,
+    pub owner_account_id: String,
+    pub metadata: Option<NftItemMetadata>,
+    // todo do we want to show it?
+    // pub approved_account_ids: Option<std::collections::HashMap<AccountId, u64>>,
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
