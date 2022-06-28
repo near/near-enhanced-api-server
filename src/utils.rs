@@ -2,7 +2,6 @@ use num_traits::ToPrimitive;
 use sqlx::postgres::PgRow;
 use sqlx::Arguments;
 
-use crate::types::Pagination;
 use crate::{api_models, errors, types, BigDecimal};
 
 const INTERVAL: std::time::Duration = std::time::Duration::from_millis(100);
@@ -87,16 +86,4 @@ pub(crate) fn base64_to_string(
     } else {
         None
     })
-}
-
-pub(crate) fn add_items(pagination: &mut Pagination, count: u32) -> api_models::Result<()> {
-    if pagination.limit < count {
-        return Err(errors::ErrorKind::InternalError(
-            "Trying to add more items to the page than the limit".to_string(),
-        )
-        .into());
-    }
-    pagination.offset += count;
-    pagination.limit -= count;
-    Ok(())
 }

@@ -1,4 +1,3 @@
-use crate::utils::add_items;
 use actix_cors::Cors;
 use actix_web::{App, HttpServer, ResponseError};
 use paperclip::actix::{
@@ -22,6 +21,7 @@ mod utils;
 // todo MT
 // todo statistics collection
 // todo learn how to return page/limit info in the headers response
+const DEFAULT_PAGE_LIMIT: u32 = 20;
 const MAX_PAGE_LIMIT: u32 = 100;
 
 #[api_v2_operation]
@@ -48,28 +48,34 @@ async fn native_balance(
 ///
 /// This endpoint returns all the countable coin balances of the given account_id,
 /// for the given timestamp/block_height.
+/// Sorted by standard (NEAR, FT, ...), then alphabetically by contract_id.
 async fn coin_balances(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     request: web::Path<api_models::BalanceRequest>,
     block_params: web::Query<api_models::BlockParams>,
-    pagination_params: web::Query<api_models::PaginationParams>,
+    pagination_params: web::Query<api_models::CoinBalancesPaginationParams>,
 ) -> api_models::Result<Json<api_models::BalancesResponse>> {
-    let mut pagination = check_and_get_pagination(&pagination_params)?;
+    check_limit(pagination_params.limit)?;
+    let mut pagination: types::CoinBalancesPagination = pagination_params.0.into();
     let block = get_block_from_params(&pool, &block_params).await?;
     check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
 
     // ordering: near, then fts by contract_id, then mts by contract_id and symbol
     let mut balances: Vec<api_models::Coin> = vec![];
-    if pagination.offset == 0 {
+    if pagination.last_standard.is_none() {
         balances.push(
             api::native_balance(&pool, &block, &request.account_id.0)
                 .await?
                 .into(),
         );
-        add_items(&mut pagination, 1)?;
+        pagination.limit -= 1;
     }
-    if pagination.limit > 0 {
+    if pagination.limit > 0
+        && (pagination.last_standard.is_none()
+            || pagination.last_standard == Some("nep141".to_string()))
+    {
+        // todo put the constants in one place
         let fts = &mut api::ft_balance(
             &pool,
             &rpc_client,
@@ -79,12 +85,11 @@ async fn coin_balances(
         )
         .await?;
         balances.append(fts);
-        add_items(&mut pagination, fts.length() as u32)?;
+        pagination.limit -= fts.length() as u32;
     }
     // todo remember here could be mt
     // if pagination.limit > 0 {
     //     //...
-    //     add_items(&mut pagination, ...)?;
     // }
 
     Ok(Json(api_models::BalancesResponse {
@@ -114,6 +119,7 @@ async fn balance_by_contract(
         .into());
     }
     // todo remember here could be mt
+    // todo probably we want to add pagination here, but it could look strange
     check_block_params(&block_params)?;
     let block = get_block_from_params(&pool, &block_params).await?;
     check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
@@ -143,21 +149,28 @@ async fn balance_by_contract(
 /// For the given account_id and timestamp/block_height, this endpoint returns
 /// the number of NFTs grouped by contract_id, together with the corresponding NFT contract metadata.
 /// NFT contract is presented in the list if the account_id has at least one NFT there.
+/// Sorted alphabetically by contract_id
 async fn nft_balance_overview(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     request: web::Path<api_models::BalanceRequest>,
     block_params: web::Query<api_models::BlockParams>,
-    pagination_params: web::Query<api_models::PaginationParams>,
+    pagination_params: web::Query<api_models::NftOverviewPaginationParams>,
 ) -> api_models::Result<Json<api_models::NftCountResponse>> {
-    let pagination = check_and_get_pagination(&pagination_params)?;
+    check_limit(pagination_params.limit)?;
     check_block_params(&block_params)?;
     let block = get_block_from_params(&pool, &block_params).await?;
     check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
 
-    // todo pages
     Ok(Json(api_models::NftCountResponse {
-        nft_count: api::nft_count(&pool, &rpc_client, &block, &request.account_id.0).await?,
+        nft_count: api::nft_count(
+            &pool,
+            &rpc_client,
+            &block,
+            &request.account_id.0,
+            &pagination_params,
+        )
+        .await?,
         block_timestamp_nanos: types::U64::from(block.timestamp),
         block_height: types::U64::from(block.height),
     }))
@@ -169,19 +182,20 @@ async fn nft_balance_overview(
 ///
 /// This endpoint returns the list of NFTs with token metadata
 /// for the given account_id, NFT contract_id, timestamp/block_height.
+/// You can copy the token_id from this response and ask for NFT history.
+/// Sorted alphabetically by token_id. Be careful, it's usually a number, but we use alphabetical order because it could be any string.
 async fn nft_balance_detailed(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     request: web::Path<api_models::BalanceByContractRequest>,
     block_params: web::Query<api_models::BlockParams>,
-    pagination_params: web::Query<api_models::PaginationParams>,
+    pagination_params: web::Query<api_models::NftBalancePaginationParams>,
 ) -> api_models::Result<Json<api_models::NftBalanceResponse>> {
-    let pagination = check_and_get_pagination(&pagination_params)?;
+    check_limit(pagination_params.limit)?;
     check_block_params(&block_params)?;
     let block = get_block_from_params(&pool, &block_params).await?;
     check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
 
-    // todo pages
     Ok(Json(api_models::NftBalanceResponse {
         nfts: api::nft_by_contract(
             &pool,
@@ -189,6 +203,7 @@ async fn nft_balance_detailed(
             &block,
             &request.contract_account_id.0,
             &request.account_id.0,
+            &pagination_params,
         )
         .await?,
         contract_metadata: rpc_calls::get_nft_general_metadata(
@@ -240,14 +255,16 @@ async fn nft_item_details(
 ///
 /// This endpoint returns the history of operations with NEAR coin
 /// for the given account_id, timestamp/block_height.
+/// Sorted in a historical descending order.
 async fn native_history(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     request: web::Path<api_models::BalanceRequest>,
     block_params: web::Query<api_models::BlockParams>,
-    pagination_params: web::Query<api_models::PaginationParams>,
+    pagination_params: web::Query<api_models::HistoryPaginationParams>,
 ) -> api_models::Result<Json<api_models::NearHistoryResponse>> {
-    todo!("not implemented yet");
+    //todo not implemented
+    Err(errors::ErrorKind::InternalError("Sorry! It's still under development".to_string()).into())
 }
 
 #[api_v2_operation]
@@ -255,12 +272,13 @@ async fn native_history(
 ///
 /// This endpoint returns the history of coin operations (FT, other standards)
 /// for the given account_id, contract_id, timestamp/block_height.
+/// Sorted in a historical descending order.
 async fn coin_history(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     request: web::Path<api_models::BalanceHistoryRequest>,
     block_params: web::Query<api_models::BlockParams>,
-    pagination_params: web::Query<api_models::PaginationParams>,
+    pagination_params: web::Query<api_models::HistoryPaginationParams>,
 ) -> api_models::Result<Json<api_models::HistoryResponse>> {
     if request.contract_account_id.to_string() == "near" {
         return Err(errors::ErrorKind::InvalidInput(
@@ -268,7 +286,7 @@ async fn coin_history(
         )
         .into());
     }
-    let pagination = check_and_get_pagination(&pagination_params)?;
+    check_limit(pagination_params.limit)?;
     check_block_params(&block_params)?;
     let block = get_block_from_params(&pool, &block_params).await?;
     check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
@@ -276,13 +294,13 @@ async fn coin_history(
     // todo remember here could be mt
     // todo pages
 
-    // order by timestamp, symbol (we can't, it's not in the db), involved_account_id
     let history = api::coin_history(
         &pool,
         &rpc_client,
         &block,
         &request.contract_account_id.0,
         &request.account_id.0,
+        &pagination_params,
     )
     .await?;
 
@@ -298,14 +316,16 @@ async fn coin_history(
 ///
 /// This endpoint returns the history of operations for the given NFT and timestamp/block_height.
 /// Keep in mind, it does not related to a concrete account_id; the whole history is shown.
+/// Sorted in a historical descending order.
 async fn nft_history(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     request: web::Path<api_models::NftItemRequest>,
     block_params: web::Query<api_models::BlockParams>,
-    pagination_params: web::Query<api_models::PaginationParams>,
+    pagination_params: web::Query<api_models::HistoryPaginationParams>,
 ) -> api_models::Result<Json<api_models::NftHistoryResponse>> {
-    todo!("not implemented yet");
+    //todo not implemented
+    Err(errors::ErrorKind::InternalError("Sorry! It's still under development".to_string()).into())
 }
 
 #[api_v2_operation]
@@ -371,10 +391,8 @@ fn check_block_params(params: &web::Query<api_models::BlockParams>) -> api_model
     }
 }
 
-fn check_and_get_pagination(
-    params: &web::Query<api_models::PaginationParams>,
-) -> api_models::Result<types::Pagination> {
-    if let Some(limit) = params.limit {
+fn check_limit(limit_param: Option<u32>) -> api_models::Result<()> {
+    if let Some(limit) = limit_param {
         if limit > MAX_PAGE_LIMIT || limit == 0 {
             return Err(errors::ErrorKind::InvalidInput(format!(
                 "Limit should be in range [1, {}]",
@@ -383,10 +401,7 @@ fn check_and_get_pagination(
             .into());
         }
     }
-    Ok(types::Pagination {
-        offset: params.offset.unwrap_or(0),
-        limit: params.limit.unwrap_or(20),
-    })
+    Ok(())
 }
 
 // todo do we need check_contract_exists? (now we will just fail when we make the call to rpc)
@@ -576,10 +591,8 @@ pub fn start(
                     .route(web::get().to(nft_balance_detailed)),
             )
             .service(
-                web::resource(
-                    "/collectibles/{contract_account_id}/{token_id}",
-                )
-                .route(web::get().to(nft_item_details)),
+                web::resource("/collectibles/{contract_account_id}/{token_id}")
+                    .route(web::get().to(nft_item_details)),
             )
             .service(
                 web::resource("/accounts/{account_id}/coins/NEAR/history")
@@ -590,10 +603,8 @@ pub fn start(
                     .route(web::get().to(coin_history)),
             )
             .service(
-                web::resource(
-                    "/collectibles/{contract_account_id}/{token_id}/history",
-                )
-                .route(web::get().to(nft_history)),
+                web::resource("/collectibles/{contract_account_id}/{token_id}/history")
+                    .route(web::get().to(nft_history)),
             )
             .service(
                 web::resource("/nep141/metadata/{contract_account_id}")

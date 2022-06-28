@@ -56,35 +56,50 @@ pub(crate) async fn ft_balance(
     rpc_client: &near_jsonrpc_client::JsonRpcClient,
     block: &types::Block,
     account_id: &near_primitives::types::AccountId,
-    pagination: &types::Pagination,
+    pagination: &types::CoinBalancesPagination,
 ) -> api_models::Result<Vec<api_models::Coin>> {
-    let contracts = utils::select_retry_or_panic::<db_models::AccountId>(
-        pool,
-        r"WITH
-            accounts AS (
-              SELECT DISTINCT emitted_by_contract_account_id account_id
-              FROM assets__fungible_token_events
-              WHERE (token_old_owner_account_id = $1 OR token_new_owner_account_id = $1)
-                  AND emitted_at_block_timestamp <= $2::numeric(20, 0)
-              ORDER BY emitted_by_contract_account_id
-              ),
-            t AS (
-              SELECT row_number() OVER (ORDER BY account_id) - 1 rownumber, account_id
-              FROM accounts
-              )
-            SELECT account_id
-            FROM t
-            WHERE rownumber >= $3::numeric(20, 0) AND rownumber < $4::numeric(20, 0);
-         ",
-        &[
-            account_id.to_string(),
-            block.timestamp.to_string(),
-            pagination.offset.to_string(),
-            (pagination.offset + pagination.limit).to_string(),
-        ],
-        RETRY_COUNT,
-    )
-    .await?;
+    let contracts = match &pagination.last_contract_account_id {
+        None => {
+            let query = r"SELECT DISTINCT emitted_by_contract_account_id account_id
+                 FROM assets__fungible_token_events
+                 WHERE (token_old_owner_account_id = $1 OR token_new_owner_account_id = $1)
+                     AND emitted_at_block_timestamp <= $2::numeric(20, 0)
+                 ORDER BY emitted_by_contract_account_id
+                 LIMIT $3::numeric(20, 0)";
+            utils::select_retry_or_panic::<db_models::AccountId>(
+                pool,
+                query,
+                &[
+                    account_id.to_string(),
+                    block.timestamp.to_string(),
+                    pagination.limit.to_string(),
+                ],
+                RETRY_COUNT,
+            )
+            .await?
+        }
+        Some(last_contract) => {
+            let query = r"SELECT DISTINCT emitted_by_contract_account_id account_id
+                 FROM assets__fungible_token_events
+                 WHERE (token_old_owner_account_id = $1 OR token_new_owner_account_id = $1)
+                     AND emitted_by_contract_account_id > $4
+                     AND emitted_at_block_timestamp <= $2::numeric(20, 0)
+                 ORDER BY emitted_by_contract_account_id
+                 LIMIT $3::numeric(20, 0)";
+            utils::select_retry_or_panic::<db_models::AccountId>(
+                pool,
+                query,
+                &[
+                    account_id.to_string(),
+                    block.timestamp.to_string(),
+                    pagination.limit.to_string(),
+                    last_contract.clone(),
+                ],
+                RETRY_COUNT,
+            )
+            .await?
+        }
+    };
 
     let mut balances: Vec<api_models::Coin> = vec![];
     for contract in contracts {
@@ -137,7 +152,14 @@ pub(crate) async fn coin_history(
     block: &types::Block,
     contract_id: &near_primitives::types::AccountId,
     account_id: &near_primitives::types::AccountId,
+    pagination: &api_models::HistoryPaginationParams,
 ) -> api_models::Result<Vec<api_models::HistoryInfo>> {
+    if pagination.last_index.is_some() {
+        return Err(errors::ErrorKind::InternalError(
+            "Sorry! It's still under development".to_string(),
+        )
+        .into());
+    }
     let mut last_balance = rpc_calls::get_ft_balance(
         rpc_client,
         contract_id.clone(),
@@ -154,7 +176,7 @@ pub(crate) async fn coin_history(
     // we collect the data from DB in straight order, then iter by rev order
     // the final result goes from latest to the earliest data
     let account_id = account_id.to_string();
-    // todo here will be mts via union all
+    // todo here will be mts via union all. I feel it will not work in production with union all
     // todo add enumeration artificial column. Think about MT here
     let ft_history_info = utils::select_retry_or_panic::<db_models::FtHistoryInfo>(
         pool,
@@ -170,11 +192,16 @@ pub(crate) async fn coin_history(
               AND (token_old_owner_account_id = $2 OR token_new_owner_account_id = $2)
               AND emitted_at_block_timestamp <= $3::numeric(20, 0)
           ORDER BY emitted_at_block_timestamp
+          --LIMIT $4::numeric(20, 0)
              ",
         &[
             contract_id.to_string(),
             account_id.clone(),
             block.timestamp.to_string(),
+            pagination
+                .limit
+                .unwrap_or(crate::DEFAULT_PAGE_LIMIT)
+                .to_string(),
         ],
         RETRY_COUNT,
     )
@@ -223,19 +250,21 @@ pub(crate) async fn coin_history(
             delta_balance: delta.into(),
             balance: balance.into(),
             metadata: metadata.clone(),
+            index: types::U128(0), // todo
             block_timestamp_nanos: utils::to_u64(&db_info.block_timestamp)?.into(),
             block_height: utils::to_u64(&db_info.block_height)?.into(),
         });
     }
-    if let Some(info) = result.last() {
-        if info.balance.0 != (info.delta_balance.0 as u128) {
-            return Err(errors::ErrorKind::InternalError(format!(
-                "We have found the money from nowhere for account {}, contract {}",
-                account_id, contract_id
-            ))
-            .into());
-        }
-    }
+    //  todo it's impossible to check the data with the limit & pagination
+    // if let Some(info) = result.last() {
+    //     if info.balance.0 != (info.delta_balance.0 as u128) {
+    //         return Err(errors::ErrorKind::InternalError(format!(
+    //             "We have found the money from nowhere for account {}, contract {}",
+    //             account_id, contract_id
+    //         ))
+    //         .into());
+    //     }
+    // }
     Ok(result)
 }
 
@@ -245,21 +274,58 @@ pub(crate) async fn nft_count(
     rpc_client: &near_jsonrpc_client::JsonRpcClient,
     block: &types::Block,
     account_id: &near_primitives::types::AccountId,
+    pagination: &api_models::NftOverviewPaginationParams,
 ) -> api_models::Result<Vec<api_models::NftsByContractInfo>> {
-    // todo do we want to show zeros here? as the tokens that we had at one time, but not now
-    // now we don't show them
-    let contracts = utils::select_retry_or_panic::<db_models::NftCount>(
-        pool,
-        r"SELECT emitted_by_contract_account_id contract_id, count(*) count
-          FROM assets__non_fungible_token_events
-          WHERE token_new_owner_account_id = $1
-              AND emitted_at_block_timestamp <= $2::numeric(20, 0)
-          GROUP BY emitted_by_contract_account_id
-         ",
-        &[account_id.to_string(), block.timestamp.to_string()],
-        RETRY_COUNT,
-    )
-    .await?;
+    let contracts = match &pagination.last_contract_account_id {
+        None => {
+            let query = r"SELECT emitted_by_contract_account_id contract_id, count(*) count
+                  FROM assets__non_fungible_token_events
+                  WHERE token_new_owner_account_id = $1
+                      AND emitted_at_block_timestamp <= $2::numeric(20, 0)
+                  GROUP BY emitted_by_contract_account_id
+                  ORDER BY emitted_by_contract_account_id
+                  LIMIT $3::numeric(20, 0)";
+            utils::select_retry_or_panic::<db_models::NftCount>(
+                pool,
+                query,
+                &[
+                    account_id.to_string(),
+                    block.timestamp.to_string(),
+                    pagination
+                        .limit
+                        .unwrap_or(crate::DEFAULT_PAGE_LIMIT)
+                        .to_string(),
+                ],
+                RETRY_COUNT,
+            )
+            .await?
+        }
+        Some(last_contract) => {
+            let query = r"SELECT emitted_by_contract_account_id contract_id, count(*) count
+                  FROM assets__non_fungible_token_events
+                  WHERE token_new_owner_account_id = $1
+                      AND emitted_by_contract_account_id > $4
+                      AND emitted_at_block_timestamp <= $2::numeric(20, 0)
+                  GROUP BY emitted_by_contract_account_id
+                  ORDER BY emitted_by_contract_account_id
+                  LIMIT $3::numeric(20, 0)";
+            utils::select_retry_or_panic::<db_models::NftCount>(
+                pool,
+                query,
+                &[
+                    account_id.to_string(),
+                    block.timestamp.to_string(),
+                    pagination
+                        .limit
+                        .unwrap_or(crate::DEFAULT_PAGE_LIMIT)
+                        .to_string(),
+                    last_contract.clone(),
+                ],
+                RETRY_COUNT,
+            )
+            .await?
+        }
+    };
 
     let mut result: Vec<api_models::NftsByContractInfo> = vec![];
     for contract in contracts {
@@ -287,24 +353,62 @@ pub(crate) async fn nft_by_contract(
     block: &types::Block,
     contract_id: &near_primitives::types::AccountId,
     account_id: &near_primitives::types::AccountId,
+    pagination: &api_models::NftBalancePaginationParams,
 ) -> api_models::Result<Vec<api_models::NonFungibleToken>> {
-    let tokens = utils::select_retry_or_panic::<db_models::NftId>(
-        pool,
-        r"SELECT token_id
+    let tokens = match &pagination.last_token_id {
+        None => {
+            let query = r"SELECT DISTINCT token_id
           FROM assets__non_fungible_token_events
           WHERE emitted_by_contract_account_id = $1
               AND token_new_owner_account_id = $2
               AND emitted_at_block_timestamp <= $3::numeric(20, 0)
-
-         ",
-        &[
-            contract_id.to_string(),
-            account_id.to_string(),
-            block.timestamp.to_string(),
-        ],
-        RETRY_COUNT,
-    )
-    .await?;
+          ORDER BY token_id
+          LIMIT $4::numeric(20, 0)
+         ";
+            utils::select_retry_or_panic::<db_models::NftId>(
+                pool,
+                query,
+                &[
+                    contract_id.to_string(),
+                    account_id.to_string(),
+                    block.timestamp.to_string(),
+                    pagination
+                        .limit
+                        .unwrap_or(crate::DEFAULT_PAGE_LIMIT)
+                        .to_string(),
+                ],
+                RETRY_COUNT,
+            )
+            .await?
+        }
+        Some(last_token_id) => {
+            let query = r"SELECT DISTINCT token_id
+          FROM assets__non_fungible_token_events
+          WHERE emitted_by_contract_account_id = $1
+              AND token_new_owner_account_id = $2
+              AND emitted_at_block_timestamp <= $3::numeric(20, 0)
+              AND token_id > $5
+          ORDER BY token_id
+          LIMIT $4::numeric(20, 0)
+         ";
+            utils::select_retry_or_panic::<db_models::NftId>(
+                pool,
+                query,
+                &[
+                    contract_id.to_string(),
+                    account_id.to_string(),
+                    block.timestamp.to_string(),
+                    pagination
+                        .limit
+                        .unwrap_or(crate::DEFAULT_PAGE_LIMIT)
+                        .to_string(),
+                    last_token_id.clone(),
+                ],
+                RETRY_COUNT,
+            )
+            .await?
+        }
+    };
 
     let mut result: Vec<api_models::NonFungibleToken> = vec![];
     for token in tokens {

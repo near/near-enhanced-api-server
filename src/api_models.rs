@@ -8,6 +8,7 @@ pub(crate) type Result<T> = std::result::Result<T, crate::errors::Error>;
 
 // *** Requests ***
 
+/// Some comment here
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 pub(crate) struct BalanceRequest {
     pub account_id: super::types::AccountId,
@@ -162,6 +163,7 @@ pub(crate) struct NearHistoryInfo {
     pub available_balance: super::types::U128, // todo naming
     pub staked_balance: super::types::U128,
     pub cause: String,
+    pub index: super::types::U128, // todo naming
     pub block_timestamp_nanos: super::types::U64,
     pub block_height: super::types::U64,
 }
@@ -175,6 +177,7 @@ pub(crate) struct HistoryInfo {
     pub delta_balance: super::types::I128,
     pub balance: super::types::U128,
     pub metadata: CoinMetadata,
+    pub index: super::types::U128, // todo naming
     pub block_timestamp_nanos: super::types::U64,
     pub block_height: super::types::U64,
 }
@@ -185,6 +188,7 @@ pub(crate) struct NftHistoryInfo {
     pub action_kind: String, // mint transfer burn
     pub old_account_id: Option<super::types::AccountId>,
     pub new_account_id: Option<super::types::AccountId>,
+    pub index: super::types::U128, // todo naming
     pub block_timestamp_nanos: super::types::U64,
     pub block_height: super::types::U64,
 }
@@ -275,7 +279,26 @@ pub(crate) struct BlockParams {
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
-pub(crate) struct PaginationParams {
-    pub offset: Option<u32>,
+pub(crate) struct CoinBalancesPaginationParams {
+    pub last_standard: Option<String>,
+    pub last_contract_account_id: Option<String>,
+    pub limit: Option<u32>,
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
+pub(crate) struct NftOverviewPaginationParams {
+    pub last_contract_account_id: Option<String>,
+    pub limit: Option<u32>,
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
+pub(crate) struct NftBalancePaginationParams {
+    pub last_token_id: Option<String>,
+    pub limit: Option<u32>,
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
+pub(crate) struct HistoryPaginationParams {
+    pub last_index: Option<super::types::U128>, // todo not implemented yet
     pub limit: Option<u32>,
 }

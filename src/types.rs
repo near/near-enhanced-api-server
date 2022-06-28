@@ -110,10 +110,20 @@ impl TryFrom<&db_models::Block> for Block {
 }
 
 // Helper for parsing the data from user
-// https://stackoverflow.com/questions/35590359/should-paging-be-zero-indexed-within-an-api
-pub struct Pagination {
-    pub offset: u32,
+pub struct CoinBalancesPagination {
+    pub last_standard: Option<String>,
+    pub last_contract_account_id: Option<String>,
     pub limit: u32,
+}
+
+impl From<api_models::CoinBalancesPaginationParams> for CoinBalancesPagination {
+    fn from(params: api_models::CoinBalancesPaginationParams) -> Self {
+        Self {
+            last_standard: params.last_standard,
+            last_contract_account_id: params.last_contract_account_id,
+            limit: params.limit.unwrap_or(crate::DEFAULT_PAGE_LIMIT),
+        }
+    }
 }
 
 // Taken from https://github.com/near/near-sdk-rs/blob/master/near-sdk/src/json_types/vector.rs
