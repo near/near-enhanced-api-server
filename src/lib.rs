@@ -473,6 +473,7 @@ pub fn start(
         cors_allowed_origins,
         limits,
     } = config;
+    let addr_clone = addr.clone();
     let server = HttpServer::new(move || {
         let json_config = web::JsonConfig::default()
             .limit(limits.input_payload_max_size)
@@ -486,13 +487,36 @@ pub fn start(
                 .into()
             });
 
+        let mut spec = paperclip::v2::models::DefaultApiRaw::default();
+        spec.host = Some(addr_clone.clone());
+        spec.base_path = Some("/".to_string());
+        spec.tags = vec![
+            paperclip::v2::models::Tag {
+                name: "Accounts".to_string(),
+                description: Some("Most common actions with accounts in NEAR".to_string()),
+                external_docs: None,
+            },
+            paperclip::v2::models::Tag {
+                name: "Standards".to_string(),
+                description: Some(
+                    "Manipulate with NEAR Enhancement Proposal (NEP) Standards".to_string(),
+                ),
+                external_docs: None,
+            },
+        ];
+        spec.info = paperclip::v2::models::Info {
+            version: "0.1".into(),
+            title: "NEAR Enchanced API (by Pagoda Inc)".into(),
+            ..Default::default()
+        };
+
         App::new()
             .app_data(json_config)
             .wrap(actix_web::middleware::Logger::default())
             .app_data(web::Data::new(pool.clone()))
             .app_data(web::Data::new(rpc_client.clone()))
             .wrap(get_cors(&cors_allowed_origins))
-            .wrap_api()
+            .wrap_api_with_spec(spec)
             .service(
                 web::resource("/accounts/{account_id}/coins/NEAR")
                     .route(web::get().to(native_balance)),
@@ -540,7 +564,8 @@ pub fn start(
                 web::resource("/nep171/metadata/{contract_account_id}")
                     .route(web::get().to(nft_metadata)),
             )
-            .with_json_spec_at("/api/spec")
+            .with_json_spec_at("/api/spec/v2.json")
+            .with_json_spec_v3_at("/api/spec/v3.json")
             .build()
     })
     .bind(addr)
