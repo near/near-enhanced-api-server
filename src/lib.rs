@@ -517,6 +517,33 @@ fn get_cors(cors_allowed_origins: &[String]) -> Cors {
         .max_age(3600)
 }
 
+async fn playground_ui() -> impl actix_web::Responder {
+    actix_web::HttpResponse::Ok()
+        .insert_header(actix_web::http::header::ContentType::html())
+        .body(
+            r#"<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>NEAR Enhanced API powered by Pagoda - Playground</title>
+    <!-- Embed elements Elements via Web Component -->
+    <script src="https://unpkg.com/@stoplight/elements/web-components.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/@stoplight/elements/styles.min.css">
+  </head>
+  <body>
+
+    <elements-api
+      apiDescriptionUrl="/api/spec/v3.json"
+      router="hash"
+      layout="sidebar"
+    />
+
+  </body>
+</html>"#,
+        )
+}
+
 pub fn start(
     config: config::Config,
     pool: sqlx::Pool<sqlx::Postgres>,
@@ -527,7 +554,8 @@ pub fn start(
         cors_allowed_origins,
         limits,
     } = config;
-    let addr_clone = addr.clone();
+    let api_server_public_host =
+        std::env::var("API_SERVER_PUBLIC_HOST").unwrap_or_else(|_| addr.clone());
     let server = HttpServer::new(move || {
         let json_config = web::JsonConfig::default()
             .limit(limits.input_payload_max_size)
@@ -542,7 +570,11 @@ pub fn start(
             });
 
         let mut spec = paperclip::v2::models::DefaultApiRaw::default();
-        spec.host = Some(addr_clone.clone());
+        spec.schemes
+            .insert(paperclip::v2::models::OperationProtocol::Https);
+        spec.schemes
+            .insert(paperclip::v2::models::OperationProtocol::Http);
+        spec.host = Some(api_server_public_host.clone());
         spec.base_path = Some("/".to_string());
         spec.tags = vec![
             paperclip::v2::models::Tag {
@@ -560,7 +592,7 @@ pub fn start(
         ];
         spec.info = paperclip::v2::models::Info {
             version: "0.1".into(),
-            title: "NEAR Enchanced API (by Pagoda Inc)".into(),
+            title: "NEAR Enhanced API powered by Pagoda".into(),
             ..Default::default()
         };
 
@@ -570,6 +602,7 @@ pub fn start(
             .app_data(web::Data::new(pool.clone()))
             .app_data(web::Data::new(rpc_client.clone()))
             .wrap(get_cors(&cors_allowed_origins))
+            .route("/", actix_web::web::get().to(playground_ui))
             .wrap_api_with_spec(spec)
             .service(
                 web::resource("/accounts/{account_id}/coins/NEAR")
