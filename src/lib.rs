@@ -25,10 +25,10 @@ mod utils;
 const MAX_PAGE_LIMIT: u32 = 100;
 
 #[api_v2_operation]
-/// Get the user's balance
+/// Get the user's NEAR balance
 ///
-/// This endpoint returns the balance of the given account_id,
-/// for the specified token_contract_id | near.
+/// This endpoint returns the NEAR balance of the given account_id
+/// for the given timestamp/block_height.
 async fn native_balance(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     request: web::Path<api_models::BalanceRequest>,
@@ -44,10 +44,10 @@ async fn native_balance(
 }
 
 #[api_v2_operation]
-/// Get the user's balance
+/// Get the user's NEAR, FT balances
 ///
-/// This endpoint returns the balance of the given account_id,
-/// for the specified token_contract_id | near.
+/// This endpoint returns all the countable coin balances of the given account_id,
+/// for the given timestamp/block_height.
 async fn coin_balances(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
@@ -95,6 +95,12 @@ async fn coin_balances(
 }
 
 #[api_v2_operation]
+/// Get the user's balances for the given contract id
+///
+/// This endpoint returns all the countable coin balances of the given account_id,
+/// for the given contract and timestamp/block_height.
+/// For FT contracts, the response usually has only 1 item in the list.
+/// For MT contracts, there could be several balances (MT support is not ready yet).
 async fn balance_by_contract(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
@@ -132,6 +138,11 @@ async fn balance_by_contract(
 }
 
 #[api_v2_operation]
+/// Get the overview of the user's NFT collection
+///
+/// For the given account_id and timestamp/block_height, this endpoint returns
+/// the number of NFTs grouped by contract_id, together with the corresponding NFT contract metadata.
+/// NFT contract is presented in the list if the account_id has at least one NFT there.
 async fn nft_balance_overview(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
@@ -154,6 +165,10 @@ async fn nft_balance_overview(
 
 // todo re-check the answer, it's strange. Owner account id does not match
 #[api_v2_operation]
+/// Get the user's NFT collection for the given NFT contract
+///
+/// This endpoint returns the list of NFTs with token metadata
+/// for the given account_id, NFT contract_id, timestamp/block_height.
 async fn nft_balance_detailed(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
@@ -188,6 +203,10 @@ async fn nft_balance_detailed(
 }
 
 #[api_v2_operation]
+/// Get the NFT details for the given token id
+///
+/// This endpoint returns the NFT details
+/// for the given token_id, NFT contract_id, timestamp/block_height.
 async fn nft_item_details(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
@@ -196,7 +215,6 @@ async fn nft_item_details(
 ) -> api_models::Result<Json<api_models::NftItemResponse>> {
     check_block_params(&block_params)?;
     let block = get_block_from_params(&pool, &block_params).await?;
-    check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
 
     Ok(Json(api_models::NftItemResponse {
         nft: rpc_calls::get_nft_metadata(
@@ -218,10 +236,14 @@ async fn nft_item_details(
 }
 
 #[api_v2_operation]
+/// Get the history of NEAR coin operations
+///
+/// This endpoint returns the history of operations with NEAR coin
+/// for the given account_id, timestamp/block_height.
 async fn native_history(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
-    request: web::Path<api_models::NftItemRequest>,
+    request: web::Path<api_models::BalanceRequest>,
     block_params: web::Query<api_models::BlockParams>,
     pagination_params: web::Query<api_models::PaginationParams>,
 ) -> api_models::Result<Json<api_models::NearHistoryResponse>> {
@@ -229,6 +251,10 @@ async fn native_history(
 }
 
 #[api_v2_operation]
+/// Get the history of coin operations for the given contract_id
+///
+/// This endpoint returns the history of coin operations (FT, other standards)
+/// for the given account_id, contract_id, timestamp/block_height.
 async fn coin_history(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
@@ -249,7 +275,9 @@ async fn coin_history(
 
     // todo remember here could be mt
     // todo pages
-    let history = api::ft_history(
+
+    // order by timestamp, symbol (we can't, it's not in the db), involved_account_id
+    let history = api::coin_history(
         &pool,
         &rpc_client,
         &block,
@@ -266,6 +294,10 @@ async fn coin_history(
 }
 
 #[api_v2_operation]
+/// Get the history of operations for the given NFT
+///
+/// This endpoint returns the history of operations for the given NFT and timestamp/block_height.
+/// Keep in mind, it does not related to a concrete account_id; the whole history is shown.
 async fn nft_history(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
@@ -277,6 +309,9 @@ async fn nft_history(
 }
 
 #[api_v2_operation]
+/// Get the metadata for given FT contract
+///
+/// This endpoint returns the metadata for given FT contract and timestamp/block_height.
 async fn ft_metadata(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
@@ -299,6 +334,10 @@ async fn ft_metadata(
 }
 
 #[api_v2_operation]
+/// Get the metadata for given NFT contract
+///
+/// This endpoint returns the metadata for given NFT contract and timestamp/block_height.
+/// Keep in mind, this is contract-wide metadata. Each NFT also has its own metadata.
 async fn nft_metadata(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
@@ -538,7 +577,7 @@ pub fn start(
             )
             .service(
                 web::resource(
-                    "/accounts/{account_id}/collectibles/{contract_account_id}/{token_id}",
+                    "/collectibles/{contract_account_id}/{token_id}",
                 )
                 .route(web::get().to(nft_item_details)),
             )
@@ -552,7 +591,7 @@ pub fn start(
             )
             .service(
                 web::resource(
-                    "/accounts/{account_id}/collectibles/{contract_account_id}/{token_id}/history",
+                    "/collectibles/{contract_account_id}/{token_id}/history",
                 )
                 .route(web::get().to(nft_history)),
             )

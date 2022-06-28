@@ -31,10 +31,8 @@ pub(crate) struct ContractMetadataRequest {
     pub contract_account_id: super::types::AccountId,
 }
 
-/// Includes Native, FT, later will include MT
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 pub(crate) struct NftItemRequest {
-    pub account_id: super::types::AccountId,
     pub contract_account_id: super::types::AccountId,
     pub token_id: String,
 }

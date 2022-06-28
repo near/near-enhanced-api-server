@@ -131,7 +131,7 @@ pub(crate) async fn ft_balance_for_contract(
     }))
 }
 
-pub(crate) async fn ft_history(
+pub(crate) async fn coin_history(
     pool: &sqlx::Pool<sqlx::Postgres>,
     rpc_client: &near_jsonrpc_client::JsonRpcClient,
     block: &types::Block,
@@ -154,6 +154,8 @@ pub(crate) async fn ft_history(
     // we collect the data from DB in straight order, then iter by rev order
     // the final result goes from latest to the earliest data
     let account_id = account_id.to_string();
+    // todo here will be mts via union all
+    // todo add enumeration artificial column. Think about MT here
     let ft_history_info = utils::select_retry_or_panic::<db_models::FtHistoryInfo>(
         pool,
         r"SELECT blocks.block_height,
