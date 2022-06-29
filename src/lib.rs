@@ -44,11 +44,12 @@ async fn native_balance(
 }
 
 #[api_v2_operation]
-/// Get the user's NEAR, FT balances
+/// Get the user's coin balances
 ///
 /// This endpoint returns all the countable coin balances of the given account_id,
 /// for the given timestamp/block_height.
 /// Sorted by standard (NEAR, FT, ...), then alphabetically by contract_id.
+/// todo think about sorting by timestamp, it's more natural
 async fn coin_balances(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
@@ -150,7 +151,7 @@ async fn balance_by_contract(
 /// the number of NFTs grouped by contract_id, together with the corresponding NFT contract metadata.
 /// NFT contract is presented in the list if the account_id has at least one NFT there.
 /// Sorted alphabetically by contract_id
-async fn nft_balance_overview(
+async fn get_user_collectibles_overview(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     request: web::Path<api_models::BalanceRequest>,
@@ -184,7 +185,7 @@ async fn nft_balance_overview(
 /// for the given account_id, NFT contract_id, timestamp/block_height.
 /// You can copy the token_id from this response and ask for NFT history.
 /// Sorted alphabetically by token_id. Be careful, it's usually a number, but we use alphabetical order because it could be any string.
-async fn nft_balance_detailed(
+async fn get_user_collectibles_by_contract(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     request: web::Path<api_models::BalanceByContractRequest>,
@@ -260,7 +261,7 @@ async fn native_history(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     request: web::Path<api_models::BalanceRequest>,
-    block_params: web::Query<api_models::BlockParams>,
+    // block_params: web::Query<api_models::BlockParams>,
     pagination_params: web::Query<api_models::HistoryPaginationParams>,
 ) -> api_models::Result<Json<api_models::NearHistoryResponse>> {
     //todo not implemented
@@ -617,11 +618,11 @@ pub fn start(
             )
             .service(
                 web::resource("/accounts/{account_id}/collectibles")
-                    .route(web::get().to(nft_balance_overview)),
+                    .route(web::get().to(get_user_collectibles_overview)),
             )
             .service(
                 web::resource("/accounts/{account_id}/collectibles/{contract_account_id}")
-                    .route(web::get().to(nft_balance_detailed)),
+                    .route(web::get().to(get_user_collectibles_by_contract)),
             )
             .service(
                 web::resource("/collectibles/{contract_account_id}/{token_id}")

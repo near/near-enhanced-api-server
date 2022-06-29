@@ -120,6 +120,9 @@ pub(crate) struct NftHistoryResponse {
     pub block_height: super::types::U64,
 }
 
+/// Some comment here
+///
+/// With the details
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub(crate) struct NearHistoryResponse {
@@ -129,6 +132,7 @@ pub(crate) struct NearHistoryResponse {
     pub block_height: super::types::U64,
 }
 
+/// Some comment here
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub(crate) struct NftItemResponse {
@@ -140,6 +144,9 @@ pub(crate) struct NftItemResponse {
 
 // ---
 
+/// Some comment here
+///
+/// With the details
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub(crate) struct Coin {
@@ -211,6 +218,9 @@ pub(crate) struct CoinMetadata {
     pub decimals: u8,
 }
 
+/// Some comment here
+///
+/// With the details
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub(crate) struct FtContractMetadata {
@@ -280,25 +290,28 @@ pub(crate) struct BlockParams {
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 pub(crate) struct CoinBalancesPaginationParams {
-    pub last_standard: Option<String>,
-    pub last_contract_account_id: Option<String>,
+    pub start_after_standard: Option<String>, // todo naming
+    pub start_after_contract_account_id: Option<String>, // todo will not work for MT when we have several tokens for 1 contract
+    // pub last_symbol: Option<String>, // todo for mt, we have token_id and symbol, and potentially we can have 1 symbol for different token_ids
+    pub start_after_coin_id: Option<String>, // in reality, we store here token_id for MTs and symbol for FTs
     pub limit: Option<u32>,
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 pub(crate) struct NftOverviewPaginationParams {
-    pub last_contract_account_id: Option<String>,
+    pub start_after_contract_account_id: Option<String>,
     pub limit: Option<u32>,
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 pub(crate) struct NftBalancePaginationParams {
-    pub last_token_id: Option<String>,
+    pub start_after_token_id: Option<String>,
     pub limit: Option<u32>,
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 pub(crate) struct HistoryPaginationParams {
-    pub last_index: Option<super::types::U128>, // todo not implemented yet
+    // todo if both block_params and last_index_from_previous_page is presented, we should fail
+    pub start_after_index: Option<super::types::U128>, // todo not implemented yet
     pub limit: Option<u32>,
 }

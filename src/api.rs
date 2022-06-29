@@ -36,7 +36,8 @@ pub(crate) async fn native_balance(
                 metadata: api_models::CoinMetadata {
                     name: "NEAR blockchain native token".to_string(),
                     symbol: "NEAR".to_string(),
-                    icon: None, // todo
+                    // todo
+                    icon: Some("https://raw.githubusercontent.com/near/near-wallet/7ef3c824404282b76b36da2dff4f3e593e7f928d/packages/frontend/src/images/near.svg".to_string()),
                     decimals: 24,
                 },
                 block_timestamp_nanos: block.timestamp.into(),
@@ -154,7 +155,7 @@ pub(crate) async fn coin_history(
     account_id: &near_primitives::types::AccountId,
     pagination: &api_models::HistoryPaginationParams,
 ) -> api_models::Result<Vec<api_models::HistoryInfo>> {
-    if pagination.last_index.is_some() {
+    if pagination.start_after_index.is_some() {
         return Err(errors::ErrorKind::InternalError(
             "Sorry! It's still under development".to_string(),
         )
@@ -191,8 +192,8 @@ pub(crate) async fn coin_history(
           WHERE emitted_by_contract_account_id = $1
               AND (token_old_owner_account_id = $2 OR token_new_owner_account_id = $2)
               AND emitted_at_block_timestamp <= $3::numeric(20, 0)
-          ORDER BY emitted_at_block_timestamp
-          --LIMIT $4::numeric(20, 0)
+          ORDER BY emitted_at_block_timestamp desc
+          LIMIT $4::numeric(20, 0)
              ",
         &[
             contract_id.to_string(),
@@ -208,7 +209,7 @@ pub(crate) async fn coin_history(
     .await?;
 
     let mut result: Vec<api_models::HistoryInfo> = vec![];
-    for db_info in ft_history_info.iter().rev() {
+    for db_info in ft_history_info.iter() {
         let mut delta = utils::string_to_i128(&db_info.amount)?;
         let balance = last_balance;
         let involved_account_id = if account_id == db_info.old_owner_id {
@@ -276,7 +277,7 @@ pub(crate) async fn nft_count(
     account_id: &near_primitives::types::AccountId,
     pagination: &api_models::NftOverviewPaginationParams,
 ) -> api_models::Result<Vec<api_models::NftsByContractInfo>> {
-    let contracts = match &pagination.last_contract_account_id {
+    let contracts = match &pagination.start_after_contract_account_id {
         None => {
             let query = r"SELECT emitted_by_contract_account_id contract_id, count(*) count
                   FROM assets__non_fungible_token_events
@@ -300,7 +301,10 @@ pub(crate) async fn nft_count(
             )
             .await?
         }
-        Some(last_contract) => {
+        Some(start_after_contract) => {
+            // todo if I give my token, it still appears here
+            // for now, we can ask rpc for that
+            //
             let query = r"SELECT emitted_by_contract_account_id contract_id, count(*) count
                   FROM assets__non_fungible_token_events
                   WHERE token_new_owner_account_id = $1
@@ -319,7 +323,7 @@ pub(crate) async fn nft_count(
                         .limit
                         .unwrap_or(crate::DEFAULT_PAGE_LIMIT)
                         .to_string(),
-                    last_contract.clone(),
+                    start_after_contract.clone(),
                 ],
                 RETRY_COUNT,
             )
@@ -353,10 +357,12 @@ pub(crate) async fn nft_by_contract(
     block: &types::Block,
     contract_id: &near_primitives::types::AccountId,
     account_id: &near_primitives::types::AccountId,
+    // todo it's better to sort by timestamp. Think how to implement that
     pagination: &api_models::NftBalancePaginationParams,
 ) -> api_models::Result<Vec<api_models::NonFungibleToken>> {
-    let tokens = match &pagination.last_token_id {
+    let tokens = match &pagination.start_after_token_id {
         None => {
+            // todo we can give away the token and it will still appear in the result
             let query = r"SELECT DISTINCT token_id
           FROM assets__non_fungible_token_events
           WHERE emitted_by_contract_account_id = $1
@@ -381,7 +387,7 @@ pub(crate) async fn nft_by_contract(
             )
             .await?
         }
-        Some(last_token_id) => {
+        Some(start_after_token_id) => {
             let query = r"SELECT DISTINCT token_id
           FROM assets__non_fungible_token_events
           WHERE emitted_by_contract_account_id = $1
@@ -402,7 +408,7 @@ pub(crate) async fn nft_by_contract(
                         .limit
                         .unwrap_or(crate::DEFAULT_PAGE_LIMIT)
                         .to_string(),
-                    last_token_id.clone(),
+                    start_after_token_id.clone(),
                 ],
                 RETRY_COUNT,
             )

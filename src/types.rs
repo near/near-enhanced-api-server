@@ -119,8 +119,8 @@ pub struct CoinBalancesPagination {
 impl From<api_models::CoinBalancesPaginationParams> for CoinBalancesPagination {
     fn from(params: api_models::CoinBalancesPaginationParams) -> Self {
         Self {
-            last_standard: params.last_standard,
-            last_contract_account_id: params.last_contract_account_id,
+            last_standard: params.start_after_standard,
+            last_contract_account_id: params.start_after_contract_account_id,
             limit: params.limit.unwrap_or(crate::DEFAULT_PAGE_LIMIT),
         }
     }
