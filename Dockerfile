@@ -9,7 +9,7 @@ RUN cargo build --offline
 
 FROM ubuntu:20.04
 
-RUN apt update && apt install -yy openssl
+RUN apt update && apt install -yy openssl ca-certificates
 
 USER nobody
 COPY --from=build /tmp/target/debug/near-enhanced-api /
