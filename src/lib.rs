@@ -25,7 +25,7 @@ const DEFAULT_PAGE_LIMIT: u32 = 20;
 const MAX_PAGE_LIMIT: u32 = 100;
 
 #[api_v2_operation]
-/// Get the user's NEAR balance
+/// Get user's NEAR balance
 ///
 /// This endpoint returns the NEAR balance of the given account_id
 /// for the given timestamp/block_height.
@@ -44,9 +44,9 @@ async fn native_balance(
 }
 
 #[api_v2_operation]
-/// Get the user's coin balances
+/// Get user's coin balances
 ///
-/// This endpoint returns all the countable coin balances of the given account_id,
+/// This endpoint returns all the countable coin balances (including NEAR) of the given account_id,
 /// for the given timestamp/block_height.
 /// Sorted by standard (NEAR, FT, ...), then alphabetically by contract_id.
 /// todo think about sorting by timestamp, it's more natural
@@ -101,11 +101,11 @@ async fn coin_balances(
 }
 
 #[api_v2_operation]
-/// Get the user's balances for the given contract id
+/// Get user's coin balances by contract
 ///
 /// This endpoint returns all the countable coin balances of the given account_id,
 /// for the given contract and timestamp/block_height.
-/// For FT contracts, the response usually has only 1 item in the list.
+/// For FT contract, the response has only 1 item in the list.
 /// For MT contracts, there could be several balances (MT support is not ready yet).
 async fn balance_by_contract(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
@@ -145,7 +145,7 @@ async fn balance_by_contract(
 }
 
 #[api_v2_operation]
-/// Get the overview of the user's NFT collection
+/// Get user's NFT collection overview
 ///
 /// For the given account_id and timestamp/block_height, this endpoint returns
 /// the number of NFTs grouped by contract_id, together with the corresponding NFT contract metadata.
@@ -179,7 +179,7 @@ async fn get_user_collectibles_overview(
 
 // todo re-check the answer, it's strange. Owner account id does not match
 #[api_v2_operation]
-/// Get the user's NFT collection for the given NFT contract
+/// Get user's NFT collection by contract
 ///
 /// This endpoint returns the list of NFTs with token metadata
 /// for the given account_id, NFT contract_id, timestamp/block_height.
@@ -219,7 +219,7 @@ async fn get_user_collectibles_by_contract(
 }
 
 #[api_v2_operation]
-/// Get the NFT details for the given token id
+/// Get NFT details
 ///
 /// This endpoint returns the NFT details
 /// for the given token_id, NFT contract_id, timestamp/block_height.
@@ -252,7 +252,7 @@ async fn nft_item_details(
 }
 
 #[api_v2_operation]
-/// Get the history of NEAR coin operations
+/// Get user's NEAR history
 ///
 /// This endpoint returns the history of operations with NEAR coin
 /// for the given account_id, timestamp/block_height.
@@ -269,7 +269,7 @@ async fn native_history(
 }
 
 #[api_v2_operation]
-/// Get the history of coin operations for the given contract_id
+/// Get user's coin history by contract
 ///
 /// This endpoint returns the history of coin operations (FT, other standards)
 /// for the given account_id, contract_id, timestamp/block_height.
@@ -313,7 +313,7 @@ async fn coin_history(
 }
 
 #[api_v2_operation]
-/// Get the history of operations for the given NFT
+/// Get NFT history
 ///
 /// This endpoint returns the history of operations for the given NFT and timestamp/block_height.
 /// Keep in mind, it does not related to a concrete account_id; the whole history is shown.
@@ -330,7 +330,7 @@ async fn nft_history(
 }
 
 #[api_v2_operation]
-/// Get the metadata for given FT contract
+/// Get FT contract metadata
 ///
 /// This endpoint returns the metadata for given FT contract and timestamp/block_height.
 async fn ft_metadata(
@@ -355,7 +355,7 @@ async fn ft_metadata(
 }
 
 #[api_v2_operation]
-/// Get the metadata for given NFT contract
+/// Get NFT contract metadata
 ///
 /// This endpoint returns the metadata for given NFT contract and timestamp/block_height.
 /// Keep in mind, this is contract-wide metadata. Each NFT also has its own metadata.

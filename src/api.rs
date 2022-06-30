@@ -279,14 +279,14 @@ pub(crate) async fn nft_count(
 ) -> api_models::Result<Vec<api_models::NftsByContractInfo>> {
     let contracts = match &pagination.start_after_contract_account_id {
         None => {
-            let query = r"SELECT emitted_by_contract_account_id contract_id, count(*) count
+            let query = r"SELECT emitted_by_contract_account_id account_id -- contract_id, count(*) count
                   FROM assets__non_fungible_token_events
                   WHERE token_new_owner_account_id = $1
                       AND emitted_at_block_timestamp <= $2::numeric(20, 0)
                   GROUP BY emitted_by_contract_account_id
                   ORDER BY emitted_by_contract_account_id
                   LIMIT $3::numeric(20, 0)";
-            utils::select_retry_or_panic::<db_models::NftCount>(
+            utils::select_retry_or_panic::<db_models::AccountId>(
                 pool,
                 query,
                 &[
@@ -305,7 +305,7 @@ pub(crate) async fn nft_count(
             // todo if I give my token, it still appears here
             // for now, we can ask rpc for that
             //
-            let query = r"SELECT emitted_by_contract_account_id contract_id, count(*) count
+            let query = r"SELECT emitted_by_contract_account_id account_id -- contract_id, count(*) count
                   FROM assets__non_fungible_token_events
                   WHERE token_new_owner_account_id = $1
                       AND emitted_by_contract_account_id > $4
@@ -313,7 +313,7 @@ pub(crate) async fn nft_count(
                   GROUP BY emitted_by_contract_account_id
                   ORDER BY emitted_by_contract_account_id
                   LIMIT $3::numeric(20, 0)";
-            utils::select_retry_or_panic::<db_models::NftCount>(
+            utils::select_retry_or_panic::<db_models::AccountId>(
                 pool,
                 query,
                 &[
@@ -333,11 +333,20 @@ pub(crate) async fn nft_count(
 
     let mut result: Vec<api_models::NftsByContractInfo> = vec![];
     for contract in contracts {
-        if let Ok(contract_id) = near_primitives::types::AccountId::from_str(&contract.contract_id)
-        {
-            let nft_count = contract.count.to_u32().ok_or_else(|| {
-                errors::ErrorKind::InternalError(format!("Failed to parse u32 {}", contract.count))
-            })?;
+        if let Ok(contract_id) = near_primitives::types::AccountId::from_str(&contract.account_id) {
+            // let nft_count = contract.count.to_u32().ok_or_else(|| {
+            //     errors::ErrorKind::InternalError(format!("Failed to parse u32 {}", contract.count))
+            // })?;
+            let nft_count = rpc_calls::get_nft_count(
+                rpc_client,
+                contract_id.clone(),
+                account_id.clone(),
+                block.height,
+            )
+            .await?;
+            if nft_count == 0 {
+                continue;
+            }
             let metadata =
                 rpc_calls::get_nft_general_metadata(rpc_client, contract_id.clone(), block.height)
                     .await?;
@@ -360,75 +369,76 @@ pub(crate) async fn nft_by_contract(
     // todo it's better to sort by timestamp. Think how to implement that
     pagination: &api_models::NftBalancePaginationParams,
 ) -> api_models::Result<Vec<api_models::NonFungibleToken>> {
-    let tokens = match &pagination.start_after_token_id {
-        None => {
-            // todo we can give away the token and it will still appear in the result
-            let query = r"SELECT DISTINCT token_id
-          FROM assets__non_fungible_token_events
-          WHERE emitted_by_contract_account_id = $1
-              AND token_new_owner_account_id = $2
-              AND emitted_at_block_timestamp <= $3::numeric(20, 0)
-          ORDER BY token_id
-          LIMIT $4::numeric(20, 0)
-         ";
-            utils::select_retry_or_panic::<db_models::NftId>(
-                pool,
-                query,
-                &[
-                    contract_id.to_string(),
-                    account_id.to_string(),
-                    block.timestamp.to_string(),
-                    pagination
-                        .limit
-                        .unwrap_or(crate::DEFAULT_PAGE_LIMIT)
-                        .to_string(),
-                ],
-                RETRY_COUNT,
-            )
-            .await?
-        }
-        Some(start_after_token_id) => {
-            let query = r"SELECT DISTINCT token_id
-          FROM assets__non_fungible_token_events
-          WHERE emitted_by_contract_account_id = $1
-              AND token_new_owner_account_id = $2
-              AND emitted_at_block_timestamp <= $3::numeric(20, 0)
-              AND token_id > $5
-          ORDER BY token_id
-          LIMIT $4::numeric(20, 0)
-         ";
-            utils::select_retry_or_panic::<db_models::NftId>(
-                pool,
-                query,
-                &[
-                    contract_id.to_string(),
-                    account_id.to_string(),
-                    block.timestamp.to_string(),
-                    pagination
-                        .limit
-                        .unwrap_or(crate::DEFAULT_PAGE_LIMIT)
-                        .to_string(),
-                    start_after_token_id.clone(),
-                ],
-                RETRY_COUNT,
-            )
-            .await?
-        }
-    };
-
-    let mut result: Vec<api_models::NonFungibleToken> = vec![];
-    for token in tokens {
-        result.push(
-            rpc_calls::get_nft_metadata(
-                rpc_client,
-                contract_id.clone(),
-                token.token_id,
-                block.height,
-            )
-            .await?,
-        );
+    if pagination.start_after_token_id.is_some() {
+        return Err(errors::ErrorKind::InternalError(
+            "Sorry! It's still under development".to_string(),
+        )
+        .into());
     }
-    Ok(result)
+    // let tokens = match &pagination.start_after_token_id {
+    //     None => {
+    //         // todo we can give away the token and it will still appear in the result
+    //         let query = r"SELECT DISTINCT token_id
+    //       FROM assets__non_fungible_token_events
+    //       WHERE emitted_by_contract_account_id = $1
+    //           AND token_new_owner_account_id = $2
+    //           AND emitted_at_block_timestamp <= $3::numeric(20, 0)
+    //       ORDER BY token_id
+    //       LIMIT $4::numeric(20, 0)
+    //      ";
+    //         utils::select_retry_or_panic::<db_models::NftId>(
+    //             pool,
+    //             query,
+    //             &[
+    //                 contract_id.to_string(),
+    //                 account_id.to_string(),
+    //                 block.timestamp.to_string(),
+    //                 pagination
+    //                     .limit
+    //                     .unwrap_or(crate::DEFAULT_PAGE_LIMIT)
+    //                     .to_string(),
+    //             ],
+    //             RETRY_COUNT,
+    //         )
+    //         .await?
+    //     }
+    //     Some(start_after_token_id) => {
+    //         let query = r"SELECT DISTINCT token_id
+    //       FROM assets__non_fungible_token_events
+    //       WHERE emitted_by_contract_account_id = $1
+    //           AND token_new_owner_account_id = $2
+    //           AND emitted_at_block_timestamp <= $3::numeric(20, 0)
+    //           AND token_id > $5
+    //       ORDER BY token_id
+    //       LIMIT $4::numeric(20, 0)
+    //      ";
+    //         utils::select_retry_or_panic::<db_models::NftId>(
+    //             pool,
+    //             query,
+    //             &[
+    //                 contract_id.to_string(),
+    //                 account_id.to_string(),
+    //                 block.timestamp.to_string(),
+    //                 pagination
+    //                     .limit
+    //                     .unwrap_or(crate::DEFAULT_PAGE_LIMIT)
+    //                     .to_string(),
+    //                 start_after_token_id.clone(),
+    //             ],
+    //             RETRY_COUNT,
+    //         )
+    //         .await?
+    //     }
+    // };
+
+    rpc_calls::get_nfts(
+        rpc_client,
+        contract_id.clone(),
+        account_id.clone(),
+        block.height,
+        pagination.limit.unwrap_or(crate::DEFAULT_PAGE_LIMIT),
+    )
+    .await
 }
 
 pub(crate) async fn account_exists(
