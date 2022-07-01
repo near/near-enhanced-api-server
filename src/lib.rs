@@ -126,16 +126,16 @@ async fn balance_by_contract(
     check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
 
     let mut balances: Vec<api_models::Coin> = vec![];
-    if let Some(ft) = api::ft_balance_for_contract(
-        &rpc_client,
-        &block,
-        &request.contract_account_id.0,
-        &request.account_id.0,
-    )
-    .await?
-    {
-        balances.push(ft);
-    }
+    // todo how it's better to check does such ft contract exist? User could ask about MT contract. Or about broken contract, or not existing contract.
+    balances.push(
+        api::ft_balance_for_contract(
+            &rpc_client,
+            &block,
+            &request.contract_account_id.0,
+            &request.account_id.0,
+        )
+        .await?,
+    );
 
     Ok(Json(api_models::BalancesResponse {
         balances,

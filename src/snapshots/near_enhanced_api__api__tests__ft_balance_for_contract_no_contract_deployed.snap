@@ -1,0 +1,11 @@
+---
+source: src/api.rs
+expression: balance
+---
+Err(
+    Error {
+        code: 400,
+        message: "Invalid Input: The account `olga.near` does not implement the desired contract at block 68000000",
+        retriable: false,
+    },
+)

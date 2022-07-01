@@ -1,4 +1,3 @@
-use num_traits::ToPrimitive;
 use std::str::FromStr;
 
 use crate::{api_models, db_models, errors, rpc_calls, types, utils};
@@ -105,11 +104,8 @@ pub(crate) async fn ft_balance(
     let mut balances: Vec<api_models::Coin> = vec![];
     for contract in contracts {
         if let Ok(contract_id) = near_primitives::types::AccountId::from_str(&contract.account_id) {
-            if let Some(ft) =
-                ft_balance_for_contract(rpc_client, block, &contract_id, account_id).await?
-            {
-                balances.push(ft);
-            }
+            balances
+                .push(ft_balance_for_contract(rpc_client, block, &contract_id, account_id).await?);
         }
     }
     Ok(balances)
@@ -121,7 +117,7 @@ pub(crate) async fn ft_balance_for_contract(
     block: &types::Block,
     contract_id: &near_primitives::types::AccountId,
     account_id: &near_primitives::types::AccountId,
-) -> api_models::Result<Option<api_models::Coin>> {
+) -> api_models::Result<api_models::Coin> {
     // todo test on contract that does not implement nep141
     let (balance, metadata) = (
         rpc_calls::get_ft_balance(
@@ -134,7 +130,7 @@ pub(crate) async fn ft_balance_for_contract(
         rpc_calls::get_ft_metadata(rpc_client, contract_id.clone(), block.height).await?,
     );
 
-    Ok(Some(api_models::Coin {
+    Ok(api_models::Coin {
         standard: "nep141".to_string(),
         contract_account_id: Some(contract_id.clone().into()),
         balance: balance.into(),
@@ -144,7 +140,7 @@ pub(crate) async fn ft_balance_for_contract(
             icon: metadata.icon,
             decimals: metadata.decimals,
         },
-    }))
+    })
 }
 
 pub(crate) async fn coin_history(
@@ -466,4 +462,84 @@ pub(crate) async fn account_exists(
         .first()
         .map(|kind| kind.action_kind != "DELETE_ACCOUNT")
         .unwrap_or_else(|| false))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // todo I feel it's better to make it static, but the internet says it's bad
+    async fn init() -> (
+        sqlx::Pool<sqlx::Postgres>,
+        near_jsonrpc_client::JsonRpcClient,
+        types::Block,
+    ) {
+        dotenv::dotenv().ok();
+        let url = &std::env::var("DATABASE_URL").expect("failed to get database url");
+
+        (
+            sqlx::PgPool::connect(url)
+                .await
+                .expect("failed to connect to the database"),
+            near_jsonrpc_client::JsonRpcClient::connect("https://archival-rpc.mainnet.near.org"),
+            types::Block {
+                timestamp: 1655571176644255779,
+                height: 68000000,
+            },
+        )
+    }
+
+    #[actix_rt::test]
+    async fn test_native_balance() {
+        let (pool, _, block) = init().await;
+        let account = near_primitives::types::AccountId::from_str("tomato.near").unwrap();
+        let balance = native_balance(&pool, &block, &account).await;
+        insta::assert_debug_snapshot!(balance);
+    }
+
+    #[actix_rt::test]
+    async fn test_ft_balance() {
+        let (pool, rpc_client, block) = init().await;
+        let account = near_primitives::types::AccountId::from_str("patagonita.near").unwrap();
+        let pagination = types::CoinBalancesPagination {
+            last_standard: None,
+            last_contract_account_id: None,
+            limit: 10,
+        };
+        let balance = ft_balance(&pool, &rpc_client, &block, &account, &pagination).await;
+        insta::assert_debug_snapshot!(balance);
+    }
+
+    #[actix_rt::test]
+    async fn test_ft_balance_page2() {
+        let (pool, rpc_client, block) = init().await;
+        let account = near_primitives::types::AccountId::from_str("patagonita.near").unwrap();
+        let pagination = types::CoinBalancesPagination {
+            last_standard: None,
+            last_contract_account_id: Some("gear.enleap.near".to_string()),
+            limit: 10,
+        };
+        let balance = ft_balance(&pool, &rpc_client, &block, &account, &pagination).await;
+        insta::assert_debug_snapshot!(balance);
+    }
+
+    #[actix_rt::test]
+    async fn test_ft_balance_for_contract() {
+        let (pool, rpc_client, block) = init().await;
+        let contract = near_primitives::types::AccountId::from_str("nexp.near").unwrap();
+        let account = near_primitives::types::AccountId::from_str("patagonita.near").unwrap();
+
+        let balance = ft_balance_for_contract(&rpc_client, &block, &contract, &account).await;
+        insta::assert_debug_snapshot!(balance);
+    }
+
+    #[actix_rt::test]
+    async fn test_ft_balance_for_contract_no_contract_deployed() {
+        let (pool, rpc_client, block) = init().await;
+        let contract = near_primitives::types::AccountId::from_str("olga.near").unwrap();
+        let account = near_primitives::types::AccountId::from_str("patagonita.near").unwrap();
+
+        let balance = ft_balance_for_contract(&rpc_client, &block, &contract, &account).await;
+        insta::assert_debug_snapshot!(balance);
+    }
 }

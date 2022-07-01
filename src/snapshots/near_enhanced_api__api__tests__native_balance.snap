@@ -1,0 +1,31 @@
+---
+source: src/api.rs
+expression: balance
+---
+Ok(
+    NearBalanceResponse {
+        total_balance: U128(
+            99584050584968800000000,
+        ),
+        available_balance: U128(
+            99584050584968800000000,
+        ),
+        staked_balance: U128(
+            0,
+        ),
+        metadata: CoinMetadata {
+            name: "NEAR blockchain native token",
+            symbol: "NEAR",
+            icon: Some(
+                "https://raw.githubusercontent.com/near/near-wallet/7ef3c824404282b76b36da2dff4f3e593e7f928d/packages/frontend/src/images/near.svg",
+            ),
+            decimals: 24,
+        },
+        block_timestamp_nanos: U64(
+            1655571176644255779,
+        ),
+        block_height: U64(
+            68000000,
+        ),
+    },
+)
