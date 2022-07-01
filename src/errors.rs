@@ -12,6 +12,16 @@ pub enum ErrorKind {
     RPCError(String),
 }
 
+pub(crate) fn contract_not_found(
+    contract_id: &near_primitives::types::AccountId,
+    block_height: u64,
+) -> ErrorKind {
+    ErrorKind::InvalidInput(format!(
+        "The account `{}` does not implement the desired contract at block {}",
+        contract_id, block_height
+    ))
+}
+
 /// Instead of utilizing HTTP status codes to describe node errors (which often
 /// do not have a good analog), rich errors are returned using this object.
 #[api_v2_errors(
