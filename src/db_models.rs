@@ -36,9 +36,5 @@ pub(crate) struct FtHistoryInfo {
 pub(crate) struct NftCount {
     pub contract_id: String,
     pub count: i64,
-}
-
-#[derive(sqlx::FromRow)]
-pub(crate) struct NftId {
-    pub token_id: String,
+    pub last_updated_at_timestamp: BigDecimal,
 }

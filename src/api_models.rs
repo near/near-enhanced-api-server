@@ -155,6 +155,7 @@ pub(crate) struct Coin {
     pub balance: super::types::U128,
     pub contract_account_id: Option<super::types::AccountId>,
     pub metadata: CoinMetadata,
+    // last_updated_at? index?
 }
 
 // todo do we want to give the info about failed tx?
@@ -205,6 +206,7 @@ pub(crate) struct NftHistoryInfo {
 pub(crate) struct NftsByContractInfo {
     pub contract_account_id: super::types::AccountId,
     pub nft_count: u32,
+    pub last_updated_at_timestamp: super::types::U128,
     pub metadata: NftContractMetadata,
 }
 
@@ -290,28 +292,28 @@ pub(crate) struct BlockParams {
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 pub(crate) struct CoinBalancesPaginationParams {
-    pub start_after_standard: Option<String>, // todo naming
-    pub start_after_contract_account_id: Option<String>, // todo will not work for MT when we have several tokens for 1 contract
+    // pub start_after_standard: Option<String>, // todo naming
+    // pub start_after_contract_account_id: Option<String>, // todo will not work for MT when we have several tokens for 1 contract
     // pub last_symbol: Option<String>, // todo for mt, we have token_id and symbol, and potentially we can have 1 symbol for different token_ids
-    pub start_after_coin_id: Option<String>, // in reality, we store here token_id for MTs and symbol for FTs
+    // pub start_after_coin_id: Option<String>, // in reality, we store here token_id for MTs and symbol for FTs
     pub limit: Option<u32>,
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 pub(crate) struct NftOverviewPaginationParams {
-    pub start_after_contract_account_id: Option<String>,
+    pub with_no_updates_after_timestamp_nanos: Option<String>,
     pub limit: Option<u32>,
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 pub(crate) struct NftBalancePaginationParams {
-    pub start_after_token_id: Option<String>,
+    // pub start_after_token_id: Option<String>,
     pub limit: Option<u32>,
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 pub(crate) struct HistoryPaginationParams {
     // todo if both block_params and last_index_from_previous_page is presented, we should fail
-    pub start_after_index: Option<super::types::U128>, // todo not implemented yet
+    // pub start_after_index: Option<super::types::U128>, // todo not implemented yet
     pub limit: Option<u32>,
 }

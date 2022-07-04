@@ -1,4 +1,5 @@
 use std::str::FromStr;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::{api_models, db_models, errors, rpc_calls, types, utils};
 
@@ -51,6 +52,8 @@ pub(crate) async fn native_balance(
     }
 }
 
+// todo pagination (can wait till phase 2)
+// todo absolute values in assets__fungible_token_events will help us to avoid rpc calls (can wait till phase 2)
 pub(crate) async fn ft_balance(
     pool: &sqlx::Pool<sqlx::Postgres>,
     rpc_client: &near_jsonrpc_client::JsonRpcClient,
@@ -58,48 +61,66 @@ pub(crate) async fn ft_balance(
     account_id: &near_primitives::types::AccountId,
     pagination: &types::CoinBalancesPagination,
 ) -> api_models::Result<Vec<api_models::Coin>> {
-    let contracts = match &pagination.last_contract_account_id {
-        None => {
-            let query = r"SELECT DISTINCT emitted_by_contract_account_id account_id
+    // let contracts = match &pagination.last_contract_account_id {
+    //     None => {
+    //         let query = r"SELECT DISTINCT emitted_by_contract_account_id account_id
+    //              FROM assets__fungible_token_events
+    //              WHERE (token_old_owner_account_id = $1 OR token_new_owner_account_id = $1)
+    //                  AND emitted_at_block_timestamp <= $2::numeric(20, 0)
+    //              ORDER BY emitted_by_contract_account_id
+    //              LIMIT $3::numeric(20, 0)";
+    //         utils::select_retry_or_panic::<db_models::AccountId>(
+    //             pool,
+    //             query,
+    //             &[
+    //                 account_id.to_string(),
+    //                 block.timestamp.to_string(),
+    //                 pagination.limit.to_string(),
+    //             ],
+    //             RETRY_COUNT,
+    //         )
+    //         .await?
+    //     }
+    //     Some(last_contract) => {
+    //         let query = r"SELECT DISTINCT emitted_by_contract_account_id account_id
+    //              FROM assets__fungible_token_events
+    //              WHERE (token_old_owner_account_id = $1 OR token_new_owner_account_id = $1)
+    //                  AND emitted_by_contract_account_id > $4
+    //                  AND emitted_at_block_timestamp <= $2::numeric(20, 0)
+    //              ORDER BY emitted_by_contract_account_id
+    //              LIMIT $3::numeric(20, 0)";
+    //         utils::select_retry_or_panic::<db_models::AccountId>(
+    //             pool,
+    //             query,
+    //             &[
+    //                 account_id.to_string(),
+    //                 block.timestamp.to_string(),
+    //                 pagination.limit.to_string(),
+    //                 last_contract.clone(),
+    //             ],
+    //             RETRY_COUNT,
+    //         )
+    //         .await?
+    //     }
+    // };
+
+    let query = r"SELECT DISTINCT emitted_by_contract_account_id account_id
                  FROM assets__fungible_token_events
                  WHERE (token_old_owner_account_id = $1 OR token_new_owner_account_id = $1)
                      AND emitted_at_block_timestamp <= $2::numeric(20, 0)
                  ORDER BY emitted_by_contract_account_id
                  LIMIT $3::numeric(20, 0)";
-            utils::select_retry_or_panic::<db_models::AccountId>(
-                pool,
-                query,
-                &[
-                    account_id.to_string(),
-                    block.timestamp.to_string(),
-                    pagination.limit.to_string(),
-                ],
-                RETRY_COUNT,
-            )
-            .await?
-        }
-        Some(last_contract) => {
-            let query = r"SELECT DISTINCT emitted_by_contract_account_id account_id
-                 FROM assets__fungible_token_events
-                 WHERE (token_old_owner_account_id = $1 OR token_new_owner_account_id = $1)
-                     AND emitted_by_contract_account_id > $4
-                     AND emitted_at_block_timestamp <= $2::numeric(20, 0)
-                 ORDER BY emitted_by_contract_account_id
-                 LIMIT $3::numeric(20, 0)";
-            utils::select_retry_or_panic::<db_models::AccountId>(
-                pool,
-                query,
-                &[
-                    account_id.to_string(),
-                    block.timestamp.to_string(),
-                    pagination.limit.to_string(),
-                    last_contract.clone(),
-                ],
-                RETRY_COUNT,
-            )
-            .await?
-        }
-    };
+    let contracts = utils::select_retry_or_panic::<db_models::AccountId>(
+        pool,
+        query,
+        &[
+            account_id.to_string(),
+            block.timestamp.to_string(),
+            pagination.limit.to_string(),
+        ],
+        RETRY_COUNT,
+    )
+    .await?;
 
     let mut balances: Vec<api_models::Coin> = vec![];
     for contract in contracts {
@@ -118,7 +139,6 @@ pub(crate) async fn ft_balance_for_contract(
     contract_id: &near_primitives::types::AccountId,
     account_id: &near_primitives::types::AccountId,
 ) -> api_models::Result<api_models::Coin> {
-    // todo test on contract that does not implement nep141
     let (balance, metadata) = (
         rpc_calls::get_ft_balance(
             rpc_client,
@@ -143,6 +163,8 @@ pub(crate) async fn ft_balance_for_contract(
     })
 }
 
+// todo pagination (can wait till phase 2)
+// todo absolute values in assets__fungible_token_events will help us to avoid rpc calls (can wait till phase 2)
 pub(crate) async fn coin_history(
     pool: &sqlx::Pool<sqlx::Postgres>,
     rpc_client: &near_jsonrpc_client::JsonRpcClient,
@@ -151,12 +173,6 @@ pub(crate) async fn coin_history(
     account_id: &near_primitives::types::AccountId,
     pagination: &api_models::HistoryPaginationParams,
 ) -> api_models::Result<Vec<api_models::HistoryInfo>> {
-    if pagination.start_after_index.is_some() {
-        return Err(errors::ErrorKind::InternalError(
-            "Sorry! It's still under development".to_string(),
-        )
-        .into());
-    }
     let mut last_balance = rpc_calls::get_ft_balance(
         rpc_client,
         contract_id.clone(),
@@ -170,8 +186,6 @@ pub(crate) async fn coin_history(
             .await?
             .into();
 
-    // we collect the data from DB in straight order, then iter by rev order
-    // the final result goes from latest to the earliest data
     let account_id = account_id.to_string();
     // todo here will be mts via union all. I feel it will not work in production with union all
     // todo add enumeration artificial column. Think about MT here
@@ -238,7 +252,6 @@ pub(crate) async fn coin_history(
             ))
             .into());
         }
-        // todo rewrite this
         last_balance = ((last_balance as i128) - delta) as u128;
 
         result.push(api_models::HistoryInfo {
@@ -252,20 +265,9 @@ pub(crate) async fn coin_history(
             block_height: utils::to_u64(&db_info.block_height)?.into(),
         });
     }
-    //  todo it's impossible to check the data with the limit & pagination
-    // if let Some(info) = result.last() {
-    //     if info.balance.0 != (info.delta_balance.0 as u128) {
-    //         return Err(errors::ErrorKind::InternalError(format!(
-    //             "We have found the money from nowhere for account {}, contract {}",
-    //             account_id, contract_id
-    //         ))
-    //         .into());
-    //     }
-    // }
     Ok(result)
 }
 
-// todo do we want to recheck the count by rpc? at least sometimes
 pub(crate) async fn nft_count(
     pool: &sqlx::Pool<sqlx::Postgres>,
     rpc_client: &near_jsonrpc_client::JsonRpcClient,
@@ -273,168 +275,87 @@ pub(crate) async fn nft_count(
     account_id: &near_primitives::types::AccountId,
     pagination: &api_models::NftOverviewPaginationParams,
 ) -> api_models::Result<Vec<api_models::NftsByContractInfo>> {
-    let contracts = match &pagination.start_after_contract_account_id {
-        None => {
-            let query = r"SELECT emitted_by_contract_account_id account_id -- contract_id, count(*) count
-                  FROM assets__non_fungible_token_events
-                  WHERE token_new_owner_account_id = $1
-                      AND emitted_at_block_timestamp <= $2::numeric(20, 0)
-                  GROUP BY emitted_by_contract_account_id
-                  ORDER BY emitted_by_contract_account_id
-                  LIMIT $3::numeric(20, 0)";
-            utils::select_retry_or_panic::<db_models::AccountId>(
-                pool,
-                query,
-                &[
-                    account_id.to_string(),
-                    block.timestamp.to_string(),
-                    pagination
-                        .limit
-                        .unwrap_or(crate::DEFAULT_PAGE_LIMIT)
-                        .to_string(),
-                ],
-                RETRY_COUNT,
-            )
-            .await?
-        }
-        Some(start_after_contract) => {
-            // todo if I give my token, it still appears here
-            // for now, we can ask rpc for that
-            //
-            let query = r"SELECT emitted_by_contract_account_id account_id -- contract_id, count(*) count
-                  FROM assets__non_fungible_token_events
-                  WHERE token_new_owner_account_id = $1
-                      AND emitted_by_contract_account_id > $4
-                      AND emitted_at_block_timestamp <= $2::numeric(20, 0)
-                  GROUP BY emitted_by_contract_account_id
-                  ORDER BY emitted_by_contract_account_id
-                  LIMIT $3::numeric(20, 0)";
-            utils::select_retry_or_panic::<db_models::AccountId>(
-                pool,
-                query,
-                &[
-                    account_id.to_string(),
-                    block.timestamp.to_string(),
-                    pagination
-                        .limit
-                        .unwrap_or(crate::DEFAULT_PAGE_LIMIT)
-                        .to_string(),
-                    start_after_contract.clone(),
-                ],
-                RETRY_COUNT,
-            )
-            .await?
-        }
-    };
+    let last_updated_at = pagination
+        .with_no_updates_after_timestamp_nanos
+        .clone()
+        .unwrap_or_else(|| {
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("Time went backwards")
+                .as_nanos()
+                .to_string()
+        });
+    let query = r"
+        with relevant_events as (
+            select emitted_at_block_timestamp, token_id, emitted_by_contract_account_id, token_old_owner_account_id, token_new_owner_account_id
+            from assets__non_fungible_token_events
+            where
+            -- if it works slow, we need to create table daily_nft_count_by_contract_and_user, and this query will run only over the last day
+            -- emitted_at_block_timestamp > start_of_day and
+            emitted_at_block_timestamp < $2::numeric(20, 0) and
+            (token_new_owner_account_id = $1 or token_old_owner_account_id = $1)
+        ),
+        outgoing_events_count as (
+            select emitted_by_contract_account_id, count(*) * -1 cnt from relevant_events
+            where token_old_owner_account_id = $1
+            group by emitted_by_contract_account_id
+        ),
+        ingoing_events_count as (
+            select emitted_by_contract_account_id, count(*) cnt from relevant_events
+            where token_new_owner_account_id = $1
+            group by emitted_by_contract_account_id
+        ),
+        counts as (
+            select ingoing_events_count.emitted_by_contract_account_id,
+                -- coalesce changes null to the given parameter
+                coalesce(ingoing_events_count.cnt, 0) + coalesce(outgoing_events_count.cnt, 0) cnt
+            from ingoing_events_count full join outgoing_events_count
+            on ingoing_events_count.emitted_by_contract_account_id = outgoing_events_count.emitted_by_contract_account_id
+        ),
+        counts_with_timestamp as (
+            select distinct on (counts.emitted_by_contract_account_id) counts.emitted_by_contract_account_id contract_id,
+                cnt count,
+                emitted_at_block_timestamp last_updated_at_timestamp
+            from counts join relevant_events on counts.emitted_by_contract_account_id = relevant_events.emitted_by_contract_account_id
+            where cnt > 0
+            order by counts.emitted_by_contract_account_id, emitted_at_block_timestamp desc
+        )
+        select * from counts_with_timestamp
+        where last_updated_at_timestamp < $3::numeric(20, 0)
+        order by last_updated_at_timestamp desc
+        limit $4::numeric(20, 0)";
+
+    let info_by_contract = utils::select_retry_or_panic::<db_models::NftCount>(
+        pool,
+        query,
+        &[
+            account_id.to_string(),
+            block.timestamp.to_string(),
+            last_updated_at,
+            pagination
+                .limit
+                .unwrap_or(crate::DEFAULT_PAGE_LIMIT)
+                .to_string(),
+        ],
+        RETRY_COUNT,
+    )
+    .await?;
 
     let mut result: Vec<api_models::NftsByContractInfo> = vec![];
-    for contract in contracts {
-        if let Ok(contract_id) = near_primitives::types::AccountId::from_str(&contract.account_id) {
-            // let nft_count = contract.count.to_u32().ok_or_else(|| {
-            //     errors::ErrorKind::InternalError(format!("Failed to parse u32 {}", contract.count))
-            // })?;
-            let nft_count = rpc_calls::get_nft_count(
-                rpc_client,
-                contract_id.clone(),
-                account_id.clone(),
-                block.height,
-            )
-            .await?;
-            if nft_count == 0 {
-                continue;
-            }
+    for info in info_by_contract {
+        if let Ok(contract_id) = near_primitives::types::AccountId::from_str(&info.contract_id) {
             let metadata =
                 rpc_calls::get_nft_general_metadata(rpc_client, contract_id.clone(), block.height)
                     .await?;
             result.push(api_models::NftsByContractInfo {
                 contract_account_id: contract_id.into(),
-                nft_count,
+                nft_count: info.count as u32,
+                last_updated_at_timestamp: utils::to_u128(&info.last_updated_at_timestamp)?.into(),
                 metadata,
             });
         }
     }
     Ok(result)
-}
-
-pub(crate) async fn nft_by_contract(
-    pool: &sqlx::Pool<sqlx::Postgres>,
-    rpc_client: &near_jsonrpc_client::JsonRpcClient,
-    block: &types::Block,
-    contract_id: &near_primitives::types::AccountId,
-    account_id: &near_primitives::types::AccountId,
-    // todo it's better to sort by timestamp. Think how to implement that
-    pagination: &api_models::NftBalancePaginationParams,
-) -> api_models::Result<Vec<api_models::NonFungibleToken>> {
-    if pagination.start_after_token_id.is_some() {
-        return Err(errors::ErrorKind::InternalError(
-            "Sorry! It's still under development".to_string(),
-        )
-        .into());
-    }
-    // let tokens = match &pagination.start_after_token_id {
-    //     None => {
-    //         // todo we can give away the token and it will still appear in the result
-    //         let query = r"SELECT DISTINCT token_id
-    //       FROM assets__non_fungible_token_events
-    //       WHERE emitted_by_contract_account_id = $1
-    //           AND token_new_owner_account_id = $2
-    //           AND emitted_at_block_timestamp <= $3::numeric(20, 0)
-    //       ORDER BY token_id
-    //       LIMIT $4::numeric(20, 0)
-    //      ";
-    //         utils::select_retry_or_panic::<db_models::NftId>(
-    //             pool,
-    //             query,
-    //             &[
-    //                 contract_id.to_string(),
-    //                 account_id.to_string(),
-    //                 block.timestamp.to_string(),
-    //                 pagination
-    //                     .limit
-    //                     .unwrap_or(crate::DEFAULT_PAGE_LIMIT)
-    //                     .to_string(),
-    //             ],
-    //             RETRY_COUNT,
-    //         )
-    //         .await?
-    //     }
-    //     Some(start_after_token_id) => {
-    //         let query = r"SELECT DISTINCT token_id
-    //       FROM assets__non_fungible_token_events
-    //       WHERE emitted_by_contract_account_id = $1
-    //           AND token_new_owner_account_id = $2
-    //           AND emitted_at_block_timestamp <= $3::numeric(20, 0)
-    //           AND token_id > $5
-    //       ORDER BY token_id
-    //       LIMIT $4::numeric(20, 0)
-    //      ";
-    //         utils::select_retry_or_panic::<db_models::NftId>(
-    //             pool,
-    //             query,
-    //             &[
-    //                 contract_id.to_string(),
-    //                 account_id.to_string(),
-    //                 block.timestamp.to_string(),
-    //                 pagination
-    //                     .limit
-    //                     .unwrap_or(crate::DEFAULT_PAGE_LIMIT)
-    //                     .to_string(),
-    //                 start_after_token_id.clone(),
-    //             ],
-    //             RETRY_COUNT,
-    //         )
-    //         .await?
-    //     }
-    // };
-
-    rpc_calls::get_nfts(
-        rpc_client,
-        contract_id.clone(),
-        account_id.clone(),
-        block.height,
-        pagination.limit.unwrap_or(crate::DEFAULT_PAGE_LIMIT),
-    )
-    .await
 }
 
 pub(crate) async fn account_exists(
@@ -502,8 +423,8 @@ mod tests {
         let (pool, rpc_client, block) = init().await;
         let account = near_primitives::types::AccountId::from_str("patagonita.near").unwrap();
         let pagination = types::CoinBalancesPagination {
-            last_standard: None,
-            last_contract_account_id: None,
+            // last_standard: None,
+            // last_contract_account_id: None,
             limit: 10,
         };
         let balance = ft_balance(&pool, &rpc_client, &block, &account, &pagination).await;
@@ -511,16 +432,18 @@ mod tests {
     }
 
     #[actix_rt::test]
-    async fn test_ft_balance_page2() {
+    async fn test_ft_balance_no_fts() {
         let (pool, rpc_client, block) = init().await;
-        let account = near_primitives::types::AccountId::from_str("patagonita.near").unwrap();
+        let account = near_primitives::types::AccountId::from_str("olga.near").unwrap();
         let pagination = types::CoinBalancesPagination {
-            last_standard: None,
-            last_contract_account_id: Some("gear.enleap.near".to_string()),
+            // last_standard: None,
+            // last_contract_account_id: None,
             limit: 10,
         };
-        let balance = ft_balance(&pool, &rpc_client, &block, &account, &pagination).await;
-        insta::assert_debug_snapshot!(balance);
+        let balance = ft_balance(&pool, &rpc_client, &block, &account, &pagination)
+            .await
+            .unwrap();
+        assert!(balance.is_empty());
     }
 
     #[actix_rt::test]
@@ -542,4 +465,72 @@ mod tests {
         let balance = ft_balance_for_contract(&rpc_client, &block, &contract, &account).await;
         insta::assert_debug_snapshot!(balance);
     }
+
+    #[actix_rt::test]
+    async fn test_ft_balance_for_contract_other_contract_deployed() {
+        let (pool, rpc_client, block) = init().await;
+        let contract = near_primitives::types::AccountId::from_str("comic.paras.near").unwrap();
+        let account = near_primitives::types::AccountId::from_str("patagonita.near").unwrap();
+
+        let balance = ft_balance_for_contract(&rpc_client, &block, &contract, &account).await;
+        insta::assert_debug_snapshot!(balance);
+    }
+
+    #[actix_rt::test]
+    async fn test_coin_history_for_contract() {
+        let (pool, rpc_client, block) = init().await;
+        let contract = near_primitives::types::AccountId::from_str("usn").unwrap();
+        let account = near_primitives::types::AccountId::from_str("pushxo.near").unwrap();
+        let pagination = api_models::HistoryPaginationParams {
+            // start_after_index: None,
+            limit: Some(10),
+        };
+
+        let balance =
+            coin_history(&pool, &rpc_client, &block, &contract, &account, &pagination).await;
+        insta::assert_debug_snapshot!(balance);
+    }
+
+    #[actix_rt::test]
+    async fn test_nft_count() {
+        let (pool, rpc_client, block) = init().await;
+        let account = near_primitives::types::AccountId::from_str("blondjesus.near").unwrap();
+        let pagination = api_models::NftOverviewPaginationParams {
+            with_no_updates_after_timestamp_nanos: None,
+            limit: Some(10),
+        };
+
+        let nft_count = nft_count(&pool, &rpc_client, &block, &account, &pagination).await;
+        insta::assert_debug_snapshot!(nft_count);
+    }
+
+    #[actix_rt::test]
+    async fn test_nft_count_no_nfts() {
+        let (pool, rpc_client, block) = init().await;
+        let account = near_primitives::types::AccountId::from_str("frol.near").unwrap();
+        let pagination = api_models::NftOverviewPaginationParams {
+            with_no_updates_after_timestamp_nanos: None,
+            limit: None,
+        };
+
+        let nft_count = nft_count(&pool, &rpc_client, &block, &account, &pagination)
+            .await
+            .unwrap();
+        assert!(nft_count.is_empty());
+    }
+
+    #[actix_rt::test]
+    async fn test_nft_count_page_2() {
+        let (pool, rpc_client, block) = init().await;
+        let account = near_primitives::types::AccountId::from_str("blondjesus.near").unwrap();
+        let pagination = api_models::NftOverviewPaginationParams {
+            with_no_updates_after_timestamp_nanos: Some("1655569088490376135".to_string()),
+            limit: Some(10),
+        };
+
+        let balance = nft_count(&pool, &rpc_client, &block, &account, &pagination).await;
+        insta::assert_debug_snapshot!(balance);
+    }
+
+    // todo flaky thread 'api::tests::test_ft_balance' panicked at 'dispatch dropped without returning error
 }

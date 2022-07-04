@@ -1,0 +1,48 @@
+---
+source: src/api.rs
+expression: balance
+---
+Ok(
+    [
+        NftsByContractInfo {
+            contract_account_id: AccountId(
+                "nearrobotics.near",
+            ),
+            nft_count: 2,
+            last_updated_at_timestamp: U128(
+                1655569088490376135,
+            ),
+            metadata: NftContractMetadata {
+                spec: "nft-1.0.0",
+                name: "NEAR Robotics",
+                symbol: "ROBOT",
+                icon: None,
+                base_uri: Some(
+                    "https://bafybeiafi3h3ntcyrnbahffsueh6gu6pg4b2lrdkxrjxrobilwv3in53n4.ipfs.dweb.link/",
+                ),
+                reference: None,
+                reference_hash: None,
+            },
+        },
+        NftsByContractInfo {
+            contract_account_id: AccountId(
+                "rocketbois.neartopia.near",
+            ),
+            nft_count: 1,
+            last_updated_at_timestamp: U128(
+                1655565667604044769,
+            ),
+            metadata: NftContractMetadata {
+                spec: "nft-1.0.0",
+                name: "RocketBois",
+                symbol: "ROCKET",
+                icon: None,
+                base_uri: Some(
+                    "https://bafybeibrteurbwo76af6c4l4jc3k5dvjd7f73l62peonbsni4qibkk27hq.ipfs.dweb.link/",
+                ),
+                reference: None,
+                reference_hash: None,
+            },
+        },
+    ],
+)

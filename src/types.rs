@@ -111,16 +111,16 @@ impl TryFrom<&db_models::Block> for Block {
 
 // Helper for parsing the data from user
 pub struct CoinBalancesPagination {
-    pub last_standard: Option<String>,
-    pub last_contract_account_id: Option<String>,
+    // pub last_standard: Option<String>,
+    // pub last_contract_account_id: Option<String>,
     pub limit: u32,
 }
 
 impl From<api_models::CoinBalancesPaginationParams> for CoinBalancesPagination {
     fn from(params: api_models::CoinBalancesPaginationParams) -> Self {
         Self {
-            last_standard: params.start_after_standard,
-            last_contract_account_id: params.start_after_contract_account_id,
+            // last_standard: params.start_after_standard,
+            // last_contract_account_id: params.start_after_contract_account_id,
             limit: params.limit.unwrap_or(crate::DEFAULT_PAGE_LIMIT),
         }
     }
@@ -128,7 +128,7 @@ impl From<api_models::CoinBalancesPaginationParams> for CoinBalancesPagination {
 
 // Taken from https://github.com/near/near-sdk-rs/blob/master/near-sdk/src/json_types/vector.rs
 /// Helper class to serialize/deserialize `Vec<u8>` to base64 string.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, BorshDeserialize, BorshSerialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, BorshDeserialize, BorshSerialize)]
 pub struct Base64VecU8(pub Vec<u8>);
 
 impl From<Vec<u8>> for Base64VecU8 {
@@ -157,7 +157,7 @@ pub struct FungibleTokenMetadata {
 
 // Taken from https://github.com/near/near-sdk-rs/blob/master/near-contract-standards/src/non_fungible_token/metadata.rs
 /// Metadata for the NFT contract itself.
-#[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct NFTContractMetadata {
     pub spec: String,              // required, essentially a version like "nft-1.0.0"
     pub name: String,              // required, ex. "Mosaics"
@@ -169,7 +169,7 @@ pub struct NFTContractMetadata {
 }
 
 /// Metadata on the individual token level.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, BorshDeserialize, BorshSerialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, BorshDeserialize, BorshSerialize)]
 pub struct TokenMetadata {
     pub title: Option<String>, // ex. "Arch Nemesis: Mail Carrier" or "Parcel #5055"
     pub description: Option<String>, // free-form description
@@ -190,7 +190,7 @@ pub struct TokenMetadata {
 pub type TokenId = String;
 
 /// In this implementation, the Token struct takes two extensions standards (metadata and approval) as optional fields, as they are frequently used in modern NFTs.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Token {
     pub token_id: TokenId,
     pub owner_id: AccountId,

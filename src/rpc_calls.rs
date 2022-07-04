@@ -25,7 +25,7 @@ pub(crate) async fn get_ft_balance(
         },
     };
 
-    // todo how to put this code into function? I duplicate it everywhere
+    // todo put this code into function, now I duplicate it everywhere
     let response = match rpc_client.call(request).await {
         Ok(x) => x,
         Err(x) => {
@@ -145,57 +145,6 @@ pub(crate) async fn get_nft_general_metadata(
     }
 }
 
-pub(crate) async fn get_nft_count(
-    rpc_client: &near_jsonrpc_client::JsonRpcClient,
-    contract_id: near_primitives::types::AccountId,
-    account_id: near_primitives::types::AccountId,
-    block_height: u64,
-) -> api_models::Result<u32> {
-    let request = near_jsonrpc_client::methods::query::RpcQueryRequest {
-        block_reference: near_primitives::types::BlockReference::BlockId(
-            near_primitives::types::BlockId::Height(block_height),
-        ),
-        request: near_primitives::views::QueryRequest::CallFunction {
-            account_id: contract_id.clone(),
-            method_name: "nft_supply_for_owner".to_string(),
-            args: near_primitives::types::FunctionArgs::from(
-                serde_json::json!({ "account_id": account_id })
-                    .to_string()
-                    .into_bytes(),
-            ),
-        },
-    };
-
-    let response = match rpc_client.call(request).await {
-        Ok(x) => x,
-        Err(x) => {
-            if let Some(RpcQueryError::ContractExecutionError { vm_error, .. }) = x.handler_error()
-            {
-                if vm_error.contains("CodeDoesNotExist") || vm_error.contains("MethodNotFound") {
-                    return Err(errors::contract_not_found(&contract_id, block_height).into());
-                }
-            }
-            return Err(x.into());
-        }
-    };
-
-    match response.kind {
-        QueryResponseKind::CallResult(result) => {
-            let a = serde_json::from_slice::<String>(&result.result)?;
-            let x: u32 = a.parse().map_err(|e| {
-                errors::ErrorKind::InternalError(format!("Failed to parse u32 {}", e))
-                //.into()
-            })?;
-            Ok(x)
-        }
-        _ => Err(errors::ErrorKind::RPCError(
-            "Unexpected type of the response after CallFunction request".to_string(),
-        )
-        .into()),
-    }
-}
-
-// todo we actually can serve 2+ page, but we will have problems when we move from RPC to DB, because pagination works in a different way
 pub(crate) async fn get_nfts(
     rpc_client: &near_jsonrpc_client::JsonRpcClient,
     contract_id: near_primitives::types::AccountId,
@@ -203,6 +152,12 @@ pub(crate) async fn get_nfts(
     block_height: u64,
     limit: u32,
 ) -> api_models::Result<Vec<api_models::NonFungibleToken>> {
+    // todo pagination (can wait for phase 2)
+    // RPC supports pagination, but the order is defined by the each contract and we can't control it.
+    // For now, we are ready to serve only the first page
+    // Later, I feel we need to load NFT (each token) metadata to the DB,
+    // right after that we can stop using RPC here.
+    // Or, maybe we want to delegate this task fully to the contracts?
     let request = near_jsonrpc_client::methods::query::RpcQueryRequest {
         block_reference: near_primitives::types::BlockReference::BlockId(
             near_primitives::types::BlockId::Height(block_height),
@@ -211,7 +166,6 @@ pub(crate) async fn get_nfts(
             account_id: contract_id.clone(),
             method_name: "nft_tokens_for_owner".to_string(),
             args: near_primitives::types::FunctionArgs::from(
-                // todo we have random sor order here, actually. Standard doesn't even try to define it
                 // https://nomicon.io/Standards/Tokens/NonFungibleToken/Enumeration
                 serde_json::json!({ "account_id": account_id, "from_index": "0", "limit": limit })
                     .to_string()
@@ -370,32 +324,6 @@ mod tests {
 
         let metadata = get_nft_general_metadata(&rpc_client, contract, block_height).await;
         insta::assert_debug_snapshot!(metadata);
-    }
-
-    #[actix_rt::test]
-    async fn test_nft_count() {
-        let (rpc_client, block_height) = init();
-        let contract =
-            near_primitives::types::AccountId::from_str("billionairebullsclub.near").unwrap();
-        let account = near_primitives::types::AccountId::from_str("olenavorobei.near").unwrap();
-
-        let count = get_nft_count(&rpc_client, contract, account, block_height)
-            .await
-            .unwrap();
-        assert_eq!(9, count);
-    }
-
-    #[actix_rt::test]
-    async fn test_nft_count_user_never_seen_contract() {
-        let (rpc_client, block_height) = init();
-        let contract =
-            near_primitives::types::AccountId::from_str("billionairebullsclub.near").unwrap();
-        let account = near_primitives::types::AccountId::from_str("olga.near").unwrap();
-
-        let count = get_nft_count(&rpc_client, contract, account, block_height)
-            .await
-            .unwrap();
-        assert_eq!(0, count);
     }
 
     #[actix_rt::test]

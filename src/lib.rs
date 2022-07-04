@@ -20,7 +20,6 @@ mod utils;
 // todo write creds to the doc
 // todo MT
 // todo statistics collection
-// todo learn how to return page/limit info in the headers response
 const DEFAULT_PAGE_LIMIT: u32 = 20;
 const MAX_PAGE_LIMIT: u32 = 100;
 
@@ -48,8 +47,7 @@ async fn native_balance(
 ///
 /// This endpoint returns all the countable coin balances (including NEAR) of the given account_id,
 /// for the given timestamp/block_height.
-/// Sorted by standard (NEAR, FT, ...), then alphabetically by contract_id.
-/// todo think about sorting by timestamp, it's more natural
+/// Pagination will be provided later.
 async fn coin_balances(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
@@ -58,23 +56,24 @@ async fn coin_balances(
     pagination_params: web::Query<api_models::CoinBalancesPaginationParams>,
 ) -> api_models::Result<Json<api_models::BalancesResponse>> {
     check_limit(pagination_params.limit)?;
+    // todo pagination (can wait till phase 2)
     let mut pagination: types::CoinBalancesPagination = pagination_params.0.into();
     let block = get_block_from_params(&pool, &block_params).await?;
     check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
 
     // ordering: near, then fts by contract_id, then mts by contract_id and symbol
     let mut balances: Vec<api_models::Coin> = vec![];
-    if pagination.last_standard.is_none() {
-        balances.push(
-            api::native_balance(&pool, &block, &request.account_id.0)
-                .await?
-                .into(),
-        );
-        pagination.limit -= 1;
-    }
+    // if pagination.last_standard.is_none() {
+    balances.push(
+        api::native_balance(&pool, &block, &request.account_id.0)
+            .await?
+            .into(),
+    );
+    pagination.limit -= 1;
+    // }
     if pagination.limit > 0
-        && (pagination.last_standard.is_none()
-            || pagination.last_standard == Some("nep141".to_string()))
+    // && (pagination.last_standard.is_none()
+    //     || pagination.last_standard == Some("nep141".to_string()))
     {
         // todo put the constants in one place
         let fts = &mut api::ft_balance(
@@ -120,7 +119,6 @@ async fn balance_by_contract(
         .into());
     }
     // todo remember here could be mt
-    // todo probably we want to add pagination here, but it could look strange
     check_block_params(&block_params)?;
     let block = get_block_from_params(&pool, &block_params).await?;
     check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
@@ -150,8 +148,11 @@ async fn balance_by_contract(
 /// For the given account_id and timestamp/block_height, this endpoint returns
 /// the number of NFTs grouped by contract_id, together with the corresponding NFT contract metadata.
 /// NFT contract is presented in the list if the account_id has at least one NFT there.
-/// Sorted alphabetically by contract_id
-async fn get_user_collectibles_overview(
+/// Sorted by the change order: recent go first.
+/// Be careful with the 2 timestamp that you can provide here.
+/// block_timestamp_nanos helps you to choose the moment of time, we fix the blockchain state at that time.
+/// with_no_updates_after_timestamp_nanos helps you to paginate the data that we've fixed before
+async fn get_user_nfts_overview(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     request: web::Path<api_models::BalanceRequest>,
@@ -164,6 +165,7 @@ async fn get_user_collectibles_overview(
     check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
 
     Ok(Json(api_models::NftCountResponse {
+        // todo we still need rpc_client only for metadata. We can store this in the DB and update once in 10 minutes
         nft_count: api::nft_count(
             &pool,
             &rpc_client,
@@ -177,14 +179,13 @@ async fn get_user_collectibles_overview(
     }))
 }
 
-// todo re-check the answer, it's strange. Owner account id does not match
 #[api_v2_operation]
 /// Get user's NFT collection by contract
 ///
 /// This endpoint returns the list of NFTs with token metadata
 /// for the given account_id, NFT contract_id, timestamp/block_height.
 /// You can copy the token_id from this response and ask for NFT history.
-/// Sorted alphabetically by token_id. Be careful, it's usually a number, but we use alphabetical order because it could be any string.
+/// Pagination will be provided later.
 async fn get_user_collectibles_by_contract(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
@@ -198,13 +199,12 @@ async fn get_user_collectibles_by_contract(
     check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
 
     Ok(Json(api_models::NftBalanceResponse {
-        nfts: api::nft_by_contract(
-            &pool,
+        nfts: rpc_calls::get_nfts(
             &rpc_client,
-            &block,
-            &request.contract_account_id.0,
-            &request.account_id.0,
-            &pagination_params,
+            request.contract_account_id.0.clone(),
+            request.account_id.0.clone(),
+            block.height,
+            pagination_params.limit.unwrap_or(crate::DEFAULT_PAGE_LIMIT),
         )
         .await?,
         contract_metadata: rpc_calls::get_nft_general_metadata(
@@ -274,6 +274,7 @@ async fn native_history(
 /// This endpoint returns the history of coin operations (FT, other standards)
 /// for the given account_id, contract_id, timestamp/block_height.
 /// Sorted in a historical descending order.
+/// Pagination will be provided later.
 async fn coin_history(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
@@ -617,15 +618,15 @@ pub fn start(
                     .route(web::get().to(balance_by_contract)),
             )
             .service(
-                web::resource("/accounts/{account_id}/collectibles")
-                    .route(web::get().to(get_user_collectibles_overview)),
+                web::resource("/accounts/{account_id}/NFT")
+                    .route(web::get().to(get_user_nfts_overview)),
             )
             .service(
-                web::resource("/accounts/{account_id}/collectibles/{contract_account_id}")
+                web::resource("/accounts/{account_id}/NFT/{contract_account_id}")
                     .route(web::get().to(get_user_collectibles_by_contract)),
             )
             .service(
-                web::resource("/collectibles/{contract_account_id}/{token_id}")
+                web::resource("/NFT/{contract_account_id}/{token_id}")
                     .route(web::get().to(nft_item_details)),
             )
             .service(
@@ -637,7 +638,7 @@ pub fn start(
                     .route(web::get().to(coin_history)),
             )
             .service(
-                web::resource("/collectibles/{contract_account_id}/{token_id}/history")
+                web::resource("/NFT/{contract_account_id}/{token_id}/history")
                     .route(web::get().to(nft_history)),
             )
             .service(
