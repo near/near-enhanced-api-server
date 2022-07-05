@@ -13,14 +13,15 @@ pub(crate) async fn native_balance(
     let balances =
         utils::select_retry_or_panic::<db_models::AccountChangesBalance>(
             pool,
-            r"WITH t AS (
+            r"
+                WITH t AS (
                     SELECT affected_account_nonstaked_balance nonstaked, affected_account_staked_balance staked
                     FROM account_changes
                     WHERE affected_account_id = $1 AND changed_in_block_timestamp <= $2::numeric(20, 0)
                     ORDER BY changed_in_block_timestamp DESC
-                  )
-                  SELECT * FROM t LIMIT 1
-                 ",
+                )
+                SELECT * FROM t LIMIT 1
+            ",
             &[account_id.to_string(), block.timestamp.to_string()],
             RETRY_COUNT,
         ).await?;
@@ -104,12 +105,14 @@ pub(crate) async fn ft_balance(
     //     }
     // };
 
-    let query = r"SELECT DISTINCT emitted_by_contract_account_id account_id
-                 FROM assets__fungible_token_events
-                 WHERE (token_old_owner_account_id = $1 OR token_new_owner_account_id = $1)
-                     AND emitted_at_block_timestamp <= $2::numeric(20, 0)
-                 ORDER BY emitted_by_contract_account_id
-                 LIMIT $3::numeric(20, 0)";
+    let query = r"
+        SELECT DISTINCT emitted_by_contract_account_id account_id
+        FROM assets__fungible_token_events
+        WHERE (token_old_owner_account_id = $1 OR token_new_owner_account_id = $1)
+            AND emitted_at_block_timestamp <= $2::numeric(20, 0)
+        ORDER BY emitted_by_contract_account_id
+        LIMIT $3::numeric(20, 0)
+    ";
     let contracts = utils::select_retry_or_panic::<db_models::AccountId>(
         pool,
         query,
@@ -189,22 +192,24 @@ pub(crate) async fn coin_history(
     let account_id = account_id.to_string();
     // todo here will be mts via union all. I feel it will not work in production with union all
     // todo add enumeration artificial column. Think about MT here
+    let query = r"
+        SELECT blocks.block_height,
+               blocks.block_timestamp,
+               assets__fungible_token_events.amount,
+               assets__fungible_token_events.event_kind::text,
+               assets__fungible_token_events.token_old_owner_account_id old_owner_id,
+               assets__fungible_token_events.token_new_owner_account_id new_owner_id
+        FROM assets__fungible_token_events JOIN blocks
+            ON assets__fungible_token_events.emitted_at_block_timestamp = blocks.block_timestamp
+        WHERE emitted_by_contract_account_id = $1
+            AND (token_old_owner_account_id = $2 OR token_new_owner_account_id = $2)
+            AND emitted_at_block_timestamp <= $3::numeric(20, 0)
+        ORDER BY emitted_at_block_timestamp desc
+        LIMIT $4::numeric(20, 0)
+    ";
     let ft_history_info = utils::select_retry_or_panic::<db_models::FtHistoryInfo>(
         pool,
-        r"SELECT blocks.block_height,
-                 blocks.block_timestamp,
-                 assets__fungible_token_events.amount,
-                 assets__fungible_token_events.event_kind::text,
-                 assets__fungible_token_events.token_old_owner_account_id old_owner_id,
-                 assets__fungible_token_events.token_new_owner_account_id new_owner_id
-          FROM assets__fungible_token_events JOIN blocks
-              ON assets__fungible_token_events.emitted_at_block_timestamp = blocks.block_timestamp
-          WHERE emitted_by_contract_account_id = $1
-              AND (token_old_owner_account_id = $2 OR token_new_owner_account_id = $2)
-              AND emitted_at_block_timestamp <= $3::numeric(20, 0)
-          ORDER BY emitted_at_block_timestamp desc
-          LIMIT $4::numeric(20, 0)
-             ",
+        query,
         &[
             contract_id.to_string(),
             account_id.clone(),
@@ -224,21 +229,9 @@ pub(crate) async fn coin_history(
         let balance = last_balance;
         let involved_account_id = if account_id == db_info.old_owner_id {
             delta = -delta;
-            if db_info.new_owner_id.is_empty() {
-                None
-            } else {
-                Some(near_primitives::types::AccountId::from_str(
-                    &db_info.new_owner_id,
-                )?)
-            }
+            utils::extract_account_id(&db_info.new_owner_id)?
         } else if account_id == db_info.new_owner_id {
-            if db_info.old_owner_id.is_empty() {
-                None
-            } else {
-                Some(near_primitives::types::AccountId::from_str(
-                    &db_info.old_owner_id,
-                )?)
-            }
+            utils::extract_account_id(&db_info.old_owner_id)?
         } else {
             return Err(
                 errors::ErrorKind::InternalError("todo unreachable code".to_string()).into(),
@@ -286,44 +279,45 @@ pub(crate) async fn nft_count(
                 .to_string()
         });
     let query = r"
-        with relevant_events as (
-            select emitted_at_block_timestamp, token_id, emitted_by_contract_account_id, token_old_owner_account_id, token_new_owner_account_id
-            from assets__non_fungible_token_events
-            where
-            -- if it works slow, we need to create table daily_nft_count_by_contract_and_user, and this query will run only over the last day
-            -- emitted_at_block_timestamp > start_of_day and
-            emitted_at_block_timestamp < $2::numeric(20, 0) and
-            (token_new_owner_account_id = $1 or token_old_owner_account_id = $1)
+        WITH relevant_events AS (
+            SELECT emitted_at_block_timestamp, token_id, emitted_by_contract_account_id, token_old_owner_account_id, token_new_owner_account_id
+            FROM assets__non_fungible_token_events
+            WHERE
+                -- if it works slow, we need to create table daily_nft_count_by_contract_and_user, and this query will run only over the last day
+                -- emitted_at_block_timestamp > start_of_day AND
+                emitted_at_block_timestamp < $2::numeric(20, 0) AND
+                (token_new_owner_account_id = $1 OR token_old_owner_account_id = $1)
         ),
-        outgoing_events_count as (
-            select emitted_by_contract_account_id, count(*) * -1 cnt from relevant_events
-            where token_old_owner_account_id = $1
-            group by emitted_by_contract_account_id
+        outgoing_events_count AS (
+            SELECT emitted_by_contract_account_id, count(*) * -1 cnt FROM relevant_events
+            WHERE token_old_owner_account_id = $1
+            GROUP BY emitted_by_contract_account_id
         ),
-        ingoing_events_count as (
-            select emitted_by_contract_account_id, count(*) cnt from relevant_events
-            where token_new_owner_account_id = $1
-            group by emitted_by_contract_account_id
+        ingoing_events_count AS (
+            SELECT emitted_by_contract_account_id, count(*) cnt FROM relevant_events
+            WHERE token_new_owner_account_id = $1
+            GROUP BY emitted_by_contract_account_id
         ),
-        counts as (
-            select ingoing_events_count.emitted_by_contract_account_id,
+        counts AS (
+            SELECT ingoing_events_count.emitted_by_contract_account_id,
                 -- coalesce changes null to the given parameter
                 coalesce(ingoing_events_count.cnt, 0) + coalesce(outgoing_events_count.cnt, 0) cnt
-            from ingoing_events_count full join outgoing_events_count
-            on ingoing_events_count.emitted_by_contract_account_id = outgoing_events_count.emitted_by_contract_account_id
+            FROM ingoing_events_count FULL JOIN outgoing_events_count
+                ON ingoing_events_count.emitted_by_contract_account_id = outgoing_events_count.emitted_by_contract_account_id
         ),
-        counts_with_timestamp as (
-            select distinct on (counts.emitted_by_contract_account_id) counts.emitted_by_contract_account_id contract_id,
+        counts_with_timestamp AS (
+            SELECT distinct ON (counts.emitted_by_contract_account_id) counts.emitted_by_contract_account_id contract_id,
                 cnt count,
                 emitted_at_block_timestamp last_updated_at_timestamp
-            from counts join relevant_events on counts.emitted_by_contract_account_id = relevant_events.emitted_by_contract_account_id
-            where cnt > 0
-            order by counts.emitted_by_contract_account_id, emitted_at_block_timestamp desc
+            FROM counts JOIN relevant_events ON counts.emitted_by_contract_account_id = relevant_events.emitted_by_contract_account_id
+            WHERE cnt > 0
+            ORDER BY counts.emitted_by_contract_account_id, emitted_at_block_timestamp DESC
         )
-        select * from counts_with_timestamp
-        where last_updated_at_timestamp < $3::numeric(20, 0)
-        order by last_updated_at_timestamp desc
-        limit $4::numeric(20, 0)";
+        SELECT * FROM counts_with_timestamp
+        WHERE last_updated_at_timestamp < $3::numeric(20, 0)
+        ORDER BY last_updated_at_timestamp DESC
+        LIMIT $4::numeric(20, 0)
+    ";
 
     let info_by_contract = utils::select_retry_or_panic::<db_models::NftCount>(
         pool,
@@ -365,27 +359,29 @@ pub(crate) async fn dev_nft_count(
     account_id: &near_primitives::types::AccountId,
     pagination: &api_models::NftOverviewPaginationParams,
 ) -> api_models::Result<Vec<api_models::NftsByContractInfo>> {
-     let query = r"SELECT emitted_by_contract_account_id account_id -- contract_id, count(*) count
-                   FROM assets__non_fungible_token_events
-                   WHERE token_new_owner_account_id = $1
-                       AND emitted_at_block_timestamp <= $2::numeric(20, 0)
-                   GROUP BY emitted_by_contract_account_id
-                   ORDER BY emitted_by_contract_account_id
-                   LIMIT $3::numeric(20, 0)";
+    let query = r"
+         SELECT emitted_by_contract_account_id account_id -- contract_id, count(*) count
+         FROM assets__non_fungible_token_events
+         WHERE token_new_owner_account_id = $1
+             AND emitted_at_block_timestamp <= $2::numeric(20, 0)
+         GROUP BY emitted_by_contract_account_id
+         ORDER BY emitted_by_contract_account_id
+         LIMIT $3::numeric(20, 0)
+     ";
     let contracts = utils::select_retry_or_panic::<db_models::AccountId>(
-                pool,
-                query,
-                &[
-                    account_id.to_string(),
-                    block.timestamp.to_string(),
-                    pagination
-                        .limit
-                        .unwrap_or(crate::DEFAULT_PAGE_LIMIT)
-                        .to_string(),
-                ],
-                RETRY_COUNT,
-            )
-                .await?;
+        pool,
+        query,
+        &[
+            account_id.to_string(),
+            block.timestamp.to_string(),
+            pagination
+                .limit
+                .unwrap_or(crate::DEFAULT_PAGE_LIMIT)
+                .to_string(),
+        ],
+        RETRY_COUNT,
+    )
+    .await?;
 
     let mut result: Vec<api_models::NftsByContractInfo> = vec![];
     for contract in contracts {
@@ -399,7 +395,7 @@ pub(crate) async fn dev_nft_count(
                 account_id.clone(),
                 block.height,
             )
-                .await?;
+            .await?;
             if nft_count == 0 {
                 continue;
             }
@@ -417,15 +413,47 @@ pub(crate) async fn dev_nft_count(
     Ok(result)
 }
 
+// todo add artificial index and paginate by this
 pub(crate) async fn nft_history(
     pool: &sqlx::Pool<sqlx::Postgres>,
-    rpc_client: &near_jsonrpc_client::JsonRpcClient,
     block: &types::Block,
     contract_id: &near_primitives::types::AccountId,
-    token_id: &String,
-    pagination: &api_models::NftOverviewPaginationParams,
-) -> api_models::Result<Vec<api_models::NftsByContractInfo>> {
-return Ok(vec![])
+    token_id: &str,
+    pagination: &api_models::HistoryPaginationParams,
+) -> api_models::Result<Vec<api_models::NftHistoryInfo>> {
+    let query = r"
+        SELECT event_kind::text action_kind,
+               token_old_owner_account_id old_account_id,
+               token_new_owner_account_id new_account_id,
+               emitted_at_block_timestamp block_timestamp_nanos,
+               block_height
+        FROM assets__non_fungible_token_events JOIN blocks
+            ON assets__non_fungible_token_events.emitted_at_block_timestamp = blocks.block_timestamp
+        WHERE token_id = $1 AND emitted_by_contract_account_id = $2 AND emitted_at_block_timestamp <= $3::numeric(20, 0)
+        ORDER BY emitted_at_block_timestamp DESC
+        LIMIT $4::numeric(20, 0)
+    ";
+    let history_items = utils::select_retry_or_panic::<db_models::NftHistoryInfo>(
+        pool,
+        query,
+        &[
+            token_id.to_string(),
+            contract_id.to_string(),
+            block.timestamp.to_string(),
+            pagination
+                .limit
+                .unwrap_or(crate::DEFAULT_PAGE_LIMIT)
+                .to_string(),
+        ],
+        RETRY_COUNT,
+    )
+    .await?;
+
+    let mut result: Vec<api_models::NftHistoryInfo> = vec![];
+    for history in history_items {
+        result.push(history.try_into()?);
+    }
+    Ok(result)
 }
 
 pub(crate) async fn account_exists(
@@ -437,22 +465,25 @@ pub(crate) async fn account_exists(
     // 1. we have at least 1 row at action_receipt_actions table
     // 2. last successful action_kind != DELETE_ACCOUNT
     // TODO we are loosing +1 second here, it's painful
+    let query = r"
+        SELECT action_kind::text
+        FROM action_receipt_actions JOIN execution_outcomes ON action_receipt_actions.receipt_id = execution_outcomes.receipt_id
+        WHERE receipt_predecessor_account_id = $1
+            AND action_receipt_actions.receipt_included_in_block_timestamp <= $2::numeric(20, 0)
+            AND execution_outcomes.status IN ('SUCCESS_VALUE', 'SUCCESS_RECEIPT_ID')
+        ORDER BY receipt_included_in_block_timestamp DESC, index_in_action_receipt DESC
+        LIMIT 1
+     ";
     Ok(utils::select_retry_or_panic::<db_models::ActionKind>(
         pool,
-        r"SELECT action_kind::text
-          FROM action_receipt_actions JOIN execution_outcomes ON action_receipt_actions.receipt_id = execution_outcomes.receipt_id
-          WHERE receipt_predecessor_account_id = $1
-              AND action_receipt_actions.receipt_included_in_block_timestamp <= $2::numeric(20, 0)
-              AND execution_outcomes.status IN ('SUCCESS_VALUE', 'SUCCESS_RECEIPT_ID')
-          ORDER BY receipt_included_in_block_timestamp DESC, index_in_action_receipt DESC
-          LIMIT 1",
+        query,
         &[account_id.to_string(), block_timestamp.to_string()],
         RETRY_COUNT,
     )
-        .await?
-        .first()
-        .map(|kind| kind.action_kind != "DELETE_ACCOUNT")
-        .unwrap_or_else(|| false))
+    .await?
+    .first()
+    .map(|kind| kind.action_kind != "DELETE_ACCOUNT")
+    .unwrap_or_else(|| false))
 }
 
 #[cfg(test)]
@@ -600,6 +631,42 @@ mod tests {
 
         let balance = nft_count(&pool, &rpc_client, &block, &account, &pagination).await;
         insta::assert_debug_snapshot!(balance);
+    }
+
+    #[actix_rt::test]
+    async fn test_nft_history() {
+        let (pool, rpc_client, block) = init().await;
+        let contract = near_primitives::types::AccountId::from_str("x.paras.near").unwrap();
+        let token = "293708:1";
+        let pagination = api_models::HistoryPaginationParams { limit: Some(10) };
+
+        let history = nft_history(&pool, &block, &contract, token, &pagination).await;
+        insta::assert_debug_snapshot!(history);
+    }
+
+    // TODO we should fix this by removing logs produced by failed tx from the DB
+    #[actix_rt::test]
+    async fn test_nft_history_broken() {
+        let (pool, rpc_client, block) = init().await;
+        let contract = near_primitives::types::AccountId::from_str("thebullishbulls.near").unwrap();
+        let token = "1349";
+        let pagination = api_models::HistoryPaginationParams { limit: Some(20) };
+
+        let history = nft_history(&pool, &block, &contract, token, &pagination).await;
+        insta::assert_debug_snapshot!(history);
+    }
+
+    #[actix_rt::test]
+    async fn test_nft_history_token_does_not_exist() {
+        let (pool, rpc_client, block) = init().await;
+        let contract = near_primitives::types::AccountId::from_str("x.paras.near").unwrap();
+        let token = "no_such_token";
+        let pagination = api_models::HistoryPaginationParams { limit: Some(10) };
+
+        let history = nft_history(&pool, &block, &contract, token, &pagination)
+            .await
+            .unwrap();
+        assert!(history.is_empty());
     }
 
     // todo flaky thread 'api::tests::test_ft_balance' panicked at 'dispatch dropped without returning error

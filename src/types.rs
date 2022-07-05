@@ -220,6 +220,22 @@ impl From<api_models::NearBalanceResponse> for api_models::Coin {
     }
 }
 
+impl TryFrom<db_models::NftHistoryInfo> for api_models::NftHistoryInfo {
+    type Error = errors::Error;
+
+    fn try_from(info: db_models::NftHistoryInfo) -> api_models::Result<Self> {
+        Ok(Self {
+            action_kind: info.action_kind,
+            old_account_id: utils::extract_account_id(&info.old_account_id)?
+                .map(|account| account.into()),
+            new_account_id: utils::extract_account_id(&info.new_account_id)?
+                .map(|account| account.into()),
+            block_timestamp_nanos: utils::to_u64(&info.block_timestamp_nanos)?.into(),
+            block_height: utils::to_u64(&info.block_height)?.into(),
+        })
+    }
+}
+
 impl TryFrom<NFTContractMetadata> for api_models::NftContractMetadata {
     type Error = errors::Error;
 

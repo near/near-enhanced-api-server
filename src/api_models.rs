@@ -190,13 +190,14 @@ pub(crate) struct HistoryInfo {
     pub block_height: super::types::U64,
 }
 
+// todo I feel it's better to provide receipt id/tx hash here, do we want to add it here?
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub(crate) struct NftHistoryInfo {
     pub action_kind: String, // mint transfer burn
     pub old_account_id: Option<super::types::AccountId>,
     pub new_account_id: Option<super::types::AccountId>,
-    pub index: super::types::U128, // todo naming
+    // pub index: super::types::U128, // todo naming. Not implemented yet
     pub block_timestamp_nanos: super::types::U64,
     pub block_height: super::types::U64,
 }

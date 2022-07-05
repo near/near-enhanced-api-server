@@ -1,6 +1,7 @@
 use num_traits::ToPrimitive;
 use sqlx::postgres::PgRow;
 use sqlx::Arguments;
+use std::str::FromStr;
 
 use crate::{api_models, errors, types, BigDecimal};
 
@@ -86,4 +87,16 @@ pub(crate) fn base64_to_string(
     } else {
         None
     })
+}
+
+pub(crate) fn extract_account_id(
+    account_id: &str,
+) -> api_models::Result<Option<near_primitives::types::AccountId>> {
+    if account_id.is_empty() {
+        Ok(None)
+    } else {
+        Ok(Some(near_primitives::types::AccountId::from_str(
+            account_id,
+        )?))
+    }
 }

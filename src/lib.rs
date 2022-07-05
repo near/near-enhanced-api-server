@@ -222,7 +222,7 @@ async fn dev_get_user_nfts_overview(
             &request.account_id.0,
             &pagination_params,
         )
-            .await?,
+        .await?,
         block_timestamp_nanos: types::U64::from(block.timestamp),
         block_height: types::U64::from(block.height),
     }))
@@ -375,8 +375,35 @@ async fn nft_history(
     block_params: web::Query<api_models::BlockParams>,
     pagination_params: web::Query<api_models::HistoryPaginationParams>,
 ) -> api_models::Result<Json<api_models::NftHistoryResponse>> {
-    //todo not implemented
-    Err(errors::ErrorKind::InternalError("Sorry! It's still under development".to_string()).into())
+    check_limit(pagination_params.limit)?;
+    check_block_params(&block_params)?;
+    let block = get_block_from_params(&pool, &block_params).await?;
+
+    Ok(Json(api_models::NftHistoryResponse {
+        history: api::nft_history(
+            &pool,
+            &block,
+            &request.contract_account_id.0,
+            &request.token_id,
+            &pagination_params,
+        )
+        .await?,
+        token_metadata: rpc_calls::get_nft_metadata(
+            &rpc_client,
+            request.contract_account_id.0.clone(),
+            request.token_id.clone(),
+            block.height,
+        )
+        .await?,
+        contract_metadata: rpc_calls::get_nft_general_metadata(
+            &rpc_client,
+            request.contract_account_id.0.clone(),
+            block.height,
+        )
+        .await?,
+        block_timestamp_nanos: types::U64::from(block.timestamp),
+        block_height: types::U64::from(block.height),
+    }))
 }
 
 #[api_v2_operation]

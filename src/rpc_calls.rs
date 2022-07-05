@@ -191,7 +191,7 @@ pub(crate) async fn get_nft_count(
         _ => Err(errors::ErrorKind::RPCError(
             "Unexpected type of the response after CallFunction request".to_string(),
         )
-            .into()),
+        .into()),
     }
 }
 
@@ -288,9 +288,16 @@ pub(crate) async fn get_nft_metadata(
     };
 
     match response.kind {
-        QueryResponseKind::CallResult(result) => api_models::NonFungibleToken::try_from(
-            serde_json::from_slice::<types::Token>(&result.result)?,
-        ),
+        QueryResponseKind::CallResult(result) => {
+            match serde_json::from_slice::<Option<types::Token>>(&result.result)? {
+                None => Err(errors::ErrorKind::InvalidInput(format!(
+                    "Token `{}` does not exist in contract `{}`, block_height {}",
+                    token_id, contract_id, block_height
+                ))
+                .into()),
+                Some(token) => api_models::NonFungibleToken::try_from(token),
+            }
+        }
         _ => Err(errors::ErrorKind::RPCError(
             "Unexpected type of the response after CallFunction request".to_string(),
         )
@@ -368,7 +375,7 @@ mod tests {
     }
 
     #[actix_rt::test]
-    async fn test_nft_metadata_other_contract_deployed() {
+    async fn test_nft_general_metadata_other_contract_deployed() {
         let (rpc_client, block_height) = init();
         let contract = near_primitives::types::AccountId::from_str("usn").unwrap();
 
@@ -393,7 +400,17 @@ mod tests {
         let contract = near_primitives::types::AccountId::from_str("x.paras.near").unwrap();
         let token = "415815:1".to_string();
 
-        let nfts = get_nft_metadata(&rpc_client, contract, token, block_height).await;
-        insta::assert_debug_snapshot!(nfts);
+        let nft = get_nft_metadata(&rpc_client, contract, token, block_height).await;
+        insta::assert_debug_snapshot!(nft);
+    }
+
+    #[actix_rt::test]
+    async fn test_nft_metadata_token_does_not_exist() {
+        let (rpc_client, block_height) = init();
+        let contract = near_primitives::types::AccountId::from_str("x.paras.near").unwrap();
+        let token = "no_such_token".to_string();
+
+        let nft = get_nft_metadata(&rpc_client, contract, token, block_height).await;
+        insta::assert_debug_snapshot!(nft);
     }
 }
