@@ -358,6 +358,76 @@ pub(crate) async fn nft_count(
     Ok(result)
 }
 
+pub(crate) async fn dev_nft_count(
+    pool: &sqlx::Pool<sqlx::Postgres>,
+    rpc_client: &near_jsonrpc_client::JsonRpcClient,
+    block: &types::Block,
+    account_id: &near_primitives::types::AccountId,
+    pagination: &api_models::NftOverviewPaginationParams,
+) -> api_models::Result<Vec<api_models::NftsByContractInfo>> {
+     let query = r"SELECT emitted_by_contract_account_id account_id -- contract_id, count(*) count
+                   FROM assets__non_fungible_token_events
+                   WHERE token_new_owner_account_id = $1
+                       AND emitted_at_block_timestamp <= $2::numeric(20, 0)
+                   GROUP BY emitted_by_contract_account_id
+                   ORDER BY emitted_by_contract_account_id
+                   LIMIT $3::numeric(20, 0)";
+    let contracts = utils::select_retry_or_panic::<db_models::AccountId>(
+                pool,
+                query,
+                &[
+                    account_id.to_string(),
+                    block.timestamp.to_string(),
+                    pagination
+                        .limit
+                        .unwrap_or(crate::DEFAULT_PAGE_LIMIT)
+                        .to_string(),
+                ],
+                RETRY_COUNT,
+            )
+                .await?;
+
+    let mut result: Vec<api_models::NftsByContractInfo> = vec![];
+    for contract in contracts {
+        if let Ok(contract_id) = near_primitives::types::AccountId::from_str(&contract.account_id) {
+            // let nft_count = contract.count.to_u32().ok_or_else(|| {
+            //     errors::ErrorKind::InternalError(format!("Failed to parse u32 {}", contract.count))
+            // })?;
+            let nft_count = rpc_calls::get_nft_count(
+                rpc_client,
+                contract_id.clone(),
+                account_id.clone(),
+                block.height,
+            )
+                .await?;
+            if nft_count == 0 {
+                continue;
+            }
+            let metadata =
+                rpc_calls::get_nft_general_metadata(rpc_client, contract_id.clone(), block.height)
+                    .await?;
+            result.push(api_models::NftsByContractInfo {
+                contract_account_id: contract_id.into(),
+                nft_count,
+                last_updated_at_timestamp: types::U128(0),
+                metadata,
+            });
+        }
+    }
+    Ok(result)
+}
+
+pub(crate) async fn nft_history(
+    pool: &sqlx::Pool<sqlx::Postgres>,
+    rpc_client: &near_jsonrpc_client::JsonRpcClient,
+    block: &types::Block,
+    contract_id: &near_primitives::types::AccountId,
+    token_id: &String,
+    pagination: &api_models::NftOverviewPaginationParams,
+) -> api_models::Result<Vec<api_models::NftsByContractInfo>> {
+return Ok(vec![])
+}
+
 pub(crate) async fn account_exists(
     pool: &sqlx::Pool<sqlx::Postgres>,
     account_id: &near_primitives::types::AccountId,
