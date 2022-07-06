@@ -64,7 +64,7 @@ pub(crate) struct NearBalanceResponse {
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub(crate) struct HistoryResponse {
     // todo remember here could be mt
-    pub history: Vec<HistoryInfo>,
+    pub history: Vec<CoinHistoryInfo>,
     pub block_timestamp_nanos: super::types::U64,
     pub block_height: super::types::U64,
 }
@@ -171,14 +171,14 @@ pub(crate) struct NearHistoryInfo {
     pub available_balance: super::types::U128, // todo naming
     pub staked_balance: super::types::U128,
     pub cause: String,
-    pub index: super::types::U128, // todo naming
+    // pub index: super::types::U128, // todo naming. Not implemented yet
     pub block_timestamp_nanos: super::types::U64,
-    pub block_height: super::types::U64,
+    // pub block_height: super::types::U64, // todo add this when we have all the data in the same DB
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
-pub(crate) struct HistoryInfo {
+pub(crate) struct CoinHistoryInfo {
     // todo remember here could be mt
     pub action_kind: String, // mint transfer burn
     pub involved_account_id: Option<super::types::AccountId>,

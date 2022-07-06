@@ -4,7 +4,7 @@ expression: balance
 ---
 Ok(
     [
-        HistoryInfo {
+        CoinHistoryInfo {
             action_kind: "TRANSFER",
             involved_account_id: Some(
                 AccountId(
@@ -35,7 +35,7 @@ Ok(
                 64475344,
             ),
         },
-        HistoryInfo {
+        CoinHistoryInfo {
             action_kind: "MINT",
             involved_account_id: None,
             delta_balance: I128(

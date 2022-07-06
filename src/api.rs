@@ -34,13 +34,7 @@ pub(crate) async fn native_balance(
                 total_balance: (available + staked).into(),
                 available_balance: available.into(),
                 staked_balance: staked.into(),
-                metadata: api_models::CoinMetadata {
-                    name: "NEAR blockchain native token".to_string(),
-                    symbol: "NEAR".to_string(),
-                    // todo
-                    icon: Some("https://raw.githubusercontent.com/near/near-wallet/7ef3c824404282b76b36da2dff4f3e593e7f928d/packages/frontend/src/images/near.svg".to_string()),
-                    decimals: 24,
-                },
+                metadata: native_metadata(),
                 block_timestamp_nanos: block.timestamp.into(),
                 block_height: block.height.into(),
             })
@@ -50,6 +44,16 @@ pub(crate) async fn native_balance(
             account_id
         ))
         .into()),
+    }
+}
+
+pub(crate) fn native_metadata() -> api_models::CoinMetadata {
+    api_models::CoinMetadata {
+        name: "NEAR blockchain native token".to_string(),
+        symbol: "NEAR".to_string(),
+        // todo
+        icon: Some("https://raw.githubusercontent.com/near/near-wallet/7ef3c824404282b76b36da2dff4f3e593e7f928d/packages/frontend/src/images/near.svg".to_string()),
+        decimals: 24,
     }
 }
 
@@ -166,16 +170,62 @@ pub(crate) async fn ft_balance_for_contract(
     })
 }
 
+// todo add artificial index and paginate by this
+// todo cover it with tests when the pagination will be ready
+pub(crate) async fn native_history(
+    balances_pool: &sqlx::Pool<sqlx::Postgres>,
+    account_id: &near_primitives::types::AccountId,
+    pagination: &api_models::HistoryPaginationParams,
+) -> api_models::Result<Vec<api_models::NearHistoryInfo>> {
+    let query = r"
+        SELECT
+            involved_account_id,
+            delta_nonstaked_amount + delta_staked_amount delta_balance,
+            delta_nonstaked_amount delta_available_balance,
+            delta_staked_amount delta_staked_balance,
+            absolute_nonstaked_amount + absolute_staked_amount total_balance,
+            absolute_nonstaked_amount available_balance,
+            absolute_staked_amount staked_balance,
+            cause,
+            block_timestamp block_timestamp_nanos
+        FROM balance_changes
+        WHERE affected_account_id = $1
+        ORDER BY block_timestamp DESC
+        LIMIT $2::numeric(20, 0)
+    ";
+
+    let history_info = utils::select_retry_or_panic::<db_models::NearHistoryInfo>(
+        balances_pool,
+        query,
+        &[
+            account_id.to_string(),
+            pagination
+                .limit
+                .unwrap_or(crate::DEFAULT_PAGE_LIMIT)
+                .to_string(),
+        ],
+        RETRY_COUNT,
+    )
+    .await?;
+
+    let mut result: Vec<api_models::NearHistoryInfo> = vec![];
+    for history in history_info {
+        result.push(history.try_into()?);
+    }
+    Ok(result)
+}
+
 // todo pagination (can wait till phase 2)
 // todo absolute values in assets__fungible_token_events will help us to avoid rpc calls (can wait till phase 2)
 pub(crate) async fn coin_history(
     pool: &sqlx::Pool<sqlx::Postgres>,
     rpc_client: &near_jsonrpc_client::JsonRpcClient,
+    // todo drop this parameter when the pagination will be ready
     block: &types::Block,
     contract_id: &near_primitives::types::AccountId,
     account_id: &near_primitives::types::AccountId,
     pagination: &api_models::HistoryPaginationParams,
-) -> api_models::Result<Vec<api_models::HistoryInfo>> {
+) -> api_models::Result<Vec<api_models::CoinHistoryInfo>> {
     let mut last_balance = rpc_calls::get_ft_balance(
         rpc_client,
         contract_id.clone(),
@@ -195,7 +245,7 @@ pub(crate) async fn coin_history(
     let query = r"
         SELECT blocks.block_height,
                blocks.block_timestamp,
-               assets__fungible_token_events.amount,
+               assets__fungible_token_events.amount::numeric(45, 0),
                assets__fungible_token_events.event_kind::text,
                assets__fungible_token_events.token_old_owner_account_id old_owner_id,
                assets__fungible_token_events.token_new_owner_account_id new_owner_id
@@ -223,9 +273,9 @@ pub(crate) async fn coin_history(
     )
     .await?;
 
-    let mut result: Vec<api_models::HistoryInfo> = vec![];
-    for db_info in ft_history_info.iter() {
-        let mut delta = utils::string_to_i128(&db_info.amount)?;
+    let mut result: Vec<api_models::CoinHistoryInfo> = vec![];
+    for db_info in ft_history_info {
+        let mut delta: i128 = utils::to_i128(&db_info.amount)?;
         let balance = last_balance;
         let involved_account_id = if account_id == db_info.old_owner_id {
             delta = -delta;
@@ -247,7 +297,7 @@ pub(crate) async fn coin_history(
         }
         last_balance = ((last_balance as i128) - delta) as u128;
 
-        result.push(api_models::HistoryInfo {
+        result.push(api_models::CoinHistoryInfo {
             action_kind: db_info.event_kind.clone(),
             involved_account_id: involved_account_id.map(|id| id.into()),
             delta_balance: delta.into(),
@@ -416,6 +466,7 @@ pub(crate) async fn dev_nft_count(
 // todo add artificial index and paginate by this
 pub(crate) async fn nft_history(
     pool: &sqlx::Pool<sqlx::Postgres>,
+    // todo drop this parameter when the pagination will be ready
     block: &types::Block,
     contract_id: &near_primitives::types::AccountId,
     token_id: &str,
@@ -549,7 +600,7 @@ mod tests {
 
     #[actix_rt::test]
     async fn test_ft_balance_for_contract() {
-        let (pool, rpc_client, block) = init().await;
+        let (_, rpc_client, block) = init().await;
         let contract = near_primitives::types::AccountId::from_str("nexp.near").unwrap();
         let account = near_primitives::types::AccountId::from_str("patagonita.near").unwrap();
 
@@ -559,7 +610,7 @@ mod tests {
 
     #[actix_rt::test]
     async fn test_ft_balance_for_contract_no_contract_deployed() {
-        let (pool, rpc_client, block) = init().await;
+        let (_, rpc_client, block) = init().await;
         let contract = near_primitives::types::AccountId::from_str("olga.near").unwrap();
         let account = near_primitives::types::AccountId::from_str("patagonita.near").unwrap();
 
@@ -569,7 +620,7 @@ mod tests {
 
     #[actix_rt::test]
     async fn test_ft_balance_for_contract_other_contract_deployed() {
-        let (pool, rpc_client, block) = init().await;
+        let (_, rpc_client, block) = init().await;
         let contract = near_primitives::types::AccountId::from_str("comic.paras.near").unwrap();
         let account = near_primitives::types::AccountId::from_str("patagonita.near").unwrap();
 
@@ -635,7 +686,7 @@ mod tests {
 
     #[actix_rt::test]
     async fn test_nft_history() {
-        let (pool, rpc_client, block) = init().await;
+        let (pool, _, block) = init().await;
         let contract = near_primitives::types::AccountId::from_str("x.paras.near").unwrap();
         let token = "293708:1";
         let pagination = api_models::HistoryPaginationParams { limit: Some(10) };
@@ -645,29 +696,30 @@ mod tests {
     }
 
     // TODO we should fix this by removing logs produced by failed tx from the DB
-    #[actix_rt::test]
-    async fn test_nft_history_broken() {
-        let (pool, rpc_client, block) = init().await;
-        let contract = near_primitives::types::AccountId::from_str("thebullishbulls.near").unwrap();
-        let token = "1349";
-        let pagination = api_models::HistoryPaginationParams { limit: Some(20) };
-
-        let history = nft_history(&pool, &block, &contract, token, &pagination).await;
-        insta::assert_debug_snapshot!(history);
-    }
-
-    #[actix_rt::test]
-    async fn test_nft_history_token_does_not_exist() {
-        let (pool, rpc_client, block) = init().await;
-        let contract = near_primitives::types::AccountId::from_str("x.paras.near").unwrap();
-        let token = "no_such_token";
-        let pagination = api_models::HistoryPaginationParams { limit: Some(10) };
-
-        let history = nft_history(&pool, &block, &contract, token, &pagination)
-            .await
-            .unwrap();
-        assert!(history.is_empty());
-    }
+    // todo add these tests again after pagination will be ready
+    // #[actix_rt::test]
+    // async fn test_nft_history_broken() {
+    //     let (pool, rpc_client, block) = init().await;
+    //     let contract = near_primitives::types::AccountId::from_str("thebullishbulls.near").unwrap();
+    //     let token = "1349";
+    //     let pagination = api_models::HistoryPaginationParams { limit: Some(20) };
+    //
+    //     let history = nft_history(&pool, &block, &contract, token, &pagination).await;
+    //     insta::assert_debug_snapshot!(history);
+    // }
+    //
+    // #[actix_rt::test]
+    // async fn test_nft_history_token_does_not_exist() {
+    //     let (pool, rpc_client, block) = init().await;
+    //     let contract = near_primitives::types::AccountId::from_str("x.paras.near").unwrap();
+    //     let token = "no_such_token";
+    //     let pagination = api_models::HistoryPaginationParams { limit: Some(10) };
+    //
+    //     let history = nft_history(&pool, &block, &contract, token, &pagination)
+    //         .await
+    //         .unwrap();
+    //     assert!(history.is_empty());
+    // }
 
     // todo flaky thread 'api::tests::test_ft_balance' panicked at 'dispatch dropped without returning error
 }

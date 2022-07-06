@@ -1,4 +1,5 @@
 use std::fmt;
+use std::str::FromStr;
 
 use borsh::{BorshDeserialize, BorshSerialize};
 use paperclip::v2::{models::DataType, schema::TypedData};
@@ -217,6 +218,30 @@ impl From<api_models::NearBalanceResponse> for api_models::Coin {
             contract_account_id: None,
             metadata: near_coin.metadata,
         }
+    }
+}
+
+impl TryFrom<db_models::NearHistoryInfo> for api_models::NearHistoryInfo {
+    type Error = errors::Error;
+
+    fn try_from(info: db_models::NearHistoryInfo) -> api_models::Result<Self> {
+        let involved_account_id: Option<AccountId> =
+            if let Some(account_id) = info.involved_account_id {
+                Some(near_primitives::types::AccountId::from_str(&account_id)?.into())
+            } else {
+                None
+            };
+        Ok(Self {
+            involved_account_id,
+            delta_balance: utils::to_i128(&info.delta_balance)?.into(),
+            delta_available_balance: utils::to_i128(&info.delta_available_balance)?.into(),
+            delta_staked_balance: utils::to_i128(&info.delta_staked_balance)?.into(),
+            total_balance: utils::to_u128(&info.total_balance)?.into(),
+            available_balance: utils::to_u128(&info.available_balance)?.into(),
+            staked_balance: utils::to_u128(&info.staked_balance)?.into(),
+            cause: info.cause,
+            block_timestamp_nanos: utils::to_u64(&info.block_timestamp_nanos)?.into(),
+        })
     }
 }
 

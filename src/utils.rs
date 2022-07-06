@@ -61,14 +61,8 @@ pub(crate) fn to_u128(x: &BigDecimal) -> api_models::Result<u128> {
     })
 }
 
-// pub(crate) fn to_i128(x: &BigDecimal) -> Result<i128, errors::ErrorKind> {
-//     x.to_string()
-//         .parse()
-//         .map_err(|e| errors::ErrorKind::InternalError(format!("Failed to parse i128 {}: {}", x, e)))
-// }
-
-pub(crate) fn string_to_i128(x: &String) -> api_models::Result<i128> {
-    x.parse().map_err(|e| {
+pub(crate) fn to_i128(x: &BigDecimal) -> api_models::Result<i128> {
+    x.to_string().parse().map_err(|e| {
         errors::ErrorKind::InternalError(format!("Failed to parse i128 {}: {}", x, e)).into()
     })
 }

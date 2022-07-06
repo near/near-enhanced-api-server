@@ -235,7 +235,7 @@ async fn dev_get_user_nfts_overview(
 /// for the given account_id, NFT contract_id, timestamp/block_height.
 /// You can copy the token_id from this response and ask for NFT history.
 /// Pagination will be provided later.
-async fn get_user_collectibles_by_contract(
+async fn get_user_nfts_by_contract(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     request: web::Path<api_models::BalanceByContractRequest>,
@@ -253,7 +253,7 @@ async fn get_user_collectibles_by_contract(
             request.contract_account_id.0.clone(),
             request.account_id.0.clone(),
             block.height,
-            pagination_params.limit.unwrap_or(crate::DEFAULT_PAGE_LIMIT),
+            pagination_params.limit.unwrap_or(DEFAULT_PAGE_LIMIT),
         )
         .await?,
         contract_metadata: rpc_calls::get_nft_general_metadata(
@@ -308,13 +308,20 @@ async fn nft_item_details(
 /// Sorted in a historical descending order.
 async fn native_history(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
-    rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
+    pool_balances: web::Data<DBWrapper>,
     request: web::Path<api_models::BalanceRequest>,
-    // block_params: web::Query<api_models::BlockParams>,
     pagination_params: web::Query<api_models::HistoryPaginationParams>,
 ) -> api_models::Result<Json<api_models::NearHistoryResponse>> {
-    //todo not implemented
-    Err(errors::ErrorKind::InternalError("Sorry! It's still under development".to_string()).into())
+    check_limit(pagination_params.limit)?;
+    let block = get_last_block(&pool).await?;
+
+    Ok(Json(api_models::NearHistoryResponse {
+        history: api::native_history(&pool_balances.pool, &request.account_id, &pagination_params)
+            .await?,
+        metadata: api::native_metadata(),
+        block_timestamp_nanos: types::U64::from(block.timestamp),
+        block_height: types::U64::from(block.height),
+    }))
 }
 
 #[api_v2_operation]
@@ -328,7 +335,6 @@ async fn coin_history(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     request: web::Path<api_models::BalanceHistoryRequest>,
-    block_params: web::Query<api_models::BlockParams>,
     pagination_params: web::Query<api_models::HistoryPaginationParams>,
 ) -> api_models::Result<Json<api_models::HistoryResponse>> {
     if request.contract_account_id.to_string() == "near" {
@@ -338,8 +344,7 @@ async fn coin_history(
         .into());
     }
     check_limit(pagination_params.limit)?;
-    check_block_params(&block_params)?;
-    let block = get_block_from_params(&pool, &block_params).await?;
+    let block = get_last_block(&pool).await?;
     check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
 
     // todo remember here could be mt
@@ -372,12 +377,10 @@ async fn nft_history(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     request: web::Path<api_models::NftItemRequest>,
-    block_params: web::Query<api_models::BlockParams>,
     pagination_params: web::Query<api_models::HistoryPaginationParams>,
 ) -> api_models::Result<Json<api_models::NftHistoryResponse>> {
     check_limit(pagination_params.limit)?;
-    check_block_params(&block_params)?;
-    let block = get_block_from_params(&pool, &block_params).await?;
+    let block = get_last_block(&pool).await?;
 
     Ok(Json(api_models::NftHistoryResponse {
         history: api::nft_history(
@@ -502,8 +505,8 @@ async fn check_account_exists(
 const RETRY_COUNT: usize = 1;
 
 async fn get_block_from_params(
-    pool: &web::Data<sqlx::Pool<sqlx::Postgres>>,
-    params: &web::Query<api_models::BlockParams>,
+    pool: &sqlx::Pool<sqlx::Postgres>,
+    params: &api_models::BlockParams,
 ) -> api_models::Result<types::Block> {
     if let Some(block_height) = params.block_height {
         match utils::select_retry_or_panic::<db_models::Block>(
@@ -539,9 +542,7 @@ async fn get_block_from_params(
     }
 }
 
-async fn get_first_block(
-    pool: &web::Data<sqlx::Pool<sqlx::Postgres>>,
-) -> api_models::Result<types::Block> {
+async fn get_first_block(pool: &sqlx::Pool<sqlx::Postgres>) -> api_models::Result<types::Block> {
     match utils::select_retry_or_panic::<db_models::Block>(
         pool,
         r"SELECT block_height, block_timestamp
@@ -559,9 +560,7 @@ async fn get_first_block(
     }
 }
 
-async fn get_last_block(
-    pool: &web::Data<sqlx::Pool<sqlx::Postgres>>,
-) -> api_models::Result<types::Block> {
+async fn get_last_block(pool: &sqlx::Pool<sqlx::Postgres>) -> api_models::Result<types::Block> {
     match utils::select_retry_or_panic::<db_models::Block>(
         pool,
         r"SELECT block_height, block_timestamp
@@ -622,9 +621,15 @@ async fn playground_ui() -> impl actix_web::Responder {
         )
 }
 
+// temp solution to pass 2 different connection pools
+struct DBWrapper {
+    pub pool: sqlx::Pool<sqlx::Postgres>,
+}
+
 pub fn start(
     config: config::Config,
     pool: sqlx::Pool<sqlx::Postgres>,
+    pool_balances: sqlx::Pool<sqlx::Postgres>,
     rpc_client: near_jsonrpc_client::JsonRpcClient,
 ) -> actix_web::dev::ServerHandle {
     let config::Config {
@@ -678,6 +683,9 @@ pub fn start(
             .app_data(json_config)
             .wrap(actix_web::middleware::Logger::default())
             .app_data(web::Data::new(pool.clone()))
+            .app_data(web::Data::new(DBWrapper {
+                pool: pool_balances.clone(),
+            }))
             .app_data(web::Data::new(rpc_client.clone()))
             .wrap(get_cors(&cors_allowed_origins))
             .route("/", actix_web::web::get().to(playground_ui))
@@ -703,7 +711,7 @@ pub fn start(
             )
             .service(
                 web::resource("/accounts/{account_id}/NFT/{contract_account_id}")
-                    .route(web::get().to(get_user_collectibles_by_contract)),
+                    .route(web::get().to(get_user_nfts_by_contract)),
             )
             .service(
                 web::resource("/NFT/{contract_account_id}/{token_id}")
