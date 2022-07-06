@@ -28,8 +28,8 @@ pub(crate) fn contract_not_found(
     code = 500,
     description = "See the inner `code` value to get more details"
 )]
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
-pub(crate) struct Error {
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
+pub struct Error {
     /// Code is a network-specific error code. If desired, this code can be
     /// equivalent to an HTTP status code.
     pub code: u32,
@@ -50,7 +50,7 @@ impl std::fmt::Display for Error {
 }
 
 impl Error {
-    pub(crate) fn from_error_kind(err: ErrorKind) -> Self {
+    pub fn from_error_kind(err: ErrorKind) -> Self {
         match err {
             ErrorKind::DBError(message) => Self {
                 code: 500,

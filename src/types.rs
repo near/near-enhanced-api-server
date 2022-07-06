@@ -305,3 +305,8 @@ impl TryFrom<Token> for api_models::NonFungibleToken {
         })
     }
 }
+
+// temp solution to pass 2 different connection pools
+pub struct DBWrapper {
+    pub pool: sqlx::Pool<sqlx::Postgres>,
+}

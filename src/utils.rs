@@ -1,9 +1,10 @@
+use std::str::FromStr;
+
 use num_traits::ToPrimitive;
 use sqlx::postgres::PgRow;
 use sqlx::Arguments;
-use std::str::FromStr;
 
-use crate::{api_models, errors, types, BigDecimal};
+use crate::{api, api_models, errors, types, BigDecimal};
 
 const INTERVAL: std::time::Duration = std::time::Duration::from_millis(100);
 const MAX_DELAY_TIME: std::time::Duration = std::time::Duration::from_secs(120);
@@ -92,5 +93,47 @@ pub(crate) fn extract_account_id(
         Ok(Some(near_primitives::types::AccountId::from_str(
             account_id,
         )?))
+    }
+}
+
+pub(crate) fn check_block_params(params: &api_models::BlockParams) -> api_models::Result<()> {
+    if params.block_height.is_some() && params.block_timestamp_nanos.is_some() {
+        Err(errors::ErrorKind::InvalidInput(
+            "Both block_height and block_timestamp_nanos found. Please provide only one of values"
+                .to_string(),
+        )
+        .into())
+    } else {
+        Ok(())
+    }
+}
+
+pub(crate) fn check_limit(limit_param: Option<u32>) -> api_models::Result<()> {
+    if let Some(limit) = limit_param {
+        if limit > crate::MAX_PAGE_LIMIT || limit == 0 {
+            return Err(errors::ErrorKind::InvalidInput(format!(
+                "Limit should be in range [1, {}]",
+                crate::MAX_PAGE_LIMIT
+            ))
+            .into());
+        }
+    }
+    Ok(())
+}
+
+// todo do we need check_contract_exists? (now we will just fail when we make the call to rpc)
+pub(crate) async fn check_account_exists(
+    pool: &sqlx::Pool<sqlx::Postgres>,
+    account_id: &near_primitives::types::AccountId,
+    block_timestamp: u64,
+) -> api_models::Result<()> {
+    if !api::account_exists(pool, account_id, block_timestamp).await? {
+        Err(errors::ErrorKind::InvalidInput(format!(
+            "account_id {} does not exist at block_timestamp {}",
+            account_id, block_timestamp
+        ))
+        .into())
+    } else {
+        Ok(())
     }
 }

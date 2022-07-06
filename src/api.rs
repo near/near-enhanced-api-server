@@ -537,6 +537,82 @@ pub(crate) async fn account_exists(
     .unwrap_or_else(|| false))
 }
 
+pub(crate) async fn get_block_from_params(
+    pool: &sqlx::Pool<sqlx::Postgres>,
+    params: &api_models::BlockParams,
+) -> api_models::Result<types::Block> {
+    if let Some(block_height) = params.block_height {
+        match utils::select_retry_or_panic::<db_models::Block>(
+            pool,
+            "SELECT block_height, block_timestamp FROM blocks WHERE block_height = $1::numeric(20, 0)",
+            &[block_height.0.to_string()],
+            RETRY_COUNT,
+        )
+            .await?
+            .first() {
+            None => Err(errors::ErrorKind::DBError(format!("block_height {} is not found", block_height.0)).into()),
+            Some(block) => Ok(types::Block::try_from(block)?)
+        }
+    } else if let Some(block_timestamp) = params.block_timestamp_nanos {
+        match utils::select_retry_or_panic::<db_models::Block>(
+            pool,
+            r"SELECT block_height, block_timestamp
+              FROM blocks
+              WHERE block_timestamp <= $1::numeric(20, 0)
+              ORDER BY block_timestamp DESC
+              LIMIT 1",
+            &[block_timestamp.0.to_string()],
+            RETRY_COUNT,
+        )
+        .await?
+        .first()
+        {
+            None => get_first_block(pool).await,
+            Some(block) => Ok(types::Block::try_from(block)?),
+        }
+    } else {
+        get_last_block(pool).await
+    }
+}
+
+async fn get_first_block(pool: &sqlx::Pool<sqlx::Postgres>) -> api_models::Result<types::Block> {
+    match utils::select_retry_or_panic::<db_models::Block>(
+        pool,
+        r"SELECT block_height, block_timestamp
+          FROM blocks
+          ORDER BY block_timestamp
+          LIMIT 1",
+        &[],
+        RETRY_COUNT,
+    )
+    .await?
+    .first()
+    {
+        None => Err(errors::ErrorKind::DBError("blocks table is empty".to_string()).into()),
+        Some(block) => Ok(types::Block::try_from(block)?),
+    }
+}
+
+pub(crate) async fn get_last_block(
+    pool: &sqlx::Pool<sqlx::Postgres>,
+) -> api_models::Result<types::Block> {
+    match utils::select_retry_or_panic::<db_models::Block>(
+        pool,
+        r"SELECT block_height, block_timestamp
+          FROM blocks
+          ORDER BY block_timestamp DESC
+          LIMIT 1",
+        &[],
+        RETRY_COUNT,
+    )
+    .await?
+    .first()
+    {
+        None => Err(errors::ErrorKind::DBError("blocks table is empty".to_string()).into()),
+        Some(block) => Ok(types::Block::try_from(block)?),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
