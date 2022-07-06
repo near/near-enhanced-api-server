@@ -1,6 +1,6 @@
 ---
-source: src/rpc_calls.rs
-expression: nfts
+source: src/rpc_api.rs
+expression: nft
 ---
 Ok(
     NonFungibleToken {

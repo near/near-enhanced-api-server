@@ -1,7 +1,7 @@
 use std::str::FromStr;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::{api_models, db_models, errors, rpc_calls, types, utils};
+use crate::{api_models, db_models, errors, rpc_api, types, utils};
 
 const RETRY_COUNT: usize = 1;
 
@@ -147,14 +147,14 @@ pub(crate) async fn ft_balance_for_contract(
     account_id: &near_primitives::types::AccountId,
 ) -> api_models::Result<api_models::Coin> {
     let (balance, metadata) = (
-        rpc_calls::get_ft_balance(
+        rpc_api::get_ft_balance(
             rpc_client,
             contract_id.clone(),
             account_id.clone(),
             block.height,
         )
         .await?,
-        rpc_calls::get_ft_metadata(rpc_client, contract_id.clone(), block.height).await?,
+        rpc_api::get_ft_metadata(rpc_client, contract_id.clone(), block.height).await?,
     );
 
     Ok(api_models::Coin {
@@ -226,7 +226,7 @@ pub(crate) async fn coin_history(
     account_id: &near_primitives::types::AccountId,
     pagination: &api_models::HistoryPaginationParams,
 ) -> api_models::Result<Vec<api_models::CoinHistoryInfo>> {
-    let mut last_balance = rpc_calls::get_ft_balance(
+    let mut last_balance = rpc_api::get_ft_balance(
         rpc_client,
         contract_id.clone(),
         account_id.clone(),
@@ -235,7 +235,7 @@ pub(crate) async fn coin_history(
     .await?;
 
     let metadata: api_models::CoinMetadata =
-        rpc_calls::get_ft_metadata(rpc_client, contract_id.clone(), block.height)
+        rpc_api::get_ft_metadata(rpc_client, contract_id.clone(), block.height)
             .await?
             .into();
 
@@ -389,7 +389,7 @@ pub(crate) async fn nft_count(
     for info in info_by_contract {
         if let Ok(contract_id) = near_primitives::types::AccountId::from_str(&info.contract_id) {
             let metadata =
-                rpc_calls::get_nft_general_metadata(rpc_client, contract_id.clone(), block.height)
+                rpc_api::get_nft_general_metadata(rpc_client, contract_id.clone(), block.height)
                     .await?;
             result.push(api_models::NftsByContractInfo {
                 contract_account_id: contract_id.into(),
@@ -439,7 +439,7 @@ pub(crate) async fn dev_nft_count(
             // let nft_count = contract.count.to_u32().ok_or_else(|| {
             //     errors::ErrorKind::InternalError(format!("Failed to parse u32 {}", contract.count))
             // })?;
-            let nft_count = rpc_calls::get_nft_count(
+            let nft_count = rpc_api::get_nft_count(
                 rpc_client,
                 contract_id.clone(),
                 account_id.clone(),
@@ -450,7 +450,7 @@ pub(crate) async fn dev_nft_count(
                 continue;
             }
             let metadata =
-                rpc_calls::get_nft_general_metadata(rpc_client, contract_id.clone(), block.height)
+                rpc_api::get_nft_general_metadata(rpc_client, contract_id.clone(), block.height)
                     .await?;
             result.push(api_models::NftsByContractInfo {
                 contract_account_id: contract_id.into(),

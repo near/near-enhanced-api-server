@@ -13,7 +13,7 @@ mod api_models;
 pub mod config;
 mod db_models;
 mod errors;
-mod rpc_calls;
+mod rpc_api;
 mod types;
 mod utils;
 
@@ -248,7 +248,7 @@ async fn get_user_nfts_by_contract(
     check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
 
     Ok(Json(api_models::NftBalanceResponse {
-        nfts: rpc_calls::get_nfts(
+        nfts: rpc_api::get_nfts(
             &rpc_client,
             request.contract_account_id.0.clone(),
             request.account_id.0.clone(),
@@ -256,7 +256,7 @@ async fn get_user_nfts_by_contract(
             pagination_params.limit.unwrap_or(DEFAULT_PAGE_LIMIT),
         )
         .await?,
-        contract_metadata: rpc_calls::get_nft_general_metadata(
+        contract_metadata: rpc_api::get_nft_general_metadata(
             &rpc_client,
             request.contract_account_id.0.clone(),
             block.height,
@@ -282,14 +282,14 @@ async fn nft_item_details(
     let block = get_block_from_params(&pool, &block_params).await?;
 
     Ok(Json(api_models::NftItemResponse {
-        nft: rpc_calls::get_nft_metadata(
+        nft: rpc_api::get_nft_metadata(
             &rpc_client,
             request.contract_account_id.0.clone(),
             request.token_id.clone(),
             block.height,
         )
         .await?,
-        contract_metadata: rpc_calls::get_nft_general_metadata(
+        contract_metadata: rpc_api::get_nft_general_metadata(
             &rpc_client,
             request.contract_account_id.0.clone(),
             block.height,
@@ -314,6 +314,7 @@ async fn native_history(
 ) -> api_models::Result<Json<api_models::NearHistoryResponse>> {
     check_limit(pagination_params.limit)?;
     let block = get_last_block(&pool).await?;
+    check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
 
     Ok(Json(api_models::NearHistoryResponse {
         history: api::native_history(&pool_balances.pool, &request.account_id, &pagination_params)
@@ -391,14 +392,14 @@ async fn nft_history(
             &pagination_params,
         )
         .await?,
-        token_metadata: rpc_calls::get_nft_metadata(
+        token_metadata: rpc_api::get_nft_metadata(
             &rpc_client,
             request.contract_account_id.0.clone(),
             request.token_id.clone(),
             block.height,
         )
         .await?,
-        contract_metadata: rpc_calls::get_nft_general_metadata(
+        contract_metadata: rpc_api::get_nft_general_metadata(
             &rpc_client,
             request.contract_account_id.0.clone(),
             block.height,
@@ -423,7 +424,7 @@ async fn ft_metadata(
     let block = get_block_from_params(&pool, &block_params).await?;
 
     Ok(Json(api_models::FtMetadataResponse {
-        metadata: rpc_calls::get_ft_metadata(
+        metadata: rpc_api::get_ft_metadata(
             &rpc_client,
             request.contract_account_id.0.clone(),
             block.height,
@@ -449,7 +450,7 @@ async fn nft_metadata(
     let block = get_block_from_params(&pool, &block_params).await?;
 
     Ok(Json(api_models::NftMetadataResponse {
-        metadata: rpc_calls::get_nft_general_metadata(
+        metadata: rpc_api::get_nft_general_metadata(
             &rpc_client,
             request.contract_account_id.0.clone(),
             block.height,

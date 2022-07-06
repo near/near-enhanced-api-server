@@ -1,5 +1,5 @@
 ---
-source: src/rpc_calls.rs
+source: src/rpc_api.rs
 expression: nfts
 ---
 Ok(
