@@ -112,19 +112,24 @@ impl TryFrom<&db_models::Block> for Block {
 
 // Helper for parsing the data from user
 pub struct CoinBalancesPagination {
-    // pub last_standard: Option<String>,
-    // pub last_contract_account_id: Option<String>,
     pub limit: u32,
 }
 
-impl From<api_models::CoinBalancesPaginationParams> for CoinBalancesPagination {
-    fn from(params: api_models::CoinBalancesPaginationParams) -> Self {
+impl From<api_models::BalancesPaginationParams> for CoinBalancesPagination {
+    fn from(params: api_models::BalancesPaginationParams) -> Self {
         Self {
-            // last_standard: params.start_after_standard,
-            // last_contract_account_id: params.start_after_contract_account_id,
             limit: params.limit.unwrap_or(crate::DEFAULT_PAGE_LIMIT),
         }
     }
+}
+
+pub struct HistoryPagination {
+    // start_after. Not including this!
+    pub block_height: u64,
+    pub block_timestamp: u64,
+    // TODO PHASE 2 add index parameter
+    // pub index: u128,
+    pub limit: u32,
 }
 
 // Taken from https://github.com/near/near-sdk-rs/blob/master/near-sdk/src/json_types/vector.rs

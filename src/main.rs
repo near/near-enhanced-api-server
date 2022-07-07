@@ -50,6 +50,15 @@ async fn playground_ui() -> impl actix_web::Responder {
 #[tokio::main]
 async fn main() {
     dotenv::dotenv().ok();
+
+    let env_filter = tracing_subscriber::EnvFilter::new(
+        "near=info,near_jsonrpc_client=info,near_enhanced_api=debug",
+    );
+    tracing_subscriber::fmt::Subscriber::builder()
+        .with_env_filter(env_filter)
+        .with_writer(std::io::stderr)
+        .init();
+
     let url = &std::env::var("DATABASE_URL").expect("failed to get database url");
     let pool = sqlx::PgPool::connect(url)
         .await

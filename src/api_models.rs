@@ -184,7 +184,7 @@ pub struct CoinHistoryInfo {
     pub delta_balance: super::types::I128,
     pub balance: super::types::U128,
     pub metadata: CoinMetadata,
-    pub index: super::types::U128, // todo naming
+    // pub index: super::types::U128, // todo naming
     pub block_timestamp_nanos: super::types::U64,
     pub block_height: super::types::U64,
 }
@@ -291,29 +291,23 @@ pub struct BlockParams {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
-pub struct CoinBalancesPaginationParams {
-    // pub start_after_standard: Option<String>, // todo naming
-    // pub start_after_contract_account_id: Option<String>, // todo will not work for MT when we have several tokens for 1 contract
-    // pub last_symbol: Option<String>, // todo for mt, we have token_id and symbol, and potentially we can have 1 symbol for different token_ids
-    // pub start_after_coin_id: Option<String>, // in reality, we store here token_id for MTs and symbol for FTs
-    pub limit: Option<u32>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
-pub struct NftOverviewPaginationParams {
-    pub with_no_updates_after_timestamp_nanos: Option<String>,
-    pub limit: Option<u32>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
-pub struct NftBalancePaginationParams {
-    // pub start_after_token_id: Option<String>,
+pub struct BalancesPaginationParams {
+    // TODO PHASE 1 make the decision about naming
+    // TODO PHASE 2 add index parameter
+    // also see thoughts at HistoryPaginationParams
+    // pub without_updates_after_index: Option<super::types::U128>,
     pub limit: Option<u32>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 pub struct HistoryPaginationParams {
-    // todo if both block_params and last_index_from_previous_page is presented, we should fail
-    // pub start_after_index: Option<super::types::U128>, // todo not implemented yet
+    // I decided not to add these fields now because people will start using it in production assuming
+    // it should give the valid pagination. It won't: we will have issues on the boards because we can have many lines at the same block_height.
+    // I want to add this to provide the functionality to load the history from the given moment, without knowing the index.
+    // But we will add this only at the same moment with the indexes, so that the users can use both mechanisms and paginate properly.
+    // pub after_timestamp_nanos: Option<super::types::U64>,
+    // pub after_block_height: Option<super::types::U64>,
+    // TODO PHASE 2 add index parameter
+    // pub after_index: Option<super::types::U128>,
     pub limit: Option<u32>,
 }

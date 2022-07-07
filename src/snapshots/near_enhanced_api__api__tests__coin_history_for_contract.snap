@@ -25,9 +25,6 @@ Ok(
                 ),
                 decimals: 18,
             },
-            index: U128(
-                0,
-            ),
             block_timestamp_nanos: U64(
                 1651148415542065025,
             ),
@@ -52,9 +49,6 @@ Ok(
                 ),
                 decimals: 18,
             },
-            index: U128(
-                0,
-            ),
             block_timestamp_nanos: U64(
                 1650928065580838474,
             ),

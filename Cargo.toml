@@ -26,7 +26,8 @@ serde_json = "1"
 strum = { version = "0.24", features = ["derive"] }
 sqlx = { version = "0.5.13", features = ["runtime-tokio-native-tls", "postgres", "bigdecimal", "json"] }
 tokio = { version = "1.1", features = ["full"] }
-tracing = "0.1.13"
+tracing = "0.1"
+tracing-subscriber = "0.2"
 validator = "0.12"
 
 near-primitives = "0.14.0"

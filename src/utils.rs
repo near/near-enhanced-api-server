@@ -3,13 +3,14 @@ use std::str::FromStr;
 use num_traits::ToPrimitive;
 use sqlx::postgres::PgRow;
 use sqlx::Arguments;
+use tracing::{info, warn};
 
 use crate::{api, api_models, errors, types, BigDecimal};
 
 const INTERVAL: std::time::Duration = std::time::Duration::from_millis(100);
 const MAX_DELAY_TIME: std::time::Duration = std::time::Duration::from_secs(120);
+pub(crate) const LOGGER_MSG: &str = "near_enhanced_api";
 
-// TODO we actually don't need retries, right?
 pub(crate) async fn select_retry_or_panic<T: Send + Unpin + for<'r> sqlx::FromRow<'r, PgRow>>(
     pool: &sqlx::Pool<sqlx::Postgres>,
     query: &str,
@@ -18,6 +19,13 @@ pub(crate) async fn select_retry_or_panic<T: Send + Unpin + for<'r> sqlx::FromRo
 ) -> Result<Vec<T>, errors::ErrorKind> {
     let mut interval = INTERVAL;
     let mut retry_attempt = 0usize;
+
+    info!(
+        target: LOGGER_MSG,
+        "DB request:\n{}\nParams:{}",
+        query,
+        substitution_items.join(", ")
+    );
 
     loop {
         if retry_attempt == retry_count {
@@ -30,7 +38,6 @@ pub(crate) async fn select_retry_or_panic<T: Send + Unpin + for<'r> sqlx::FromRo
 
         let mut args = sqlx::postgres::PgArguments::default();
         for item in substitution_items {
-            println!("{}", item);
             args.add(item);
         }
 
@@ -40,13 +47,14 @@ pub(crate) async fn select_retry_or_panic<T: Send + Unpin + for<'r> sqlx::FromRo
         {
             Ok(res) => return Ok(res),
             Err(async_error) => {
-                // todo we print here select with non-filled placeholders. It would be better to get the final select statement here
-                println!(
-                         "Error occurred during {}:\nFailed SELECT:\n{}\n Retrying in {} milliseconds...",
-                         async_error,
+                warn!(
+                    target: LOGGER_MSG,
+                    "Error occurred during {:#?}:\nFailed SELECT:\n{}Params:{}\n Retrying in {} milliseconds...",
+                    async_error,
                     query,
-                         interval.as_millis(),
-                     );
+                    substitution_items.join(", "),
+                    interval.as_millis(),
+                );
                 tokio::time::sleep(interval).await;
                 if interval < MAX_DELAY_TIME {
                     interval *= 2;
@@ -121,7 +129,6 @@ pub(crate) fn check_limit(limit_param: Option<u32>) -> api_models::Result<()> {
     Ok(())
 }
 
-// todo do we need check_contract_exists? (now we will just fail when we make the call to rpc)
 pub(crate) async fn check_account_exists(
     pool: &sqlx::Pool<sqlx::Postgres>,
     account_id: &near_primitives::types::AccountId,
@@ -136,4 +143,25 @@ pub(crate) async fn check_account_exists(
     } else {
         Ok(())
     }
+}
+
+pub(crate) async fn check_and_get_history_pagination_params(
+    pool: &sqlx::Pool<sqlx::Postgres>,
+    pagination_params: &api_models::HistoryPaginationParams,
+) -> api_models::Result<types::HistoryPagination> {
+    check_limit(pagination_params.limit)?;
+    // if pagination_params.after_block_height.is_some() && pagination_params.after_timestamp_nanos.is_some() {
+    //     return Err(errors::ErrorKind::InvalidInput(
+    //         "Both block_height and block_timestamp_nanos found. Please provide only one of values"
+    //             .to_string(),
+    //     )
+    //         .into());
+    // }
+    // TODO PHASE 2 take the block from pagination_params
+    let block = api::get_last_block(pool).await?;
+    Ok(types::HistoryPagination {
+        block_height: block.height,
+        block_timestamp: block.timestamp,
+        limit: pagination_params.limit.unwrap_or(crate::DEFAULT_PAGE_LIMIT),
+    })
 }

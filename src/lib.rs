@@ -15,8 +15,8 @@ pub mod types;
 mod utils;
 
 // to sum up
-// re-check endpoints at main.rs
-// re-check todos at utils, lib, api, api_models (other files have only v2 todos)
+// re-check docs here, add docs to api_models
+// re-check todos at lib, api_models (other files have only v2 todos)
 
 // todo write creds to the doc
 // todo MT
@@ -24,6 +24,7 @@ mod utils;
 // todo add overflow docs everywhere
 // todo page + limit. By timestamp/height
 // todo think about pagination/sorting, create the doc with available options
+// todo decide tables architecture (one/many) for ft/mt, make the list with pros and cons
 const DEFAULT_PAGE_LIMIT: u32 = 20;
 const MAX_PAGE_LIMIT: u32 = 100;
 
@@ -56,11 +57,13 @@ pub async fn coin_balances(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     request: web::Path<api_models::BalanceRequest>,
+    // TODO PHASE 1 discuss whether we want to leave block_params here. I feel we need this.
+    // the request GET ...?block_height=...&no_updates_after_block_height=... has sense
     block_params: web::Query<api_models::BlockParams>,
-    pagination_params: web::Query<api_models::CoinBalancesPaginationParams>,
+    pagination_params: web::Query<api_models::BalancesPaginationParams>,
 ) -> api_models::Result<Json<api_models::BalancesResponse>> {
+    // TODO PHASE 2 pagination by index
     utils::check_limit(pagination_params.limit)?;
-    // todo pagination (can wait till phase 2)
     let mut pagination: types::CoinBalancesPagination = pagination_params.0.into();
     let block = api::get_block_from_params(&pool, &block_params).await?;
     utils::check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
@@ -160,8 +163,10 @@ pub async fn get_user_nfts_overview(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     request: web::Path<api_models::BalanceRequest>,
+    // TODO PHASE 1 discuss whether we want to leave block_params here. I feel we need this.
+    // the request GET ...?block_height=...&no_updates_after_block_height=... has sense
     block_params: web::Query<api_models::BlockParams>,
-    pagination_params: web::Query<api_models::NftOverviewPaginationParams>,
+    pagination_params: web::Query<api_models::BalancesPaginationParams>,
 ) -> api_models::Result<Json<api_models::NftCountResponse>> {
     utils::check_limit(pagination_params.limit)?;
     utils::check_block_params(&block_params)?;
@@ -211,7 +216,7 @@ pub async fn dev_get_user_nfts_overview(
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     request: web::Path<api_models::BalanceRequest>,
     block_params: web::Query<api_models::BlockParams>,
-    pagination_params: web::Query<api_models::NftOverviewPaginationParams>,
+    pagination_params: web::Query<api_models::BalancesPaginationParams>,
 ) -> api_models::Result<Json<api_models::NftCountResponse>> {
     utils::check_limit(pagination_params.limit)?;
     utils::check_block_params(&block_params)?;
@@ -244,7 +249,7 @@ pub async fn get_user_nfts_by_contract(
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     request: web::Path<api_models::BalanceByContractRequest>,
     block_params: web::Query<api_models::BlockParams>,
-    pagination_params: web::Query<api_models::NftBalancePaginationParams>,
+    pagination_params: web::Query<api_models::BalancesPaginationParams>,
 ) -> api_models::Result<Json<api_models::NftBalanceResponse>> {
     utils::check_limit(pagination_params.limit)?;
     utils::check_block_params(&block_params)?;
@@ -316,13 +321,13 @@ pub async fn native_history(
     request: web::Path<api_models::BalanceRequest>,
     pagination_params: web::Query<api_models::HistoryPaginationParams>,
 ) -> api_models::Result<Json<api_models::NearHistoryResponse>> {
-    utils::check_limit(pagination_params.limit)?;
     let block = api::get_last_block(&pool).await?;
     utils::check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
+    let pagination =
+        utils::check_and_get_history_pagination_params(&pool, &pagination_params).await?;
 
     Ok(Json(api_models::NearHistoryResponse {
-        history: api::native_history(&pool_balances.pool, &request.account_id, &pagination_params)
-            .await?,
+        history: api::native_history(&pool_balances.pool, &request.account_id, &pagination).await?,
         metadata: api::native_metadata(),
         block_timestamp_nanos: types::U64::from(block.timestamp),
         block_height: types::U64::from(block.height),
@@ -348,9 +353,9 @@ pub async fn coin_history(
         )
         .into());
     }
-    utils::check_limit(pagination_params.limit)?;
-    let block = api::get_last_block(&pool).await?;
-    utils::check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
+    let pagination =
+        utils::check_and_get_history_pagination_params(&pool, &pagination_params).await?;
+    utils::check_account_exists(&pool, &request.account_id.0, pagination.block_timestamp).await?;
 
     // todo remember here could be mt
     // todo pages
@@ -358,17 +363,16 @@ pub async fn coin_history(
     let history = api::coin_history(
         &pool,
         &rpc_client,
-        &block,
         &request.contract_account_id.0,
         &request.account_id.0,
-        &pagination_params,
+        &pagination,
     )
     .await?;
 
     Ok(Json(api_models::HistoryResponse {
         history,
-        block_timestamp_nanos: types::U64::from(block.timestamp),
-        block_height: types::U64::from(block.height),
+        block_timestamp_nanos: types::U64::from(pagination.block_timestamp),
+        block_height: types::U64::from(pagination.block_height),
     }))
 }
 
@@ -384,16 +388,16 @@ pub async fn nft_history(
     request: web::Path<api_models::NftItemRequest>,
     pagination_params: web::Query<api_models::HistoryPaginationParams>,
 ) -> api_models::Result<Json<api_models::NftHistoryResponse>> {
-    utils::check_limit(pagination_params.limit)?;
     let block = api::get_last_block(&pool).await?;
+    let pagination =
+        utils::check_and_get_history_pagination_params(&pool, &pagination_params).await?;
 
     Ok(Json(api_models::NftHistoryResponse {
         history: api::nft_history(
             &pool,
-            &block,
             &request.contract_account_id.0,
             &request.token_id,
-            &pagination_params,
+            &pagination,
         )
         .await?,
         token_metadata: rpc_api::get_nft_metadata(

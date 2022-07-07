@@ -158,6 +158,13 @@ async fn wrapped_call(
     block_height: u64,
     contract_id: &near_primitives::types::AccountId,
 ) -> api_models::Result<near_primitives::views::CallResult> {
+    tracing::info!(
+        target: utils::LOGGER_MSG,
+        "RPC request: {:?}\nTo contract:{}, block {}",
+        request,
+        contract_id,
+        block_height
+    );
     match rpc_client.call(request).await {
         Ok(response) => match response.kind {
             QueryResponseKind::CallResult(result) => Ok(result),
