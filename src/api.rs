@@ -4,7 +4,7 @@ use crate::{api_models, db_models, errors, rpc_api, types, utils};
 
 const DB_RETRY_COUNT: usize = 1;
 
-pub(crate) async fn native_balance(
+pub(crate) async fn near_balance(
     pool: &sqlx::Pool<sqlx::Postgres>,
     block: &types::Block,
     account_id: &near_primitives::types::AccountId,
@@ -33,7 +33,7 @@ pub(crate) async fn native_balance(
                 total_balance: (available + staked).into(),
                 available_balance: available.into(),
                 staked_balance: staked.into(),
-                metadata: native_metadata(),
+                near_metadata: near_metadata(),
                 block_timestamp_nanos: block.timestamp.into(),
                 block_height: block.height.into(),
             })
@@ -46,8 +46,8 @@ pub(crate) async fn native_balance(
     }
 }
 
-pub(crate) fn native_metadata() -> api_models::CoinMetadata {
-    api_models::CoinMetadata {
+pub(crate) fn near_metadata() -> api_models::Metadata {
+    api_models::Metadata {
         name: "NEAR blockchain native token".to_string(),
         symbol: "NEAR".to_string(),
         // TODO PHASE 1 re-check the icon. It's the best I can find
@@ -117,7 +117,7 @@ pub(crate) async fn ft_balance_for_contract(
         standard: "nep141".to_string(),
         contract_account_id: Some(contract_id.clone().into()),
         balance: balance.into(),
-        metadata: api_models::CoinMetadata {
+        coin_metadata: api_models::Metadata {
             name: metadata.name,
             symbol: metadata.symbol,
             icon: metadata.icon,
@@ -128,11 +128,11 @@ pub(crate) async fn ft_balance_for_contract(
 
 // TODO PHASE 2 pagination by artificial index added to balance_changes
 // TODO PHASE 2 cover it with tests when the pagination will be ready
-pub(crate) async fn native_history(
+pub(crate) async fn near_history(
     balances_pool: &sqlx::Pool<sqlx::Postgres>,
     account_id: &near_primitives::types::AccountId,
     pagination: &types::HistoryPagination,
-) -> api_models::Result<Vec<api_models::NearHistoryInfo>> {
+) -> api_models::Result<Vec<api_models::NearHistoryItem>> {
     let query = r"
         SELECT
             involved_account_id,
@@ -162,7 +162,7 @@ pub(crate) async fn native_history(
     )
     .await?;
 
-    let mut result: Vec<api_models::NearHistoryInfo> = vec![];
+    let mut result: Vec<api_models::NearHistoryItem> = vec![];
     for history in history_info {
         result.push(history.try_into()?);
     }
@@ -178,7 +178,7 @@ pub(crate) async fn coin_history(
     contract_id: &near_primitives::types::AccountId,
     account_id: &near_primitives::types::AccountId,
     pagination: &types::HistoryPagination,
-) -> api_models::Result<Vec<api_models::CoinHistoryInfo>> {
+) -> api_models::Result<Vec<api_models::CoinHistoryItem>> {
     let mut last_balance = rpc_api::get_ft_balance(
         rpc_client,
         contract_id.clone(),
@@ -186,11 +186,6 @@ pub(crate) async fn coin_history(
         pagination.block_height,
     )
     .await?;
-
-    let metadata: api_models::CoinMetadata =
-        rpc_api::get_ft_metadata(rpc_client, contract_id.clone(), pagination.block_height)
-            .await?
-            .into();
 
     let account_id = account_id.to_string();
     let query = r"
@@ -221,7 +216,7 @@ pub(crate) async fn coin_history(
     )
     .await?;
 
-    let mut result: Vec<api_models::CoinHistoryInfo> = vec![];
+    let mut result: Vec<api_models::CoinHistoryItem> = vec![];
     for db_info in ft_history_info {
         let mut delta: i128 = utils::to_i128(&db_info.amount)?;
         let balance = last_balance;
@@ -249,12 +244,12 @@ pub(crate) async fn coin_history(
         }
         last_balance = ((last_balance as i128) - delta) as u128;
 
-        result.push(api_models::CoinHistoryInfo {
+        result.push(api_models::CoinHistoryItem {
             action_kind: db_info.event_kind.clone(),
             involved_account_id: involved_account_id.map(|id| id.into()),
             delta_balance: delta.into(),
             balance: balance.into(),
-            metadata: metadata.clone(),
+            coin_metadata: None,
             block_timestamp_nanos: utils::to_u64(&db_info.block_timestamp)?.into(),
             block_height: utils::to_u64(&db_info.block_height)?.into(),
         });
@@ -269,7 +264,7 @@ pub(crate) async fn nft_count(
     block: &types::Block,
     account_id: &near_primitives::types::AccountId,
     pagination: &api_models::BalancesPaginationParams,
-) -> api_models::Result<Vec<api_models::NftsByContractInfo>> {
+) -> api_models::Result<Vec<api_models::NftCollectionByContract>> {
     let query = r"
         WITH relevant_events AS (
             SELECT emitted_at_block_timestamp, token_id, emitted_by_contract_account_id, token_old_owner_account_id, token_new_owner_account_id
@@ -326,17 +321,18 @@ pub(crate) async fn nft_count(
     )
     .await?;
 
-    let mut result: Vec<api_models::NftsByContractInfo> = vec![];
+    let mut result: Vec<api_models::NftCollectionByContract> = vec![];
     for info in info_by_contract {
         if let Ok(contract_id) = near_primitives::types::AccountId::from_str(&info.contract_id) {
             let metadata =
                 rpc_api::get_nft_general_metadata(rpc_client, contract_id.clone(), block.height)
                     .await?;
-            result.push(api_models::NftsByContractInfo {
+            result.push(api_models::NftCollectionByContract {
                 contract_account_id: contract_id.into(),
                 nft_count: info.count as u32,
-                last_updated_at_timestamp: utils::to_u128(&info.last_updated_at_timestamp)?.into(),
-                metadata,
+                last_updated_at_timestamp_nanos: utils::to_u128(&info.last_updated_at_timestamp)?
+                    .into(),
+                contract_metadata: metadata,
             });
         }
     }
@@ -349,7 +345,7 @@ pub(crate) async fn dev_nft_count(
     block: &types::Block,
     account_id: &near_primitives::types::AccountId,
     pagination: &api_models::BalancesPaginationParams,
-) -> api_models::Result<Vec<api_models::NftsByContractInfo>> {
+) -> api_models::Result<Vec<api_models::NftCollectionByContract>> {
     let query = r"
          SELECT emitted_by_contract_account_id account_id -- contract_id, count(*) count
          FROM assets__non_fungible_token_events
@@ -374,7 +370,7 @@ pub(crate) async fn dev_nft_count(
     )
     .await?;
 
-    let mut result: Vec<api_models::NftsByContractInfo> = vec![];
+    let mut result: Vec<api_models::NftCollectionByContract> = vec![];
     for contract in contracts {
         if let Ok(contract_id) = near_primitives::types::AccountId::from_str(&contract.account_id) {
             let nft_count = rpc_api::get_nft_count(
@@ -390,11 +386,11 @@ pub(crate) async fn dev_nft_count(
             let metadata =
                 rpc_api::get_nft_general_metadata(rpc_client, contract_id.clone(), block.height)
                     .await?;
-            result.push(api_models::NftsByContractInfo {
+            result.push(api_models::NftCollectionByContract {
                 contract_account_id: contract_id.into(),
                 nft_count,
-                last_updated_at_timestamp: types::U128(0),
-                metadata,
+                last_updated_at_timestamp_nanos: types::U128(0),
+                contract_metadata: metadata,
             });
         }
     }
@@ -407,7 +403,7 @@ pub(crate) async fn nft_history(
     contract_id: &near_primitives::types::AccountId,
     token_id: &str,
     pagination: &types::HistoryPagination,
-) -> api_models::Result<Vec<api_models::NftHistoryInfo>> {
+) -> api_models::Result<Vec<api_models::NftHistoryItem>> {
     let query = r"
         SELECT event_kind::text action_kind,
                token_old_owner_account_id old_account_id,
@@ -433,7 +429,7 @@ pub(crate) async fn nft_history(
     )
     .await?;
 
-    let mut result: Vec<api_models::NftHistoryInfo> = vec![];
+    let mut result: Vec<api_models::NftHistoryItem> = vec![];
     for history in history_items {
         result.push(history.try_into()?);
     }
@@ -573,10 +569,10 @@ mod tests {
     }
 
     #[actix_rt::test]
-    async fn test_native_balance() {
+    async fn test_near_balance() {
         let (pool, _, block) = init().await;
         let account = near_primitives::types::AccountId::from_str("tomato.near").unwrap();
-        let balance = native_balance(&pool, &block, &account).await;
+        let balance = near_balance(&pool, &block, &account).await;
         insta::assert_debug_snapshot!(balance);
     }
 

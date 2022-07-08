@@ -18,6 +18,16 @@ pub(crate) async fn get_ft_balance(
     Ok(serde_json::from_slice::<types::U128>(&response.result)?.0)
 }
 
+pub(crate) async fn get_coin_metadata(
+    rpc_client: &near_jsonrpc_client::JsonRpcClient,
+    contract_id: near_primitives::types::AccountId,
+    block_height: u64,
+) -> api_models::Result<api_models::Metadata> {
+    Ok(get_ft_metadata(rpc_client, contract_id, block_height)
+        .await?
+        .into())
+}
+
 pub(crate) async fn get_ft_metadata(
     rpc_client: &near_jsonrpc_client::JsonRpcClient,
     contract_id: near_primitives::types::AccountId,

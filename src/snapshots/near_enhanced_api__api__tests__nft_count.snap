@@ -1,18 +1,18 @@
 ---
 source: src/api.rs
-expression: balance
+expression: nft_count
 ---
 Ok(
     [
-        NftsByContractInfo {
+        NftCollectionByContract {
             contract_account_id: AccountId(
                 "nearrobotics.near",
             ),
             nft_count: 2,
-            last_updated_at_timestamp: U128(
+            last_updated_at_timestamp_nanos: U128(
                 1655569088490376135,
             ),
-            metadata: NftContractMetadata {
+            contract_metadata: NftContractMetadata {
                 spec: "nft-1.0.0",
                 name: "NEAR Robotics",
                 symbol: "ROBOT",
@@ -24,15 +24,15 @@ Ok(
                 reference_hash: None,
             },
         },
-        NftsByContractInfo {
+        NftCollectionByContract {
             contract_account_id: AccountId(
                 "rocketbois.neartopia.near",
             ),
             nft_count: 1,
-            last_updated_at_timestamp: U128(
+            last_updated_at_timestamp_nanos: U128(
                 1655565667604044769,
             ),
-            metadata: NftContractMetadata {
+            contract_metadata: NftContractMetadata {
                 spec: "nft-1.0.0",
                 name: "RocketBois",
                 symbol: "ROCKET",

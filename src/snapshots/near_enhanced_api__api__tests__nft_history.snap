@@ -4,7 +4,7 @@ expression: history
 ---
 Ok(
     [
-        NftHistoryInfo {
+        NftHistoryItem {
             action_kind: "TRANSFER",
             old_account_id: Some(
                 AccountId(
@@ -23,7 +23,7 @@ Ok(
                 61367286,
             ),
         },
-        NftHistoryInfo {
+        NftHistoryItem {
             action_kind: "TRANSFER",
             old_account_id: Some(
                 AccountId(
@@ -42,7 +42,7 @@ Ok(
                 61367051,
             ),
         },
-        NftHistoryInfo {
+        NftHistoryItem {
             action_kind: "MINT",
             old_account_id: None,
             new_account_id: Some(

@@ -13,7 +13,7 @@ Ok(
         staked_balance: U128(
             0,
         ),
-        metadata: CoinMetadata {
+        near_metadata: Metadata {
             name: "NEAR blockchain native token",
             symbol: "NEAR",
             icon: Some(

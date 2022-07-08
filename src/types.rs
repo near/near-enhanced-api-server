@@ -204,9 +204,9 @@ pub struct Token {
     pub approved_account_ids: Option<std::collections::HashMap<AccountId, u64>>,
 }
 
-impl From<api_models::FtContractMetadata> for api_models::CoinMetadata {
+impl From<api_models::FtContractMetadata> for api_models::Metadata {
     fn from(metadata: api_models::FtContractMetadata) -> Self {
-        api_models::CoinMetadata {
+        api_models::Metadata {
             name: metadata.name,
             symbol: metadata.symbol,
             icon: metadata.icon,
@@ -221,12 +221,12 @@ impl From<api_models::NearBalanceResponse> for api_models::Coin {
             standard: "nearprotocol".to_string(),
             balance: near_coin.total_balance,
             contract_account_id: None,
-            metadata: near_coin.metadata,
+            coin_metadata: near_coin.near_metadata,
         }
     }
 }
 
-impl TryFrom<db_models::NearHistoryInfo> for api_models::NearHistoryInfo {
+impl TryFrom<db_models::NearHistoryInfo> for api_models::NearHistoryItem {
     type Error = errors::Error;
 
     fn try_from(info: db_models::NearHistoryInfo) -> api_models::Result<Self> {
@@ -250,7 +250,7 @@ impl TryFrom<db_models::NearHistoryInfo> for api_models::NearHistoryInfo {
     }
 }
 
-impl TryFrom<db_models::NftHistoryInfo> for api_models::NftHistoryInfo {
+impl TryFrom<db_models::NftHistoryInfo> for api_models::NftHistoryItem {
     type Error = errors::Error;
 
     fn try_from(info: db_models::NftHistoryInfo) -> api_models::Result<Self> {
@@ -293,7 +293,7 @@ impl TryFrom<Token> for api_models::NonFungibleToken {
         Ok(Self {
             token_id: token.token_id,
             owner_account_id: token.owner_id.0.to_string(),
-            metadata: Some(api_models::NftItemMetadata {
+            token_metadata: api_models::NftItemMetadata {
                 title: metadata.title,
                 description: metadata.description,
                 media: metadata.media,
@@ -306,7 +306,7 @@ impl TryFrom<Token> for api_models::NonFungibleToken {
                 extra: metadata.extra,
                 reference: metadata.reference,
                 reference_hash: utils::base64_to_string(&metadata.reference_hash)?,
-            }),
+            },
         })
     }
 }

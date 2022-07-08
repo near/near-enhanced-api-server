@@ -13,7 +13,7 @@ Ok(
                 "nexp.near",
             ),
         ),
-        metadata: CoinMetadata {
+        coin_metadata: Metadata {
             name: "NEXP",
             symbol: "NEXP",
             icon: Some(

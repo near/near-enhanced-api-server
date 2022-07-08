@@ -132,7 +132,7 @@ async fn main() {
             .wrap_api_with_spec(spec)
             .service(
                 web::resource("/accounts/{account_id}/coins/NEAR")
-                    .route(web::get().to(near_enhanced_api::native_balance)),
+                    .route(web::get().to(near_enhanced_api::near_balance)),
             )
             .service(
                 web::resource("/accounts/{account_id}/coins")
@@ -160,7 +160,7 @@ async fn main() {
             )
             .service(
                 web::resource("/accounts/{account_id}/coins/NEAR/history")
-                    .route(web::get().to(near_enhanced_api::native_history)),
+                    .route(web::get().to(near_enhanced_api::near_history)),
             )
             .service(
                 web::resource("/accounts/{account_id}/coins/{contract_account_id}/history")
