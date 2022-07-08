@@ -18,17 +18,7 @@ pub(crate) async fn get_ft_balance(
     Ok(serde_json::from_slice::<types::U128>(&response.result)?.0)
 }
 
-pub(crate) async fn get_coin_metadata(
-    rpc_client: &near_jsonrpc_client::JsonRpcClient,
-    contract_id: near_primitives::types::AccountId,
-    block_height: u64,
-) -> api_models::Result<api_models::Metadata> {
-    Ok(get_ft_metadata(rpc_client, contract_id, block_height)
-        .await?
-        .into())
-}
-
-pub(crate) async fn get_ft_metadata(
+pub(crate) async fn get_ft_contract_metadata(
     rpc_client: &near_jsonrpc_client::JsonRpcClient,
     contract_id: near_primitives::types::AccountId,
     block_height: u64,
@@ -53,7 +43,7 @@ pub(crate) async fn get_ft_metadata(
     })
 }
 
-pub(crate) async fn get_nft_general_metadata(
+pub(crate) async fn get_nft_contract_metadata(
     rpc_client: &near_jsonrpc_client::JsonRpcClient,
     contract_id: near_primitives::types::AccountId,
     block_height: u64,
@@ -64,14 +54,29 @@ pub(crate) async fn get_nft_general_metadata(
         "nft_metadata",
         serde_json::json!({}),
     );
-    let response = wrapped_call(rpc_client, request, block_height, &contract_id).await?;
+    let response = match wrapped_call(rpc_client, request, block_height, &contract_id).await {
+        Ok(response) => response,
+        Err(err) => {
+            println!("{}", err.message);
+            if err
+                .message
+                .contains("called `Option::unwrap()` on a `None` value")
+            {
+                return Err(errors::ErrorKind::ContractError(
+                    "The contract did not provide NFT Metadata which is a required part of NFT NEP 171".to_string(),
+                )
+                    .into());
+            }
+            return Err(err);
+        }
+    };
 
     api_models::NftContractMetadata::try_from(serde_json::from_slice::<types::NFTContractMetadata>(
         &response.result,
     )?)
 }
 
-pub(crate) async fn get_nft_count(
+pub(crate) async fn get_nft_count_dev(
     rpc_client: &near_jsonrpc_client::JsonRpcClient,
     contract_id: near_primitives::types::AccountId,
     account_id: near_primitives::types::AccountId,
@@ -90,14 +95,14 @@ pub(crate) async fn get_nft_count(
         .map_err(|e| errors::ErrorKind::InternalError(format!("Failed to parse u32 {}", e)))?)
 }
 
-pub(crate) async fn get_nfts(
+pub(crate) async fn get_nft_collection(
     rpc_client: &near_jsonrpc_client::JsonRpcClient,
     contract_id: near_primitives::types::AccountId,
     account_id: near_primitives::types::AccountId,
     block_height: u64,
     limit: u32,
 ) -> api_models::Result<Vec<api_models::NonFungibleToken>> {
-    // todo pagination (can wait for phase 2)
+    // TODO PHASE 2 pagination
     // RPC supports pagination, but the order is defined by the each contract and we can't control it.
     // For now, we are ready to serve only the first page
     // Later, I feel we need to load NFT (each token) metadata to the DB,
@@ -220,67 +225,90 @@ mod tests {
     }
 
     #[actix_rt::test]
-    async fn test_ft_metadata() {
+    async fn test_ft_contract_metadata() {
         let (rpc_client, block_height) = init();
         let contract = near_primitives::types::AccountId::from_str("usn").unwrap();
 
-        let metadata = get_ft_metadata(&rpc_client, contract, block_height).await;
+        let metadata = get_ft_contract_metadata(&rpc_client, contract, block_height).await;
         insta::assert_debug_snapshot!(metadata);
     }
 
     #[actix_rt::test]
-    async fn test_ft_metadata_no_contract_deployed() {
+    async fn test_ft_contract_metadata_no_contract_deployed() {
         let (rpc_client, block_height) = init();
         let contract = near_primitives::types::AccountId::from_str("olga.near").unwrap();
 
-        let metadata = get_ft_metadata(&rpc_client, contract, block_height).await;
+        let metadata = get_ft_contract_metadata(&rpc_client, contract, block_height).await;
         insta::assert_debug_snapshot!(metadata);
     }
 
     #[actix_rt::test]
-    async fn test_ft_metadata_other_contract_deployed() {
+    async fn test_ft_contract_metadata_other_contract_deployed() {
         let (rpc_client, block_height) = init();
         let contract = near_primitives::types::AccountId::from_str("comic.paras.near").unwrap();
 
-        let metadata = get_ft_metadata(&rpc_client, contract, block_height).await;
+        let metadata = get_ft_contract_metadata(&rpc_client, contract, block_height).await;
         insta::assert_debug_snapshot!(metadata);
     }
 
     #[actix_rt::test]
-    async fn test_nft_general_metadata() {
+    async fn test_nft_contract_metadata() {
         let (rpc_client, block_height) = init();
         let contract = near_primitives::types::AccountId::from_str("comic.paras.near").unwrap();
 
-        let metadata = get_nft_general_metadata(&rpc_client, contract, block_height).await;
+        let metadata = get_nft_contract_metadata(&rpc_client, contract, block_height).await;
         insta::assert_debug_snapshot!(metadata);
     }
 
     #[actix_rt::test]
-    async fn test_nft_general_metadata_no_contract_deployed() {
+    async fn test_nft_contract_metadata_no_contract_deployed() {
         let (rpc_client, block_height) = init();
         let contract = near_primitives::types::AccountId::from_str("olga.near").unwrap();
 
-        let metadata = get_nft_general_metadata(&rpc_client, contract, block_height).await;
+        let metadata = get_nft_contract_metadata(&rpc_client, contract, block_height).await;
         insta::assert_debug_snapshot!(metadata);
     }
 
     #[actix_rt::test]
-    async fn test_nft_general_metadata_other_contract_deployed() {
+    async fn test_nft_contract_metadata_other_contract_deployed() {
         let (rpc_client, block_height) = init();
         let contract = near_primitives::types::AccountId::from_str("usn").unwrap();
 
-        let metadata = get_nft_general_metadata(&rpc_client, contract, block_height).await;
+        let metadata = get_nft_contract_metadata(&rpc_client, contract, block_height).await;
         insta::assert_debug_snapshot!(metadata);
     }
 
     #[actix_rt::test]
-    async fn test_nft_list() {
+    async fn test_nft_contract_metadata_broken_contract() {
+        let (rpc_client, block_height) = init();
+        let contract = near_primitives::types::AccountId::from_str("nft.nearapps.near").unwrap();
+
+        let metadata = get_nft_contract_metadata(&rpc_client, contract, block_height).await;
+        insta::assert_debug_snapshot!(metadata);
+    }
+
+    // TODO PHASE 1
+    // this test gives right result. Compare it with api::test_nft_count_broken
+    #[actix_rt::test]
+    async fn test_nft_count_dev() {
+        let (rpc_client, block_height) = init();
+        let contract = near_primitives::types::AccountId::from_str("thebullishbulls.near").unwrap();
+        let account = near_primitives::types::AccountId::from_str("kbneoburner3.near").unwrap();
+
+        let nft_count = get_nft_count_dev(&rpc_client, contract, account, block_height)
+            .await
+            .unwrap();
+        assert_eq!(nft_count, 0);
+    }
+
+    #[actix_rt::test]
+    async fn test_nft_collection() {
         let (rpc_client, block_height) = init();
         let contract =
             near_primitives::types::AccountId::from_str("billionairebullsclub.near").unwrap();
         let account = near_primitives::types::AccountId::from_str("olenavorobei.near").unwrap();
 
-        let nfts = get_nfts(&rpc_client, contract, account, block_height, 4).await;
+        let nfts = get_nft_collection(&rpc_client, contract, account, block_height, 4).await;
         insta::assert_debug_snapshot!(nfts);
     }
 

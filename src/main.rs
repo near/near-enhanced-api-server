@@ -52,7 +52,7 @@ async fn main() {
     dotenv::dotenv().ok();
 
     let env_filter = tracing_subscriber::EnvFilter::new(
-        "near=info,near_jsonrpc_client=info,near_enhanced_api=debug",
+        "near=info,near_jsonrpc_client=warn,near_enhanced_api=debug",
     );
     tracing_subscriber::fmt::Subscriber::builder()
         .with_env_filter(env_filter)
@@ -132,51 +132,51 @@ async fn main() {
             .wrap_api_with_spec(spec)
             .service(
                 web::resource("/accounts/{account_id}/coins/NEAR")
-                    .route(web::get().to(near_enhanced_api::near_balance)),
+                    .route(web::get().to(near_enhanced_api::get_near_balance)),
             )
             .service(
                 web::resource("/accounts/{account_id}/coins")
-                    .route(web::get().to(near_enhanced_api::coin_balances)),
+                    .route(web::get().to(near_enhanced_api::get_coin_balances)),
             )
             .service(
                 web::resource("/accounts/{account_id}/coins/{contract_account_id}")
-                    .route(web::get().to(near_enhanced_api::balance_by_contract)),
+                    .route(web::get().to(near_enhanced_api::get_balances_by_contract)),
             )
             .service(
                 web::resource("/accounts/{account_id}/NFT")
-                    .route(web::get().to(near_enhanced_api::get_user_nfts_overview)),
+                    .route(web::get().to(near_enhanced_api::get_nft_collection_overview)),
             )
             .service(
                 web::resource("/dev/accounts/{account_id}/NFT")
-                    .route(web::get().to(near_enhanced_api::dev_get_user_nfts_overview)),
+                    .route(web::get().to(near_enhanced_api::get_nft_collection_overview_dev)),
             )
             .service(
                 web::resource("/accounts/{account_id}/NFT/{contract_account_id}")
-                    .route(web::get().to(near_enhanced_api::get_user_nfts_by_contract)),
+                    .route(web::get().to(near_enhanced_api::get_nft_collection_by_contract)),
             )
             .service(
                 web::resource("/NFT/{contract_account_id}/{token_id}")
-                    .route(web::get().to(near_enhanced_api::nft_item_details)),
+                    .route(web::get().to(near_enhanced_api::get_nft_item_details)),
             )
             .service(
                 web::resource("/accounts/{account_id}/coins/NEAR/history")
-                    .route(web::get().to(near_enhanced_api::near_history)),
+                    .route(web::get().to(near_enhanced_api::get_near_history)),
             )
             .service(
                 web::resource("/accounts/{account_id}/coins/{contract_account_id}/history")
-                    .route(web::get().to(near_enhanced_api::coin_history)),
+                    .route(web::get().to(near_enhanced_api::get_coin_history)),
             )
             .service(
                 web::resource("/NFT/{contract_account_id}/{token_id}/history")
-                    .route(web::get().to(near_enhanced_api::nft_history)),
+                    .route(web::get().to(near_enhanced_api::get_nft_history)),
             )
             .service(
                 web::resource("/nep141/metadata/{contract_account_id}")
-                    .route(web::get().to(near_enhanced_api::ft_metadata)),
+                    .route(web::get().to(near_enhanced_api::get_ft_contract_metadata)),
             )
             .service(
                 web::resource("/nep171/metadata/{contract_account_id}")
-                    .route(web::get().to(near_enhanced_api::nft_metadata)),
+                    .route(web::get().to(near_enhanced_api::get_nft_contract_metadata)),
             )
             .with_json_spec_at("/api/spec/v2.json")
             .with_json_spec_v3_at("/api/spec/v3.json")

@@ -287,7 +287,10 @@ impl TryFrom<Token> for api_models::NonFungibleToken {
 
     fn try_from(token: Token) -> api_models::Result<Self> {
         let metadata = token.metadata.ok_or_else(|| {
-            errors::ErrorKind::RPCError("NFT requires to have metadata filled".to_string())
+            errors::ErrorKind::ContractError(
+                "The contract did not provide NFT Metadata which is a required part of NFT NEP 171"
+                    .to_string(),
+            )
         })?;
 
         Ok(Self {

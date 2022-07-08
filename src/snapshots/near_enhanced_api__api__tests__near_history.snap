@@ -1,0 +1,274 @@
+---
+source: src/api.rs
+expression: balance
+---
+Ok(
+    [
+        NearHistoryItem {
+            involved_account_id: None,
+            delta_balance: I128(
+                6574847371081984111832,
+            ),
+            delta_available_balance: I128(
+                6574847371081984111832,
+            ),
+            delta_staked_balance: I128(
+                0,
+            ),
+            total_balance: U128(
+                1245733357627168434670380,
+            ),
+            available_balance: U128(
+                1245733357627168434670380,
+            ),
+            staked_balance: U128(
+                0,
+            ),
+            cause: "RECEIPT",
+            block_timestamp_nanos: U64(
+                1652370924000355377,
+            ),
+        },
+        NearHistoryItem {
+            involved_account_id: None,
+            delta_balance: I128(
+                6395776450152679549272,
+            ),
+            delta_available_balance: I128(
+                6395776450152679549272,
+            ),
+            delta_staked_balance: I128(
+                0,
+            ),
+            total_balance: U128(
+                1237180687642672420828772,
+            ),
+            available_balance: U128(
+                1237180687642672420828772,
+            ),
+            staked_balance: U128(
+                0,
+            ),
+            cause: "RECEIPT",
+            block_timestamp_nanos: U64(
+                1652370922755855113,
+            ),
+        },
+        NearHistoryItem {
+            involved_account_id: None,
+            delta_balance: I128(
+                1977822613414029729776,
+            ),
+            delta_available_balance: I128(
+                1977822613414029729776,
+            ),
+            delta_staked_balance: I128(
+                0,
+            ),
+            total_balance: U128(
+                1239158510256086450558548,
+            ),
+            available_balance: U128(
+                1239158510256086450558548,
+            ),
+            staked_balance: U128(
+                0,
+            ),
+            cause: "RECEIPT",
+            block_timestamp_nanos: U64(
+                1652370922755855113,
+            ),
+        },
+        NearHistoryItem {
+            involved_account_id: None,
+            delta_balance: I128(
+                30370782091803288643352,
+            ),
+            delta_available_balance: I128(
+                30370782091803288643352,
+            ),
+            delta_staked_balance: I128(
+                0,
+            ),
+            total_balance: U128(
+                1230784911192519741279500,
+            ),
+            available_balance: U128(
+                1230784911192519741279500,
+            ),
+            staked_balance: U128(
+                0,
+            ),
+            cause: "RECEIPT",
+            block_timestamp_nanos: U64(
+                1652370921637752482,
+            ),
+        },
+        NearHistoryItem {
+            involved_account_id: None,
+            delta_balance: I128(
+                5945918775115673511640,
+            ),
+            delta_available_balance: I128(
+                5945918775115673511640,
+            ),
+            delta_staked_balance: I128(
+                0,
+            ),
+            total_balance: U128(
+                1200414129100716452636148,
+            ),
+            available_balance: U128(
+                1200414129100716452636148,
+            ),
+            staked_balance: U128(
+                0,
+            ),
+            cause: "RECEIPT",
+            block_timestamp_nanos: U64(
+                1652370920524709719,
+            ),
+        },
+        NearHistoryItem {
+            involved_account_id: Some(
+                AccountId(
+                    "wrap.near",
+                ),
+            ),
+            delta_balance: I128(
+                0,
+            ),
+            delta_available_balance: I128(
+                0,
+            ),
+            delta_staked_balance: I128(
+                0,
+            ),
+            total_balance: U128(
+                1194468210325600779124508,
+            ),
+            available_balance: U128(
+                1194468210325600779124508,
+            ),
+            staked_balance: U128(
+                0,
+            ),
+            cause: "RECEIPT",
+            block_timestamp_nanos: U64(
+                1652370919576458636,
+            ),
+        },
+        NearHistoryItem {
+            involved_account_id: Some(
+                AccountId(
+                    "wrap.near",
+                ),
+            ),
+            delta_balance: I128(
+                -56336107554795155545873,
+            ),
+            delta_available_balance: I128(
+                -56336107554795155545873,
+            ),
+            delta_staked_balance: I128(
+                0,
+            ),
+            total_balance: U128(
+                1194468210325600779124508,
+            ),
+            available_balance: U128(
+                1194468210325600779124508,
+            ),
+            staked_balance: U128(
+                0,
+            ),
+            cause: "TRANSACTION",
+            block_timestamp_nanos: U64(
+                1652370918336631864,
+            ),
+        },
+        NearHistoryItem {
+            involved_account_id: None,
+            delta_balance: I128(
+                6824367894397782741488,
+            ),
+            delta_available_balance: I128(
+                6824367894397782741488,
+            ),
+            delta_staked_balance: I128(
+                0,
+            ),
+            total_balance: U128(
+                1250804317880395934670381,
+            ),
+            available_balance: U128(
+                1250804317880395934670381,
+            ),
+            staked_balance: U128(
+                0,
+            ),
+            cause: "RECEIPT",
+            block_timestamp_nanos: U64(
+                1652370843547439214,
+            ),
+        },
+        NearHistoryItem {
+            involved_account_id: Some(
+                AccountId(
+                    "wrap.near",
+                ),
+            ),
+            delta_balance: I128(
+                0,
+            ),
+            delta_available_balance: I128(
+                0,
+            ),
+            delta_staked_balance: I128(
+                0,
+            ),
+            total_balance: U128(
+                1243979949985998151928893,
+            ),
+            available_balance: U128(
+                1243979949985998151928893,
+            ),
+            staked_balance: U128(
+                0,
+            ),
+            cause: "RECEIPT",
+            block_timestamp_nanos: U64(
+                1652370842184929265,
+            ),
+        },
+        NearHistoryItem {
+            involved_account_id: Some(
+                AccountId(
+                    "wrap.near",
+                ),
+            ),
+            delta_balance: I128(
+                -2687240561505930982741488,
+            ),
+            delta_available_balance: I128(
+                -2687240561505930982741488,
+            ),
+            delta_staked_balance: I128(
+                0,
+            ),
+            total_balance: U128(
+                1243979949985998151928893,
+            ),
+            available_balance: U128(
+                1243979949985998151928893,
+            ),
+            staked_balance: U128(
+                0,
+            ),
+            cause: "TRANSACTION",
+            block_timestamp_nanos: U64(
+                1652370840835002585,
+            ),
+        },
+    ],
+)

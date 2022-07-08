@@ -8,7 +8,7 @@ pub enum ErrorKind {
     DBError(String),
     InvalidInput(String),
     InternalError(String),
-    NotImplemented(String),
+    ContractError(String),
     RPCError(String),
 }
 
@@ -17,7 +17,7 @@ pub(crate) fn contract_not_found(
     block_height: u64,
 ) -> ErrorKind {
     ErrorKind::InvalidInput(format!(
-        "The account `{}` does not implement the desired contract at block {}",
+        "The account `{}` does not implement any suitable contract at block {}",
         contract_id, block_height
     ))
 }
@@ -67,12 +67,9 @@ impl Error {
                 message: format!("Internal Error: {}", message),
                 retriable: true,
             },
-            ErrorKind::NotImplemented(message) => Self {
+            ErrorKind::ContractError(message) => Self {
                 code: 500,
-                message: format!(
-                    "Sorry! Please wait a bit, we are working on that: {}",
-                    message
-                ),
+                message: format!("Contract Error: {}", message),
                 retriable: true,
             },
             ErrorKind::RPCError(message) => Self {

@@ -134,7 +134,7 @@ pub(crate) async fn check_account_exists(
     account_id: &near_primitives::types::AccountId,
     block_timestamp: u64,
 ) -> api_models::Result<()> {
-    if !api::account_exists(pool, account_id, block_timestamp).await? {
+    if !api::does_account_exist(pool, account_id, block_timestamp).await? {
         Err(errors::ErrorKind::InvalidInput(format!(
             "account_id {} does not exist at block_timestamp {}",
             account_id, block_timestamp

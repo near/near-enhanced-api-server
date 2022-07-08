@@ -4,7 +4,7 @@ use crate::{api_models, db_models, errors, rpc_api, types, utils};
 
 const DB_RETRY_COUNT: usize = 1;
 
-pub(crate) async fn near_balance(
+pub(crate) async fn get_near_balance(
     pool: &sqlx::Pool<sqlx::Postgres>,
     block: &types::Block,
     account_id: &near_primitives::types::AccountId,
@@ -33,7 +33,7 @@ pub(crate) async fn near_balance(
                 total_balance: (available + staked).into(),
                 available_balance: available.into(),
                 staked_balance: staked.into(),
-                near_metadata: near_metadata(),
+                near_metadata: get_near_metadata(),
                 block_timestamp_nanos: block.timestamp.into(),
                 block_height: block.height.into(),
             })
@@ -46,7 +46,7 @@ pub(crate) async fn near_balance(
     }
 }
 
-pub(crate) fn near_metadata() -> api_models::Metadata {
+pub(crate) fn get_near_metadata() -> api_models::Metadata {
     api_models::Metadata {
         name: "NEAR blockchain native token".to_string(),
         symbol: "NEAR".to_string(),
@@ -57,7 +57,7 @@ pub(crate) fn near_metadata() -> api_models::Metadata {
 }
 
 // TODO PHASE 2 pagination (recently updated go first), by artificial index added to assets__fungible_token_events
-pub(crate) async fn ft_balance(
+pub(crate) async fn get_ft_balances(
     pool: &sqlx::Pool<sqlx::Postgres>,
     rpc_client: &near_jsonrpc_client::JsonRpcClient,
     block: &types::Block,
@@ -87,8 +87,9 @@ pub(crate) async fn ft_balance(
     let mut balances: Vec<api_models::Coin> = vec![];
     for contract in contracts {
         if let Ok(contract_id) = near_primitives::types::AccountId::from_str(&contract.account_id) {
-            balances
-                .push(ft_balance_for_contract(rpc_client, block, &contract_id, account_id).await?);
+            balances.push(
+                get_ft_balance_for_contract(rpc_client, block, &contract_id, account_id).await?,
+            );
         }
     }
     Ok(balances)
@@ -96,7 +97,7 @@ pub(crate) async fn ft_balance(
 
 // TODO PHASE 2 change RPC call to DB call by adding absolute amount values to assets__fungible_token_events
 // TODO PHASE 2 add metadata tables to the DB, with periodic autoupdate
-pub(crate) async fn ft_balance_for_contract(
+pub(crate) async fn get_ft_balance_for_contract(
     rpc_client: &near_jsonrpc_client::JsonRpcClient,
     block: &types::Block,
     contract_id: &near_primitives::types::AccountId,
@@ -110,7 +111,7 @@ pub(crate) async fn ft_balance_for_contract(
             block.height,
         )
         .await?,
-        rpc_api::get_ft_metadata(rpc_client, contract_id.clone(), block.height).await?,
+        rpc_api::get_ft_contract_metadata(rpc_client, contract_id.clone(), block.height).await?,
     );
 
     Ok(api_models::Coin {
@@ -128,7 +129,7 @@ pub(crate) async fn ft_balance_for_contract(
 
 // TODO PHASE 2 pagination by artificial index added to balance_changes
 // TODO PHASE 2 cover it with tests when the pagination will be ready
-pub(crate) async fn near_history(
+pub(crate) async fn get_near_history(
     balances_pool: &sqlx::Pool<sqlx::Postgres>,
     account_id: &near_primitives::types::AccountId,
     pagination: &types::HistoryPagination,
@@ -172,7 +173,7 @@ pub(crate) async fn near_history(
 // TODO PHASE 2 pagination by artificial index added to assets__fungible_token_events
 // TODO PHASE 2 change RPC call to DB call by adding absolute amount values to assets__fungible_token_events
 // TODO PHASE 2 make the decision about separate FT/MT tables or one table. Pagination implementation depends on this
-pub(crate) async fn coin_history(
+pub(crate) async fn get_ft_history(
     pool: &sqlx::Pool<sqlx::Postgres>,
     rpc_client: &near_jsonrpc_client::JsonRpcClient,
     contract_id: &near_primitives::types::AccountId,
@@ -257,8 +258,9 @@ pub(crate) async fn coin_history(
     Ok(result)
 }
 
+// TODO PHASE 1 fix events tables. Otherwise, we can't show any data from the DB, it's broken
 // TODO PHASE 2 pagination by artificial index added to assets__non_fungible_token_events
-pub(crate) async fn nft_count(
+pub(crate) async fn get_nft_count(
     pool: &sqlx::Pool<sqlx::Postgres>,
     rpc_client: &near_jsonrpc_client::JsonRpcClient,
     block: &types::Block,
@@ -325,8 +327,9 @@ pub(crate) async fn nft_count(
     for info in info_by_contract {
         if let Ok(contract_id) = near_primitives::types::AccountId::from_str(&info.contract_id) {
             let metadata =
-                rpc_api::get_nft_general_metadata(rpc_client, contract_id.clone(), block.height)
-                    .await?;
+                rpc_api::get_nft_contract_metadata(rpc_client, contract_id.clone(), block.height)
+                    .await
+                    .unwrap_or_else(|_| get_default_nft_contract_metadata());
             result.push(api_models::NftCollectionByContract {
                 contract_account_id: contract_id.into(),
                 nft_count: info.count as u32,
@@ -339,7 +342,24 @@ pub(crate) async fn nft_count(
     Ok(result)
 }
 
-pub(crate) async fn dev_nft_count(
+// Metadata is the required part of the standard.
+// Unfortunately, some contracts (e.g. `nft.nearapps.near`) do not implement it.
+// We should give at least anything for such contracts when we serve the overview information.
+fn get_default_nft_contract_metadata() -> api_models::NftContractMetadata {
+    api_models::NftContractMetadata {
+        spec: "nft-1.0.0".to_string(),
+        // TODO PHASE 1 it's the best that I could create here
+        name: "The contract did not provide the metadata".to_string(),
+        symbol: "The contract did not provide the symbol".to_string(),
+        icon: None,
+        base_uri: None,
+        reference: None,
+        reference_hash: None,
+    }
+}
+
+// TODO PHASE 1 drop this after we fix events tables
+pub(crate) async fn get_nft_count_dev(
     pool: &sqlx::Pool<sqlx::Postgres>,
     rpc_client: &near_jsonrpc_client::JsonRpcClient,
     block: &types::Block,
@@ -373,7 +393,7 @@ pub(crate) async fn dev_nft_count(
     let mut result: Vec<api_models::NftCollectionByContract> = vec![];
     for contract in contracts {
         if let Ok(contract_id) = near_primitives::types::AccountId::from_str(&contract.account_id) {
-            let nft_count = rpc_api::get_nft_count(
+            let nft_count = rpc_api::get_nft_count_dev(
                 rpc_client,
                 contract_id.clone(),
                 account_id.clone(),
@@ -384,11 +404,12 @@ pub(crate) async fn dev_nft_count(
                 continue;
             }
             let metadata =
-                rpc_api::get_nft_general_metadata(rpc_client, contract_id.clone(), block.height)
+                rpc_api::get_nft_contract_metadata(rpc_client, contract_id.clone(), block.height)
                     .await?;
             result.push(api_models::NftCollectionByContract {
                 contract_account_id: contract_id.into(),
                 nft_count,
+                // TODO PHASE 1. RPC does not give us this info. We can take it from DB though (or drop this field at all)
                 last_updated_at_timestamp_nanos: types::U128(0),
                 contract_metadata: metadata,
             });
@@ -398,7 +419,7 @@ pub(crate) async fn dev_nft_count(
 }
 
 // TODO PHASE 2 pagination by artificial index added to assets__non_fungible_token_events
-pub(crate) async fn nft_history(
+pub(crate) async fn get_nft_history(
     pool: &sqlx::Pool<sqlx::Postgres>,
     contract_id: &near_primitives::types::AccountId,
     token_id: &str,
@@ -436,8 +457,8 @@ pub(crate) async fn nft_history(
     Ok(result)
 }
 
-// TODO PHASE X we are loosing +1 second here, it's painful. It could be computed much easier in Aurora DB
-pub(crate) async fn account_exists(
+// TODO PHASE 2+ we are loosing +1 second here, it's painful. It could be computed much easier in Aurora DB
+pub(crate) async fn does_account_exist(
     pool: &sqlx::Pool<sqlx::Postgres>,
     account_id: &near_primitives::types::AccountId,
     block_timestamp: u64,
@@ -572,7 +593,7 @@ mod tests {
     async fn test_near_balance() {
         let (pool, _, block) = init().await;
         let account = near_primitives::types::AccountId::from_str("tomato.near").unwrap();
-        let balance = near_balance(&pool, &block, &account).await;
+        let balance = get_near_balance(&pool, &block, &account).await;
         insta::assert_debug_snapshot!(balance);
     }
 
@@ -581,7 +602,7 @@ mod tests {
         let (pool, rpc_client, block) = init().await;
         let account = near_primitives::types::AccountId::from_str("patagonita.near").unwrap();
         let pagination = types::CoinBalancesPagination { limit: 10 };
-        let balance = ft_balance(&pool, &rpc_client, &block, &account, &pagination).await;
+        let balance = get_ft_balances(&pool, &rpc_client, &block, &account, &pagination).await;
         insta::assert_debug_snapshot!(balance);
     }
 
@@ -590,7 +611,7 @@ mod tests {
         let (pool, rpc_client, block) = init().await;
         let account = near_primitives::types::AccountId::from_str("olga.near").unwrap();
         let pagination = types::CoinBalancesPagination { limit: 10 };
-        let balance = ft_balance(&pool, &rpc_client, &block, &account, &pagination)
+        let balance = get_ft_balances(&pool, &rpc_client, &block, &account, &pagination)
             .await
             .unwrap();
         assert!(balance.is_empty());
@@ -602,7 +623,7 @@ mod tests {
         let contract = near_primitives::types::AccountId::from_str("nexp.near").unwrap();
         let account = near_primitives::types::AccountId::from_str("patagonita.near").unwrap();
 
-        let balance = ft_balance_for_contract(&rpc_client, &block, &contract, &account).await;
+        let balance = get_ft_balance_for_contract(&rpc_client, &block, &contract, &account).await;
         insta::assert_debug_snapshot!(balance);
     }
 
@@ -612,7 +633,7 @@ mod tests {
         let contract = near_primitives::types::AccountId::from_str("olga.near").unwrap();
         let account = near_primitives::types::AccountId::from_str("patagonita.near").unwrap();
 
-        let balance = ft_balance_for_contract(&rpc_client, &block, &contract, &account).await;
+        let balance = get_ft_balance_for_contract(&rpc_client, &block, &contract, &account).await;
         insta::assert_debug_snapshot!(balance);
     }
 
@@ -622,12 +643,32 @@ mod tests {
         let contract = near_primitives::types::AccountId::from_str("comic.paras.near").unwrap();
         let account = near_primitives::types::AccountId::from_str("patagonita.near").unwrap();
 
-        let balance = ft_balance_for_contract(&rpc_client, &block, &contract, &account).await;
+        let balance = get_ft_balance_for_contract(&rpc_client, &block, &contract, &account).await;
         insta::assert_debug_snapshot!(balance);
     }
 
     #[actix_rt::test]
-    async fn test_coin_history_for_contract() {
+    async fn test_near_history() {
+        let (_, _, block) = init().await;
+        // Using the other pool because we have this table at the other DB
+        let url_balances =
+            &std::env::var("DATABASE_URL_BALANCES").expect("failed to get database url");
+        let pool = sqlx::PgPool::connect(url_balances)
+            .await
+            .expect("failed to connect to the balances database");
+        let account = near_primitives::types::AccountId::from_str("vasya.near").unwrap();
+        let pagination = types::HistoryPagination {
+            block_height: block.height,
+            block_timestamp: block.timestamp,
+            limit: 10,
+        };
+
+        let balance = get_near_history(&pool, &account, &pagination).await;
+        insta::assert_debug_snapshot!(balance);
+    }
+
+    #[actix_rt::test]
+    async fn test_ft_history() {
         let (pool, rpc_client, block) = init().await;
         let contract = near_primitives::types::AccountId::from_str("usn").unwrap();
         let account = near_primitives::types::AccountId::from_str("pushxo.near").unwrap();
@@ -637,7 +678,7 @@ mod tests {
             limit: 10,
         };
 
-        let balance = coin_history(&pool, &rpc_client, &contract, &account, &pagination).await;
+        let balance = get_ft_history(&pool, &rpc_client, &contract, &account, &pagination).await;
         insta::assert_debug_snapshot!(balance);
     }
 
@@ -647,7 +688,7 @@ mod tests {
         let account = near_primitives::types::AccountId::from_str("blondjesus.near").unwrap();
         let pagination = api_models::BalancesPaginationParams { limit: Some(10) };
 
-        let nft_count = nft_count(&pool, &rpc_client, &block, &account, &pagination).await;
+        let nft_count = get_nft_count(&pool, &rpc_client, &block, &account, &pagination).await;
         insta::assert_debug_snapshot!(nft_count);
     }
 
@@ -657,10 +698,55 @@ mod tests {
         let account = near_primitives::types::AccountId::from_str("frol.near").unwrap();
         let pagination = api_models::BalancesPaginationParams { limit: None };
 
-        let nft_count = nft_count(&pool, &rpc_client, &block, &account, &pagination)
+        let nft_count = get_nft_count(&pool, &rpc_client, &block, &account, &pagination)
             .await
             .unwrap();
         assert!(nft_count.is_empty());
+    }
+
+    #[actix_rt::test]
+    async fn test_nft_count_with_contracts_with_no_metadata() {
+        let (pool, rpc_client, block) = init().await;
+        let account = near_primitives::types::AccountId::from_str("vlad.near").unwrap();
+        let pagination = api_models::BalancesPaginationParams { limit: Some(10) };
+
+        let nft_count = get_nft_count(&pool, &rpc_client, &block, &account, &pagination).await;
+        insta::assert_debug_snapshot!(nft_count);
+    }
+
+    // this test gives broken result. Compare it with rpc_api::test_nft_count_dev and api::test_nft_count_dev
+    #[actix_rt::test]
+    async fn test_nft_count_broken() {
+        let (pool, rpc_client, block) = init().await;
+        let account = near_primitives::types::AccountId::from_str("kbneoburner3.near").unwrap();
+        let pagination = api_models::BalancesPaginationParams { limit: None };
+
+        let nft_count = get_nft_count(&pool, &rpc_client, &block, &account, &pagination).await;
+        insta::assert_debug_snapshot!(nft_count);
+
+        let contract = near_primitives::types::AccountId::from_str("thebullishbulls.near").unwrap();
+        let broken_count = nft_count
+            .unwrap()
+            .iter()
+            .filter(|collection| collection.contract_account_id.0 == contract)
+            .map(|collection| collection.nft_count)
+            .last()
+            .unwrap();
+        // Should be zero!
+        assert_eq!(broken_count, 8);
+    }
+
+    #[actix_rt::test]
+    async fn test_nft_count_dev() {
+        let (pool, rpc_client, block) = init().await;
+        let account = near_primitives::types::AccountId::from_str("kbneoburner3.near").unwrap();
+        let pagination = api_models::BalancesPaginationParams { limit: None };
+
+        let nft_count_dev =
+            get_nft_count_dev(&pool, &rpc_client, &block, &account, &pagination).await;
+        insta::assert_debug_snapshot!(nft_count_dev);
+        // let nft_count = get_nft_count(&pool, &rpc_client, &block, &account, &pagination).await;
+        // assert_eq!(nft_count_dev, nft_count);
     }
 
     #[actix_rt::test]
@@ -674,11 +760,11 @@ mod tests {
             limit: 10,
         };
 
-        let history = nft_history(&pool, &contract, token, &pagination).await;
+        let history = get_nft_history(&pool, &contract, token, &pagination).await;
         insta::assert_debug_snapshot!(history);
     }
 
-    // TODO we should fix this by removing logs produced by failed tx from the DB
+    // TODO PHASE 1 we should fix this by removing logs from the DB produced by failed tx
     #[actix_rt::test]
     async fn test_nft_history_broken() {
         let (pool, _, block) = init().await;
@@ -690,7 +776,7 @@ mod tests {
             limit: 10,
         };
 
-        let history = nft_history(&pool, &contract, token, &pagination).await;
+        let history = get_nft_history(&pool, &contract, token, &pagination).await;
         insta::assert_debug_snapshot!(history);
     }
 
@@ -705,7 +791,7 @@ mod tests {
             limit: 10,
         };
 
-        let history = nft_history(&pool, &contract, token, &pagination)
+        let history = get_nft_history(&pool, &contract, token, &pagination)
             .await
             .unwrap();
         assert!(history.is_empty());

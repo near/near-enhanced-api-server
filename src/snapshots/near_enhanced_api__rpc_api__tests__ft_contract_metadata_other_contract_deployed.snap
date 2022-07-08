@@ -1,6 +1,6 @@
 ---
-source: src/api.rs
-expression: balance
+source: src/rpc_api.rs
+expression: metadata
 ---
 Err(
     Error {

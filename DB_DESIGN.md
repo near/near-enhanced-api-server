@@ -1,3 +1,6 @@
+// todo decide tables architecture (one/many) for ft/mt, make the list with pros and cons
+
+
 ## New requirements for any assets__* table:
 1. enumeration column that goes through all the events. Required for coin_history
    Let's say we can have max 10_000 of all the events per chunk // todo -1 zero
