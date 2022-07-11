@@ -10,10 +10,11 @@ Still under heavy development.
 - Provide corresponding Metadata for FT, NFT contracts, NFT items
 - [aspirational] Collect usage statistics which could help us to prioritize next steps
 
-Note, Phase 1 will **not** provide pagination through all the history.
+Note, Phase 1 will **not** provide pagination through all the history.  
 Phase 1 also does **not** provide the information about contracts which are not upgraded to Events NEP.
 
-If you are interested in a more detailed development status, use `git clone` and search for `TODO PHASE 1`.
+If you are interested in a more detailed development status, use `git clone` and search for `TODO PHASE 1`.  
+See also our thoughts about the proposed [DB design](DB_DESIGN.md) which will help us to achieve Phase 2 goals.
 
 ### Future plans. Phase 2 goals:
 - Provide pagination for all existing endpoints where applicable
@@ -28,7 +29,7 @@ If you are interested in a more detailed development status, use `git clone` and
 
 ## How to run it yourself
 
-You need to create `.env` file with 3 variables: `DATABASE_URL`, `DATABASE_URL_BALANCES`, `RPC_URL`.
+You need to create `.env` file with 3 variables: `DATABASE_URL`, `DATABASE_URL_BALANCES`, `RPC_URL`.  
 `DATABASE_URL_BALANCES` is a temp solution with the new table, it's under development.
 
 All the other stuff is super standard for Rust world.  

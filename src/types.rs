@@ -115,8 +115,8 @@ pub struct CoinBalancesPagination {
     pub limit: u32,
 }
 
-impl From<api_models::BalancesPaginationParams> for CoinBalancesPagination {
-    fn from(params: api_models::BalancesPaginationParams) -> Self {
+impl From<api_models::PaginationParams> for CoinBalancesPagination {
+    fn from(params: api_models::PaginationParams) -> Self {
         Self {
             limit: params.limit.unwrap_or(crate::DEFAULT_PAGE_LIMIT),
         }

@@ -50,7 +50,7 @@ pub(crate) fn get_near_metadata() -> api_models::Metadata {
     api_models::Metadata {
         name: "NEAR blockchain native token".to_string(),
         symbol: "NEAR".to_string(),
-        // TODO PHASE 1 re-check the icon. It's the best I can find
+        // TODO PHASE 2 re-check the icon. It's the best I can find
         icon: Some("https://raw.githubusercontent.com/near/near-wallet/7ef3c824404282b76b36da2dff4f3e593e7f928d/packages/frontend/src/images/near.svg".to_string()),
         decimals: 24,
     }
@@ -265,7 +265,7 @@ pub(crate) async fn get_nft_count(
     rpc_client: &near_jsonrpc_client::JsonRpcClient,
     block: &types::Block,
     account_id: &near_primitives::types::AccountId,
-    pagination: &api_models::BalancesPaginationParams,
+    pagination: &api_models::PaginationParams,
 ) -> api_models::Result<Vec<api_models::NftCollectionByContract>> {
     let query = r"
         WITH relevant_events AS (
@@ -350,7 +350,6 @@ pub(crate) async fn get_nft_count(
 fn get_default_nft_contract_metadata() -> api_models::NftContractMetadata {
     api_models::NftContractMetadata {
         spec: "nft-1.0.0".to_string(),
-        // TODO PHASE 1 it's the best that I could create here
         name: "The contract did not provide the metadata".to_string(),
         symbol: "The contract did not provide the symbol".to_string(),
         icon: None,
@@ -632,7 +631,7 @@ mod tests {
     async fn test_nft_count() {
         let (pool, rpc_client, block) = init().await;
         let account = near_primitives::types::AccountId::from_str("blondjesus.near").unwrap();
-        let pagination = api_models::BalancesPaginationParams { limit: Some(10) };
+        let pagination = api_models::PaginationParams { limit: Some(10) };
 
         let nft_count = get_nft_count(&pool, &rpc_client, &block, &account, &pagination).await;
         insta::assert_debug_snapshot!(nft_count);
@@ -642,7 +641,7 @@ mod tests {
     async fn test_nft_count_no_nfts() {
         let (pool, rpc_client, block) = init().await;
         let account = near_primitives::types::AccountId::from_str("frol.near").unwrap();
-        let pagination = api_models::BalancesPaginationParams { limit: None };
+        let pagination = api_models::PaginationParams { limit: None };
 
         let nft_count = get_nft_count(&pool, &rpc_client, &block, &account, &pagination)
             .await
@@ -654,7 +653,7 @@ mod tests {
     async fn test_nft_count_with_contracts_with_no_metadata() {
         let (pool, rpc_client, block) = init().await;
         let account = near_primitives::types::AccountId::from_str("vlad.near").unwrap();
-        let pagination = api_models::BalancesPaginationParams { limit: Some(10) };
+        let pagination = api_models::PaginationParams { limit: Some(10) };
 
         let nft_count = get_nft_count(&pool, &rpc_client, &block, &account, &pagination).await;
         insta::assert_debug_snapshot!(nft_count);
@@ -664,7 +663,7 @@ mod tests {
     async fn test_nft_count_with_no_failed_receipts_in_result() {
         let (pool, rpc_client, block) = init().await;
         let account = near_primitives::types::AccountId::from_str("kbneoburner3.near").unwrap();
-        let pagination = api_models::BalancesPaginationParams { limit: None };
+        let pagination = api_models::PaginationParams { limit: None };
 
         let nft_count = get_nft_count(&pool, &rpc_client, &block, &account, &pagination).await;
         insta::assert_debug_snapshot!(nft_count);

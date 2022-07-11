@@ -310,11 +310,12 @@ pub struct BlockParams {
     pub block_height: Option<super::types::U64>,
 }
 
+// Designed to use together with BlockParams
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
-pub struct BalancesPaginationParams {
+pub struct PaginationParams {
     // TODO PHASE 2 add index parameter
-    // See thoughts at HistoryPaginationParams
     // pub without_updates_after_index: Option<super::types::U128>,
+    /// Maximum available limit 100
     pub limit: Option<u32>,
 }
 

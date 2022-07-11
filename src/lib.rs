@@ -41,16 +41,21 @@ pub async fn get_near_balance(
 ///
 /// This endpoint returns all the countable coin balances (including NEAR, FTs, later will add MTs)
 /// of the given account_id, for the given timestamp/block_height.
-/// Pagination will be provided later.
+///
+/// ** Limitations **
+///
+/// * For now, we support only the balance for NEAR and FT contracts which implement Events NEP.
+///   We work on the solution to support the other FT contracts, including `wrap.near` and bridged tokens.
+/// * We are in the process of supporting Multi Token balances.
+/// * We provide only up to 100 items, where recently updated data goes first.
+///   Full-featured pagination will be provided later.
 pub async fn get_coin_balances(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     request: web::Path<api_models::BalanceRequest>,
-    // TODO PHASE 1 discuss whether we want to leave block_params here. I feel we need this.
-    // the request GET ...?block_height=...&no_updates_after_block_height=... has sense
     block_params: web::Query<api_models::BlockParams>,
     // TODO PHASE 2 pagination by index (recently updated go first)
-    pagination_params: web::Query<api_models::BalancesPaginationParams>,
+    pagination_params: web::Query<api_models::PaginationParams>,
 ) -> api_models::Result<Json<api_models::CoinBalancesResponse>> {
     utils::check_limit(pagination_params.limit)?;
     let mut pagination: types::CoinBalancesPagination = pagination_params.0.into();
@@ -92,6 +97,12 @@ pub async fn get_coin_balances(
 /// for the given contract and timestamp/block_height.
 /// For FT contract, the response has only 1 item in the list.
 /// For MT contracts, there could be several balances (MT support is not ready yet).
+///
+/// ** Limitations **
+///
+/// * For now, we support only the balance for FT contracts which implement Events NEP.
+///   We work on the solution to support the other FT contracts, including `wrap.near` and bridged tokens.
+/// * We are in the process of supporting Multi Token balances.
 pub async fn get_balances_by_contract(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
@@ -134,17 +145,18 @@ pub async fn get_balances_by_contract(
 /// the number of NFTs grouped by contract_id, together with the corresponding NFT contract metadata.
 /// NFT contract is presented if the account_id has at least one NFT there.
 ///
-/// Sorted by the change order: recent go first. Pagination will be provided later.
-///
 /// `block_timestamp_nanos` helps you to choose the moment of time, we fix the blockchain state at that time.
+///
+/// ** Limitations **
+///
+/// * We provide only up to 100 items, where recently updated data goes first.
+///   Full-featured pagination will be provided later.
 pub async fn get_nft_collection_overview(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     request: web::Path<api_models::BalanceRequest>,
-    // TODO PHASE 1 discuss whether we want to leave block_params here. I feel we need this.
-    // the request GET ...?block_height=...&no_updates_after_block_height=... has sense
     block_params: web::Query<api_models::BlockParams>,
-    pagination_params: web::Query<api_models::BalancesPaginationParams>,
+    pagination_params: web::Query<api_models::PaginationParams>,
 ) -> api_models::Result<Json<api_models::NftCollectionOverviewResponse>> {
     utils::check_limit(pagination_params.limit)?;
     utils::check_block_params(&block_params)?;
@@ -172,13 +184,17 @@ pub async fn get_nft_collection_overview(
 /// This endpoint returns the list of NFTs, each of them contains all the detailed NFT information,
 /// for the given account_id, NFT contract_id, timestamp/block_height.
 /// You can copy the token_id from this response and then ask for NFT history.
-/// Pagination will be provided later.
+///
+/// ** Limitations **
+///
+/// * We provide only up to 100 items.
+///   Full-featured pagination will be provided later.
 pub async fn get_nft_collection_by_contract(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     request: web::Path<api_models::BalanceByContractRequest>,
     block_params: web::Query<api_models::BlockParams>,
-    pagination_params: web::Query<api_models::BalancesPaginationParams>,
+    pagination_params: web::Query<api_models::PaginationParams>,
 ) -> api_models::Result<Json<api_models::NftCollectionByContractResponse>> {
     utils::check_limit(pagination_params.limit)?;
     utils::check_block_params(&block_params)?;
@@ -243,7 +259,11 @@ pub async fn get_nft_item_details(
 ///
 /// This endpoint returns the history of operations with NEAR coin
 /// for the given account_id, timestamp/block_height.
-/// Sorted in a historical descending order. Pagination will be provided later.
+///
+/// ** Limitations **
+///
+/// * We provide only up to 100 items, where recent updates go first.
+///   Full-featured pagination will be provided later.
 pub async fn get_near_history(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     pool_balances: web::Data<types::DBWrapper>,
@@ -269,8 +289,14 @@ pub async fn get_near_history(
 ///
 /// This endpoint returns the history of coin operations (FT, other standards)
 /// for the given account_id, contract_id, timestamp/block_height.
-/// Sorted in a historical descending order.
-/// Pagination will be provided later.
+///
+/// ** Limitations **
+///
+/// * For now, we support only FT contracts which implement Events NEP.
+///   We work on the solution to support the other FT contracts, including `wrap.near` and bridged tokens.
+/// * We are in the process of supporting Multi Token history.
+/// * We provide only up to 100 items, where recent updates go first.
+///   Full-featured pagination will be provided later.
 pub async fn get_coin_history(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
@@ -313,7 +339,12 @@ pub async fn get_coin_history(
 ///
 /// This endpoint returns the history of operations for the given NFT and timestamp/block_height.
 /// Keep in mind, it does not related to a concrete account_id; the whole history is shown.
-/// Sorted in a historical descending order. Pagination will be provided later.
+///
+/// ** Limitations **
+///
+/// * For now, we support only NFT contracts which implement Events NEP.
+/// * We provide only up to 100 items, where recent updates go first.
+///   Full-featured pagination will be provided later.
 pub async fn get_nft_history(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
@@ -354,6 +385,11 @@ pub async fn get_nft_history(
 /// Get FT contract metadata
 ///
 /// This endpoint returns the metadata for given FT contract and timestamp/block_height.
+///
+/// ** Limitations **
+///
+/// * For now, we support only FT contracts which implement Events NEP.
+///   We work on the solution to support the other FT contracts, including `wrap.near` and bridged tokens.
 pub async fn get_ft_contract_metadata(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
