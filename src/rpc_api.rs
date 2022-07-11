@@ -206,8 +206,10 @@ mod tests {
     use std::str::FromStr;
 
     fn init() -> (near_jsonrpc_client::JsonRpcClient, u64) {
+        dotenv::dotenv().ok();
+        let rpc_url = &std::env::var("RPC_URL").expect("failed to get RPC url");
         (
-            near_jsonrpc_client::JsonRpcClient::connect("https://archival-rpc.mainnet.near.org"),
+            near_jsonrpc_client::JsonRpcClient::connect(rpc_url),
             68000000,
         )
     }

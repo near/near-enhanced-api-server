@@ -128,7 +128,6 @@ pub(crate) async fn get_ft_balance_for_contract(
 }
 
 // TODO PHASE 2 pagination by artificial index added to balance_changes
-// TODO PHASE 2 cover it with tests when the pagination will be ready
 pub(crate) async fn get_near_history(
     balances_pool: &sqlx::Pool<sqlx::Postgres>,
     account_id: &near_primitives::types::AccountId,
@@ -575,13 +574,14 @@ mod tests {
         types::Block,
     ) {
         dotenv::dotenv().ok();
-        let url = &std::env::var("DATABASE_URL").expect("failed to get database url");
+        let db_url = &std::env::var("DATABASE_URL").expect("failed to get database url");
+        let rpc_url = &std::env::var("RPC_URL").expect("failed to get RPC url");
 
         (
-            sqlx::PgPool::connect(url)
+            sqlx::PgPool::connect(db_url)
                 .await
                 .expect("failed to connect to the database"),
-            near_jsonrpc_client::JsonRpcClient::connect("https://archival-rpc.mainnet.near.org"),
+            near_jsonrpc_client::JsonRpcClient::connect(rpc_url),
             types::Block {
                 timestamp: 1655571176644255779,
                 height: 68000000,

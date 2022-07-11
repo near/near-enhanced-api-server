@@ -53,7 +53,7 @@ pub async fn get_coin_balances(
     block_params: web::Query<api_models::BlockParams>,
     // TODO PHASE 2 pagination by index (recently updated go first)
     pagination_params: web::Query<api_models::BalancesPaginationParams>,
-) -> api_models::Result<Json<api_models::BalancesResponse>> {
+) -> api_models::Result<Json<api_models::CoinBalancesResponse>> {
     utils::check_limit(pagination_params.limit)?;
     let mut pagination: types::CoinBalancesPagination = pagination_params.0.into();
     let block = api::get_block_from_params(&pool, &block_params).await?;
@@ -80,7 +80,7 @@ pub async fn get_coin_balances(
         pagination.limit -= ft_balances.length() as u32;
     }
 
-    Ok(Json(api_models::BalancesResponse {
+    Ok(Json(api_models::CoinBalancesResponse {
         balances,
         block_timestamp_nanos: types::U64::from(block.timestamp),
         block_height: types::U64::from(block.height),
@@ -99,7 +99,7 @@ pub async fn get_balances_by_contract(
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     request: web::Path<api_models::BalanceByContractRequest>,
     block_params: web::Query<api_models::BlockParams>,
-) -> api_models::Result<Json<api_models::BalancesResponse>> {
+) -> api_models::Result<Json<api_models::CoinBalancesResponse>> {
     // TODO PHASE 1 do we want to redirect to NEAR balance? The format of the response will change
     if request.contract_account_id.to_string() == "near" {
         return Err(errors::ErrorKind::InvalidInput(
@@ -123,7 +123,7 @@ pub async fn get_balances_by_contract(
         .await?,
     );
 
-    Ok(Json(api_models::BalancesResponse {
+    Ok(Json(api_models::CoinBalancesResponse {
         balances,
         block_timestamp_nanos: types::U64::from(block.timestamp),
         block_height: types::U64::from(block.height),

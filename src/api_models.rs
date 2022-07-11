@@ -54,7 +54,7 @@ pub struct NearBalanceResponse {
 /// For MTs and other standards, balances could have multiple entries for one contract.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
-pub struct BalancesResponse {
+pub struct CoinBalancesResponse {
     pub balances: Vec<Coin>,
     pub block_timestamp_nanos: super::types::U64,
     pub block_height: super::types::U64,

@@ -59,8 +59,8 @@ async fn main() {
         .with_writer(std::io::stderr)
         .init();
 
-    let url = &std::env::var("DATABASE_URL").expect("failed to get database url");
-    let pool = sqlx::PgPool::connect(url)
+    let db_url = &std::env::var("DATABASE_URL").expect("failed to get database url");
+    let pool = sqlx::PgPool::connect(db_url)
         .await
         .expect("failed to connect to the database");
 
@@ -68,8 +68,9 @@ async fn main() {
     let pool_balances = sqlx::PgPool::connect(url_balances)
         .await
         .expect("failed to connect to the balances database");
-    let rpc_client =
-        near_jsonrpc_client::JsonRpcClient::connect("https://archival-rpc.mainnet.near.org");
+
+    let rpc_url = &std::env::var("RPC_URL").expect("failed to get RPC url");
+    let rpc_client = near_jsonrpc_client::JsonRpcClient::connect(rpc_url);
 
     let config::Config {
         addr,
