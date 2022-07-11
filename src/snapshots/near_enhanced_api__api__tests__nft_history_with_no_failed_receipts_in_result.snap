@@ -114,35 +114,5 @@ Ok(
                 60119475,
             ),
         },
-        NftHistoryItem {
-            action_kind: "MINT",
-            old_account_id: None,
-            new_account_id: Some(
-                AccountId(
-                    "xvtrvgx.near",
-                ),
-            ),
-            block_timestamp_nanos: U64(
-                1645632287080597503,
-            ),
-            block_height: U64(
-                60118129,
-            ),
-        },
-        NftHistoryItem {
-            action_kind: "MINT",
-            old_account_id: None,
-            new_account_id: Some(
-                AccountId(
-                    "kbneoburner3.near",
-                ),
-            ),
-            block_timestamp_nanos: U64(
-                1645632280460384115,
-            ),
-            block_height: U64(
-                60118124,
-            ),
-        },
     ],
 )

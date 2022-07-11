@@ -166,54 +166,6 @@ pub async fn get_nft_collection_overview(
     }))
 }
 
-// TODO PHASE 1 MAJOR ISSUE we should fix the DB and ignore failed receipts/transactions while collecting the data about FTs/NFTs
-// after that, we need to re-check all this stuff again, maybe it's not the only issue here
-#[api_v2_operation]
-/// Issues with the contracts: thebullishbulls.near x.paras.near
-///
-/// We can see here that token 1349 was issued to 3 different users
-/// select * from assets__non_fungible_token_events
-/// where token_id = '1349' and emitted_by_contract_account_id = 'thebullishbulls.near'
-/// order by emitted_at_block_timestamp desc;
-///
-/// receipts about 2 other users actually failed:
-/// select * from receipts join execution_outcomes on receipts.receipt_id = execution_outcomes.receipt_id
-/// where execution_outcomes.receipt_id in ('7P36s12WJQDnqdwyLZRRWoApvXnTuB8JnuFGoyWgpm49', 'HCM87NB9wXw3P3YoCf6u4kc4G45DsoyjV5Robanrcstt');
-///
-/// Here, we can see that user should still have 8 tokens (11 mints - 3 transfers = 8 should be still here)
-/// But the contract says they have nothing
-/// select * from assets__non_fungible_token_events
-/// where (token_new_owner_account_id = 'kbneoburner3.near' or token_old_owner_account_id = 'kbneoburner3.near')
-/// and emitted_by_contract_account_id = 'thebullishbulls.near'
-/// order by emitted_at_block_timestamp desc;
-///
-/// Same issues with x.paras.near
-pub async fn get_nft_collection_overview_dev(
-    pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
-    rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
-    request: web::Path<api_models::BalanceRequest>,
-    block_params: web::Query<api_models::BlockParams>,
-    pagination_params: web::Query<api_models::BalancesPaginationParams>,
-) -> api_models::Result<Json<api_models::NftCollectionOverviewResponse>> {
-    utils::check_limit(pagination_params.limit)?;
-    utils::check_block_params(&block_params)?;
-    let block = api::get_block_from_params(&pool, &block_params).await?;
-    utils::check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
-
-    Ok(Json(api_models::NftCollectionOverviewResponse {
-        nft_collection_overview: api::get_nft_count_dev(
-            &pool,
-            &rpc_client,
-            &block,
-            &request.account_id.0,
-            &pagination_params,
-        )
-        .await?,
-        block_timestamp_nanos: types::U64::from(block.timestamp),
-        block_height: types::U64::from(block.height),
-    }))
-}
-
 #[api_v2_operation]
 /// Get user's NFT collection by contract
 ///

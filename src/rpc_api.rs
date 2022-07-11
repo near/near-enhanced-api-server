@@ -76,25 +76,6 @@ pub(crate) async fn get_nft_contract_metadata(
     )?)
 }
 
-pub(crate) async fn get_nft_count_dev(
-    rpc_client: &near_jsonrpc_client::JsonRpcClient,
-    contract_id: near_primitives::types::AccountId,
-    account_id: near_primitives::types::AccountId,
-    block_height: u64,
-) -> api_models::Result<u32> {
-    let request = get_function_call_request(
-        block_height,
-        contract_id.clone(),
-        "nft_supply_for_owner",
-        serde_json::json!({ "account_id": account_id }),
-    );
-    let response = wrapped_call(rpc_client, request, block_height, &contract_id).await?;
-
-    Ok(serde_json::from_slice::<String>(&response.result)?
-        .parse::<u32>()
-        .map_err(|e| errors::ErrorKind::InternalError(format!("Failed to parse u32 {}", e)))?)
-}
-
 pub(crate) async fn get_nft_collection(
     rpc_client: &near_jsonrpc_client::JsonRpcClient,
     contract_id: near_primitives::types::AccountId,
@@ -287,20 +268,6 @@ mod tests {
 
         let metadata = get_nft_contract_metadata(&rpc_client, contract, block_height).await;
         insta::assert_debug_snapshot!(metadata);
-    }
-
-    // TODO PHASE 1
-    // this test gives right result. Compare it with api::test_nft_count_broken
-    #[tokio::test]
-    async fn test_nft_count_dev() {
-        let (rpc_client, block_height) = init();
-        let contract = near_primitives::types::AccountId::from_str("thebullishbulls.near").unwrap();
-        let account = near_primitives::types::AccountId::from_str("kbneoburner3.near").unwrap();
-
-        let nft_count = get_nft_count_dev(&rpc_client, contract, account, block_height)
-            .await
-            .unwrap();
-        assert_eq!(nft_count, 0);
     }
 
     #[tokio::test]

@@ -148,10 +148,6 @@ async fn main() {
                     .route(web::get().to(near_enhanced_api::get_nft_collection_overview)),
             )
             .service(
-                web::resource("/dev/accounts/{account_id}/NFT")
-                    .route(web::get().to(near_enhanced_api::get_nft_collection_overview_dev)),
-            )
-            .service(
                 web::resource("/accounts/{account_id}/NFT/{contract_account_id}")
                     .route(web::get().to(near_enhanced_api::get_nft_collection_by_contract)),
             )

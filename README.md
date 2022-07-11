@@ -19,6 +19,7 @@ If you are interested in a more detailed development status, use `git clone` and
 - Provide pagination for all existing endpoints where applicable
 - Support contracts which are not upgraded to Events NEP, such as `wrap.near`, `aurora`
 - Add reconciliation logic
+- [aspirational] Show data from failed receipts in the history
 - [aspirational] Support MT contracts 
 - [aspirational] Support of querying the balance/history info by symbol (e.g. `GET "/accounts/{account_id}/coins/USN"`) 
 

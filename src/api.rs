@@ -195,9 +195,11 @@ pub(crate) async fn get_ft_history(
                assets__fungible_token_events.event_kind::text,
                assets__fungible_token_events.token_old_owner_account_id old_owner_id,
                assets__fungible_token_events.token_new_owner_account_id new_owner_id
-        FROM assets__fungible_token_events JOIN blocks
-            ON assets__fungible_token_events.emitted_at_block_timestamp = blocks.block_timestamp
+        FROM assets__fungible_token_events
+            JOIN blocks ON assets__fungible_token_events.emitted_at_block_timestamp = blocks.block_timestamp
+            JOIN execution_outcomes ON assets__fungible_token_events.emitted_for_receipt_id = execution_outcomes.receipt_id
         WHERE emitted_by_contract_account_id = $1
+            AND execution_outcomes.status IN ('SUCCESS_VALUE', 'SUCCESS_RECEIPT_ID')
             AND (token_old_owner_account_id = $2 OR token_new_owner_account_id = $2)
             AND emitted_at_block_timestamp <= $3::numeric(20, 0)
         ORDER BY emitted_at_block_timestamp desc
@@ -257,7 +259,6 @@ pub(crate) async fn get_ft_history(
     Ok(result)
 }
 
-// TODO PHASE 1 fix events tables. Otherwise, we can't show any data from the DB, it's broken
 // TODO PHASE 2 pagination by artificial index added to assets__non_fungible_token_events
 pub(crate) async fn get_nft_count(
     pool: &sqlx::Pool<sqlx::Postgres>,
@@ -270,11 +271,13 @@ pub(crate) async fn get_nft_count(
         WITH relevant_events AS (
             SELECT emitted_at_block_timestamp, token_id, emitted_by_contract_account_id, token_old_owner_account_id, token_new_owner_account_id
             FROM assets__non_fungible_token_events
+                JOIN execution_outcomes ON assets__non_fungible_token_events.emitted_for_receipt_id = execution_outcomes.receipt_id
             WHERE
                 -- if it works slow, we need to create table daily_nft_count_by_contract_and_user, and this query will run only over the last day
                 -- emitted_at_block_timestamp > start_of_day AND
-                emitted_at_block_timestamp <= $2::numeric(20, 0) AND
-                (token_new_owner_account_id = $1 OR token_old_owner_account_id = $1)
+                emitted_at_block_timestamp <= $2::numeric(20, 0)
+                AND execution_outcomes.status IN ('SUCCESS_VALUE', 'SUCCESS_RECEIPT_ID')
+                AND (token_new_owner_account_id = $1 OR token_old_owner_account_id = $1)
         ),
         outgoing_events_count AS (
             SELECT emitted_by_contract_account_id, count(*) * -1 cnt FROM relevant_events
@@ -357,66 +360,6 @@ fn get_default_nft_contract_metadata() -> api_models::NftContractMetadata {
     }
 }
 
-// TODO PHASE 1 drop this after we fix events tables
-pub(crate) async fn get_nft_count_dev(
-    pool: &sqlx::Pool<sqlx::Postgres>,
-    rpc_client: &near_jsonrpc_client::JsonRpcClient,
-    block: &types::Block,
-    account_id: &near_primitives::types::AccountId,
-    pagination: &api_models::BalancesPaginationParams,
-) -> api_models::Result<Vec<api_models::NftCollectionByContract>> {
-    let query = r"
-         SELECT emitted_by_contract_account_id account_id -- contract_id, count(*) count
-         FROM assets__non_fungible_token_events
-         WHERE token_new_owner_account_id = $1
-             AND emitted_at_block_timestamp <= $2::numeric(20, 0)
-         GROUP BY emitted_by_contract_account_id
-         ORDER BY emitted_by_contract_account_id
-         LIMIT $3::numeric(20, 0)
-     ";
-    let contracts = utils::select_retry_or_panic::<db_models::AccountId>(
-        pool,
-        query,
-        &[
-            account_id.to_string(),
-            block.timestamp.to_string(),
-            pagination
-                .limit
-                .unwrap_or(crate::DEFAULT_PAGE_LIMIT)
-                .to_string(),
-        ],
-        DB_RETRY_COUNT,
-    )
-    .await?;
-
-    let mut result: Vec<api_models::NftCollectionByContract> = vec![];
-    for contract in contracts {
-        if let Ok(contract_id) = near_primitives::types::AccountId::from_str(&contract.account_id) {
-            let nft_count = rpc_api::get_nft_count_dev(
-                rpc_client,
-                contract_id.clone(),
-                account_id.clone(),
-                block.height,
-            )
-            .await?;
-            if nft_count == 0 {
-                continue;
-            }
-            let metadata =
-                rpc_api::get_nft_contract_metadata(rpc_client, contract_id.clone(), block.height)
-                    .await?;
-            result.push(api_models::NftCollectionByContract {
-                contract_account_id: contract_id.into(),
-                nft_count,
-                // TODO PHASE 1. RPC does not give us this info. We can take it from DB though (or drop this field at all)
-                last_updated_at_timestamp_nanos: types::U128(0),
-                contract_metadata: metadata,
-            });
-        }
-    }
-    Ok(result)
-}
-
 // TODO PHASE 2 pagination by artificial index added to assets__non_fungible_token_events
 pub(crate) async fn get_nft_history(
     pool: &sqlx::Pool<sqlx::Postgres>,
@@ -430,9 +373,13 @@ pub(crate) async fn get_nft_history(
                token_new_owner_account_id new_account_id,
                emitted_at_block_timestamp block_timestamp_nanos,
                block_height
-        FROM assets__non_fungible_token_events JOIN blocks
-            ON assets__non_fungible_token_events.emitted_at_block_timestamp = blocks.block_timestamp
-        WHERE token_id = $1 AND emitted_by_contract_account_id = $2 AND emitted_at_block_timestamp < $3::numeric(20, 0)
+        FROM assets__non_fungible_token_events
+            JOIN blocks ON assets__non_fungible_token_events.emitted_at_block_timestamp = blocks.block_timestamp
+            JOIN execution_outcomes ON assets__non_fungible_token_events.emitted_for_receipt_id = execution_outcomes.receipt_id
+        WHERE token_id = $1
+            AND emitted_by_contract_account_id = $2
+            AND emitted_at_block_timestamp < $3::numeric(20, 0)
+            AND execution_outcomes.status IN ('SUCCESS_VALUE', 'SUCCESS_RECEIPT_ID')
         ORDER BY emitted_at_block_timestamp DESC
         LIMIT $4::numeric(20, 0)
     ";
@@ -567,7 +514,6 @@ mod tests {
     use super::*;
 
     // TODO PHASE 1 flaky tests! thread 'api::tests::...' panicked at 'dispatch dropped without returning error
-    // TODO PHASE 1 Do we want to make this static?
     async fn init() -> (
         sqlx::Pool<sqlx::Postgres>,
         near_jsonrpc_client::JsonRpcClient,
@@ -714,39 +660,14 @@ mod tests {
         insta::assert_debug_snapshot!(nft_count);
     }
 
-    // this test gives broken result. Compare it with rpc_api::test_nft_count_dev and api::test_nft_count_dev
     #[tokio::test]
-    async fn test_nft_count_broken() {
+    async fn test_nft_count_with_no_failed_receipts_in_result() {
         let (pool, rpc_client, block) = init().await;
         let account = near_primitives::types::AccountId::from_str("kbneoburner3.near").unwrap();
         let pagination = api_models::BalancesPaginationParams { limit: None };
 
         let nft_count = get_nft_count(&pool, &rpc_client, &block, &account, &pagination).await;
         insta::assert_debug_snapshot!(nft_count);
-
-        let contract = near_primitives::types::AccountId::from_str("thebullishbulls.near").unwrap();
-        let broken_count = nft_count
-            .unwrap()
-            .iter()
-            .filter(|collection| collection.contract_account_id.0 == contract)
-            .map(|collection| collection.nft_count)
-            .last()
-            .unwrap();
-        // Should be zero!
-        assert_eq!(broken_count, 8);
-    }
-
-    #[tokio::test]
-    async fn test_nft_count_dev() {
-        let (pool, rpc_client, block) = init().await;
-        let account = near_primitives::types::AccountId::from_str("kbneoburner3.near").unwrap();
-        let pagination = api_models::BalancesPaginationParams { limit: None };
-
-        let nft_count_dev =
-            get_nft_count_dev(&pool, &rpc_client, &block, &account, &pagination).await;
-        insta::assert_debug_snapshot!(nft_count_dev);
-        // let nft_count = get_nft_count(&pool, &rpc_client, &block, &account, &pagination).await;
-        // assert_eq!(nft_count_dev, nft_count);
     }
 
     #[tokio::test]
@@ -764,9 +685,8 @@ mod tests {
         insta::assert_debug_snapshot!(history);
     }
 
-    // TODO PHASE 1 we should fix this by removing logs from the DB produced by failed tx
     #[tokio::test]
-    async fn test_nft_history_broken() {
+    async fn test_nft_history_with_no_failed_receipts_in_result() {
         let (pool, _, block) = init().await;
         let contract = near_primitives::types::AccountId::from_str("thebullishbulls.near").unwrap();
         let token = "1349";
