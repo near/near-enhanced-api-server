@@ -214,7 +214,7 @@ mod tests {
         )
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn test_ft_balance() {
         let (rpc_client, block_height) = init();
         let contract = near_primitives::types::AccountId::from_str("usn").unwrap();
@@ -226,7 +226,7 @@ mod tests {
         assert_eq!(17201878399999996928, balance);
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn test_ft_contract_metadata() {
         let (rpc_client, block_height) = init();
         let contract = near_primitives::types::AccountId::from_str("usn").unwrap();
@@ -235,7 +235,7 @@ mod tests {
         insta::assert_debug_snapshot!(metadata);
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn test_ft_contract_metadata_no_contract_deployed() {
         let (rpc_client, block_height) = init();
         let contract = near_primitives::types::AccountId::from_str("olga.near").unwrap();
@@ -244,7 +244,7 @@ mod tests {
         insta::assert_debug_snapshot!(metadata);
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn test_ft_contract_metadata_other_contract_deployed() {
         let (rpc_client, block_height) = init();
         let contract = near_primitives::types::AccountId::from_str("comic.paras.near").unwrap();
@@ -253,7 +253,7 @@ mod tests {
         insta::assert_debug_snapshot!(metadata);
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn test_nft_contract_metadata() {
         let (rpc_client, block_height) = init();
         let contract = near_primitives::types::AccountId::from_str("comic.paras.near").unwrap();
@@ -262,7 +262,7 @@ mod tests {
         insta::assert_debug_snapshot!(metadata);
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn test_nft_contract_metadata_no_contract_deployed() {
         let (rpc_client, block_height) = init();
         let contract = near_primitives::types::AccountId::from_str("olga.near").unwrap();
@@ -271,7 +271,7 @@ mod tests {
         insta::assert_debug_snapshot!(metadata);
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn test_nft_contract_metadata_other_contract_deployed() {
         let (rpc_client, block_height) = init();
         let contract = near_primitives::types::AccountId::from_str("usn").unwrap();
@@ -280,7 +280,7 @@ mod tests {
         insta::assert_debug_snapshot!(metadata);
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn test_nft_contract_metadata_broken_contract() {
         let (rpc_client, block_height) = init();
         let contract = near_primitives::types::AccountId::from_str("nft.nearapps.near").unwrap();
@@ -291,7 +291,7 @@ mod tests {
 
     // TODO PHASE 1
     // this test gives right result. Compare it with api::test_nft_count_broken
-    #[actix_rt::test]
+    #[tokio::test]
     async fn test_nft_count_dev() {
         let (rpc_client, block_height) = init();
         let contract = near_primitives::types::AccountId::from_str("thebullishbulls.near").unwrap();
@@ -303,7 +303,7 @@ mod tests {
         assert_eq!(nft_count, 0);
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn test_nft_collection() {
         let (rpc_client, block_height) = init();
         let contract =
@@ -314,7 +314,7 @@ mod tests {
         insta::assert_debug_snapshot!(nfts);
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn test_nft_metadata() {
         let (rpc_client, block_height) = init();
         let contract = near_primitives::types::AccountId::from_str("x.paras.near").unwrap();
@@ -324,7 +324,7 @@ mod tests {
         insta::assert_debug_snapshot!(nft);
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn test_nft_metadata_token_does_not_exist() {
         let (rpc_client, block_height) = init();
         let contract = near_primitives::types::AccountId::from_str("x.paras.near").unwrap();

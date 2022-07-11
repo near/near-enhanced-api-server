@@ -589,7 +589,7 @@ mod tests {
         )
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn test_near_balance() {
         let (pool, _, block) = init().await;
         let account = near_primitives::types::AccountId::from_str("tomato.near").unwrap();
@@ -597,7 +597,7 @@ mod tests {
         insta::assert_debug_snapshot!(balance);
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn test_ft_balance() {
         let (pool, rpc_client, block) = init().await;
         let account = near_primitives::types::AccountId::from_str("patagonita.near").unwrap();
@@ -606,7 +606,7 @@ mod tests {
         insta::assert_debug_snapshot!(balance);
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn test_ft_balance_no_fts() {
         let (pool, rpc_client, block) = init().await;
         let account = near_primitives::types::AccountId::from_str("olga.near").unwrap();
@@ -617,7 +617,7 @@ mod tests {
         assert!(balance.is_empty());
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn test_ft_balance_for_contract() {
         let (_, rpc_client, block) = init().await;
         let contract = near_primitives::types::AccountId::from_str("nexp.near").unwrap();
@@ -627,7 +627,7 @@ mod tests {
         insta::assert_debug_snapshot!(balance);
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn test_ft_balance_for_contract_no_contract_deployed() {
         let (_, rpc_client, block) = init().await;
         let contract = near_primitives::types::AccountId::from_str("olga.near").unwrap();
@@ -637,7 +637,7 @@ mod tests {
         insta::assert_debug_snapshot!(balance);
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn test_ft_balance_for_contract_other_contract_deployed() {
         let (_, rpc_client, block) = init().await;
         let contract = near_primitives::types::AccountId::from_str("comic.paras.near").unwrap();
@@ -647,7 +647,7 @@ mod tests {
         insta::assert_debug_snapshot!(balance);
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn test_near_history() {
         let (_, _, block) = init().await;
         // Using the other pool because we have this table at the other DB
@@ -667,7 +667,7 @@ mod tests {
         insta::assert_debug_snapshot!(balance);
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn test_ft_history() {
         let (pool, rpc_client, block) = init().await;
         let contract = near_primitives::types::AccountId::from_str("usn").unwrap();
@@ -682,7 +682,7 @@ mod tests {
         insta::assert_debug_snapshot!(balance);
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn test_nft_count() {
         let (pool, rpc_client, block) = init().await;
         let account = near_primitives::types::AccountId::from_str("blondjesus.near").unwrap();
@@ -692,7 +692,7 @@ mod tests {
         insta::assert_debug_snapshot!(nft_count);
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn test_nft_count_no_nfts() {
         let (pool, rpc_client, block) = init().await;
         let account = near_primitives::types::AccountId::from_str("frol.near").unwrap();
@@ -704,7 +704,7 @@ mod tests {
         assert!(nft_count.is_empty());
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn test_nft_count_with_contracts_with_no_metadata() {
         let (pool, rpc_client, block) = init().await;
         let account = near_primitives::types::AccountId::from_str("vlad.near").unwrap();
@@ -715,7 +715,7 @@ mod tests {
     }
 
     // this test gives broken result. Compare it with rpc_api::test_nft_count_dev and api::test_nft_count_dev
-    #[actix_rt::test]
+    #[tokio::test]
     async fn test_nft_count_broken() {
         let (pool, rpc_client, block) = init().await;
         let account = near_primitives::types::AccountId::from_str("kbneoburner3.near").unwrap();
@@ -736,7 +736,7 @@ mod tests {
         assert_eq!(broken_count, 8);
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn test_nft_count_dev() {
         let (pool, rpc_client, block) = init().await;
         let account = near_primitives::types::AccountId::from_str("kbneoburner3.near").unwrap();
@@ -749,7 +749,7 @@ mod tests {
         // assert_eq!(nft_count_dev, nft_count);
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn test_nft_history() {
         let (pool, _, block) = init().await;
         let contract = near_primitives::types::AccountId::from_str("x.paras.near").unwrap();
@@ -765,7 +765,7 @@ mod tests {
     }
 
     // TODO PHASE 1 we should fix this by removing logs from the DB produced by failed tx
-    #[actix_rt::test]
+    #[tokio::test]
     async fn test_nft_history_broken() {
         let (pool, _, block) = init().await;
         let contract = near_primitives::types::AccountId::from_str("thebullishbulls.near").unwrap();
@@ -780,7 +780,7 @@ mod tests {
         insta::assert_debug_snapshot!(history);
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn test_nft_history_token_does_not_exist() {
         let (pool, _, block) = init().await;
         let contract = near_primitives::types::AccountId::from_str("x.paras.near").unwrap();

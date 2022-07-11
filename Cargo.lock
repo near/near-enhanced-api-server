@@ -125,7 +125,6 @@ version = "2.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7ea16c295198e958ef31930a6ef37d0fb64e9ca3b6116e6b93a8bdae96ee1000"
 dependencies = [
- "actix-macros",
  "futures-core",
  "tokio",
 ]
@@ -157,23 +156,6 @@ dependencies = [
  "futures-core",
  "paste",
  "pin-project-lite",
-]
-
-[[package]]
-name = "actix-tls"
-version = "3.0.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9fde0cf292f7cdc7f070803cb9a0d45c018441321a78b1042ffbbb81ec333297"
-dependencies = [
- "actix-codec",
- "actix-rt",
- "actix-service",
- "actix-utils",
- "futures-core",
- "http",
- "log",
- "pin-project-lite",
- "tokio-util",
 ]
 
 [[package]]
@@ -337,40 +319,6 @@ name = "autocfg"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d468802bab17cbc0cc575e9b053f41e72aa36bfa6b7f55e3529ffa43161b97fa"
-
-[[package]]
-name = "awc"
-version = "3.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "65c60c44fbf3c8cee365e86b97d706e513b733c4eeb16437b45b88d2fffe889a"
-dependencies = [
- "actix-codec",
- "actix-http",
- "actix-rt",
- "actix-service",
- "actix-tls",
- "actix-utils",
- "ahash",
- "base64 0.13.0",
- "bytes",
- "cfg-if 1.0.0",
- "cookie",
- "derive_more",
- "futures-core",
- "futures-util",
- "h2",
- "http",
- "itoa",
- "log",
- "mime",
- "percent-encoding",
- "pin-project-lite",
- "rand 0.8.5",
- "serde",
- "serde_json",
- "serde_urlencoded",
- "tokio",
-]
 
 [[package]]
 name = "base64"
@@ -1581,12 +1529,9 @@ dependencies = [
 name = "near-enhanced-api"
 version = "0.1.0"
 dependencies = [
- "actix",
  "actix-cors",
  "actix-http",
- "actix-rt",
  "actix-web",
- "awc",
  "borsh",
  "derive_more",
  "dotenv",

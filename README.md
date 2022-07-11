@@ -8,7 +8,7 @@ Still under heavy development.
 - Provide FT balances information, recent FT coin history for the contracts implementing Events NEP
 - Provide NFT information and recent history for the contracts implementing Events NEP
 - Provide corresponding Metadata for FT, NFT contracts, NFT items
-- Collect usage statistics which could help us to prioritize next steps
+- [aspirational] Collect usage statistics which could help us to prioritize next steps
 
 Note, Phase 1 will **not** provide pagination through all the history.
 Phase 1 also does **not** provide the information about contracts which are not upgraded to Events NEP.

@@ -92,8 +92,10 @@ pub struct NftResponse {
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub struct NearHistoryResponse {
-    pub near_history: Vec<NearHistoryItem>,
-    pub near_metadata: Metadata,
+    // TODO PHASE 1 this interface should be as CoinHistoryItem
+    pub coin_history: Vec<NearHistoryItem>,
+    // TODO PHASE 1 do we need to serve contract metadata at history at all?
+    pub contract_metadata: Metadata,
     pub block_timestamp_nanos: super::types::U64,
     pub block_height: super::types::U64,
 }
@@ -118,7 +120,7 @@ pub struct NftHistoryResponse {
     // TODO PHASE 1 naming. nft_history? history?
     // Metadata: aLso think about MT, there will be also token_metadata. Should we name it coin_metadata? We can use here nft_metadata to avoid interceptions
     pub token_history: Vec<NftHistoryItem>,
-    pub token_metadata: NonFungibleToken,
+    pub token: NonFungibleToken,
     pub contract_metadata: NftContractMetadata,
     pub block_timestamp_nanos: super::types::U64,
     pub block_height: super::types::U64,
@@ -144,19 +146,18 @@ pub struct NftContractMetadataResponse {
 
 /// This type describes general coin information.
 /// It is used for NEAR, FT balances, could be used for Multi Tokens.
-/// `standard`: "nearprotocol" for NEAR, "nep141" for FT.
+///
 /// For MTs and other standards, we could have multiple coins for one contract.
 /// For NEAR and FTs, coin_metadata contains general metadata (the only available option, though).
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub struct Coin {
+    /// "nearprotocol" for NEAR, "nep141" for FT
     pub standard: String,
     // TODO PHASE 1 (idea) it would be great to match this naming with `NearBalanceResponse.total_balance`
     // because we can add here staking info later. This name could always give the answer about total balance
     pub balance: super::types::U128,
-    // TODO PHASE 1 if we use `near` here for NEAR, we can make it not null.
-    // But, it could feel weird because we restrict use `near` (lowercase) at the endpoints.
-    // Maybe redirect people to NEAR on our side + make this not null?
+    /// null for NEAR, not null otherwise
     pub contract_account_id: Option<super::types::AccountId>,
     pub coin_metadata: Metadata,
     // TODO PHASE 1 (idea) I think it would be great to add here the info about last update moment. Timestamp, later also index

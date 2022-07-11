@@ -14,8 +14,6 @@ mod rpc_api;
 pub mod types;
 mod utils;
 
-// TODO PHASE 1 I want to add stats collection. Do we have time for that?
-// TODO PHASE 1 I had the note "add overflow docs everywhere". Now I feel we don't need that
 const DEFAULT_PAGE_LIMIT: u32 = 20;
 const MAX_PAGE_LIMIT: u32 = 100;
 
@@ -100,7 +98,6 @@ pub async fn get_balances_by_contract(
     request: web::Path<api_models::BalanceByContractRequest>,
     block_params: web::Query<api_models::BlockParams>,
 ) -> api_models::Result<Json<api_models::CoinBalancesResponse>> {
-    // TODO PHASE 1 do we want to redirect to NEAR balance? The format of the response will change
     if request.contract_account_id.to_string() == "near" {
         return Err(errors::ErrorKind::InvalidInput(
             "For native balance, please use NEAR (uppercase)".to_string(),
@@ -171,7 +168,6 @@ pub async fn get_nft_collection_overview(
 
 // TODO PHASE 1 MAJOR ISSUE we should fix the DB and ignore failed receipts/transactions while collecting the data about FTs/NFTs
 // after that, we need to re-check all this stuff again, maybe it's not the only issue here
-// By the way, we need to check who should fix that (I mean, sometimes it's the the contract who should log the opposite movement of the token)
 #[api_v2_operation]
 /// Issues with the contracts: thebullishbulls.near x.paras.near
 ///
@@ -308,9 +304,9 @@ pub async fn get_near_history(
         utils::check_and_get_history_pagination_params(&pool, &pagination_params).await?;
 
     Ok(Json(api_models::NearHistoryResponse {
-        near_history: api::get_near_history(&pool_balances.pool, &request.account_id, &pagination)
+        coin_history: api::get_near_history(&pool_balances.pool, &request.account_id, &pagination)
             .await?,
-        near_metadata: api::get_near_metadata(),
+        contract_metadata: api::get_near_metadata(),
         block_timestamp_nanos: types::U64::from(block.timestamp),
         block_height: types::U64::from(block.height),
     }))
@@ -384,7 +380,7 @@ pub async fn get_nft_history(
             &pagination,
         )
         .await?,
-        token_metadata: rpc_api::get_nft_metadata(
+        token: rpc_api::get_nft_metadata(
             &rpc_client,
             request.contract_account_id.0.clone(),
             request.token_id.clone(),
