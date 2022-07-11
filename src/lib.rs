@@ -42,8 +42,7 @@ pub async fn get_near_balance(
 /// This endpoint returns all the countable coin balances (including NEAR, FTs, later will add MTs)
 /// of the given account_id, for the given timestamp/block_height.
 ///
-/// ** Limitations **
-///
+/// **Limitations**
 /// * For now, we support only the balance for NEAR and FT contracts which implement Events NEP.
 ///   We work on the solution to support the other FT contracts, including `wrap.near` and bridged tokens.
 /// * We are in the process of supporting Multi Token balances.
@@ -98,8 +97,7 @@ pub async fn get_coin_balances(
 /// For FT contract, the response has only 1 item in the list.
 /// For MT contracts, there could be several balances (MT support is not ready yet).
 ///
-/// ** Limitations **
-///
+/// **Limitations**
 /// * For now, we support only the balance for FT contracts which implement Events NEP.
 ///   We work on the solution to support the other FT contracts, including `wrap.near` and bridged tokens.
 /// * We are in the process of supporting Multi Token balances.
@@ -147,8 +145,7 @@ pub async fn get_balances_by_contract(
 ///
 /// `block_timestamp_nanos` helps you to choose the moment of time, we fix the blockchain state at that time.
 ///
-/// ** Limitations **
-///
+/// **Limitations**
 /// * We provide only up to 100 items, where recently updated data goes first.
 ///   Full-featured pagination will be provided later.
 pub async fn get_nft_collection_overview(
@@ -185,8 +182,7 @@ pub async fn get_nft_collection_overview(
 /// for the given account_id, NFT contract_id, timestamp/block_height.
 /// You can copy the token_id from this response and then ask for NFT history.
 ///
-/// ** Limitations **
-///
+/// **Limitations**
 /// * We provide only up to 100 items.
 ///   Full-featured pagination will be provided later.
 pub async fn get_nft_collection_by_contract(
@@ -260,8 +256,7 @@ pub async fn get_nft_item_details(
 /// This endpoint returns the history of operations with NEAR coin
 /// for the given account_id, timestamp/block_height.
 ///
-/// ** Limitations **
-///
+/// **Limitations**
 /// * We provide only up to 100 items, where recent updates go first.
 ///   Full-featured pagination will be provided later.
 pub async fn get_near_history(
@@ -290,8 +285,7 @@ pub async fn get_near_history(
 /// This endpoint returns the history of coin operations (FT, other standards)
 /// for the given account_id, contract_id, timestamp/block_height.
 ///
-/// ** Limitations **
-///
+/// **Limitations**
 /// * For now, we support only FT contracts which implement Events NEP.
 ///   We work on the solution to support the other FT contracts, including `wrap.near` and bridged tokens.
 /// * We are in the process of supporting Multi Token history.
@@ -340,8 +334,7 @@ pub async fn get_coin_history(
 /// This endpoint returns the history of operations for the given NFT and timestamp/block_height.
 /// Keep in mind, it does not related to a concrete account_id; the whole history is shown.
 ///
-/// ** Limitations **
-///
+/// **Limitations**
 /// * For now, we support only NFT contracts which implement Events NEP.
 /// * We provide only up to 100 items, where recent updates go first.
 ///   Full-featured pagination will be provided later.
@@ -386,8 +379,7 @@ pub async fn get_nft_history(
 ///
 /// This endpoint returns the metadata for given FT contract and timestamp/block_height.
 ///
-/// ** Limitations **
-///
+/// **Limitations**
 /// * For now, we support only FT contracts which implement Events NEP.
 ///   We work on the solution to support the other FT contracts, including `wrap.near` and bridged tokens.
 pub async fn get_ft_contract_metadata(
