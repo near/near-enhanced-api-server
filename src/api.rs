@@ -512,7 +512,6 @@ pub(crate) async fn get_last_block(
 mod tests {
     use super::*;
 
-    // TODO PHASE 1 flaky tests! thread 'api::tests::...' panicked at 'dispatch dropped without returning error
     async fn init() -> (
         sqlx::Pool<sqlx::Postgres>,
         near_jsonrpc_client::JsonRpcClient,
@@ -521,12 +520,13 @@ mod tests {
         dotenv::dotenv().ok();
         let db_url = &std::env::var("DATABASE_URL").expect("failed to get database url");
         let rpc_url = &std::env::var("RPC_URL").expect("failed to get RPC url");
+        let connector = near_jsonrpc_client::JsonRpcClient::new_client();
 
         (
             sqlx::PgPool::connect(db_url)
                 .await
                 .expect("failed to connect to the database"),
-            near_jsonrpc_client::JsonRpcClient::connect(rpc_url),
+            connector.connect(rpc_url),
             types::Block {
                 timestamp: 1655571176644255779,
                 height: 68000000,

@@ -189,10 +189,8 @@ mod tests {
     fn init() -> (near_jsonrpc_client::JsonRpcClient, u64) {
         dotenv::dotenv().ok();
         let rpc_url = &std::env::var("RPC_URL").expect("failed to get RPC url");
-        (
-            near_jsonrpc_client::JsonRpcClient::connect(rpc_url),
-            68000000,
-        )
+        let connector = near_jsonrpc_client::JsonRpcClient::new_client();
+        (connector.connect(rpc_url), 68000000)
     }
 
     #[tokio::test]
