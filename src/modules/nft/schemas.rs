@@ -55,12 +55,9 @@ pub struct NftResponse {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
-pub struct NftHistoryResponse {
-    // TODO PHASE 1 naming. nft_history? history?
-    // Metadata: aLso think about MT, there will be also token_metadata. Should we name it coin_metadata? We can use here nft_metadata to avoid interceptions
-    pub history: Vec<NftHistoryItem>,
+pub struct HistoryResponse {
+    pub history: Vec<HistoryItem>,
     pub nft: Nft,
-    pub contract_metadata: NftContractMetadata,
     pub block_timestamp_nanos: types::U64,
     pub block_height: types::U64,
 }
@@ -76,11 +73,11 @@ pub struct MetadataResponse {
 
 /// This type describes the history of NFT movements.
 /// Note, it's not attached to any user, it's the whole history of NFT movements.
-/// `action_kind` is one of ["mint", "transfer", "burn"]
+/// `cause` is one of ["mint", "transfer", "burn"]
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
-pub struct NftHistoryItem {
+pub struct HistoryItem {
     // todo add status
-    pub action_kind: String,
+    pub cause: String,
     pub old_account_id: Option<types::AccountId>,
     pub new_account_id: Option<types::AccountId>,
     // TODO PHASE 2 add index here

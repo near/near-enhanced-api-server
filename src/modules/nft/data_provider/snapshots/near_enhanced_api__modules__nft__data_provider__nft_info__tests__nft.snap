@@ -1,5 +1,5 @@
 ---
-source: src/modules/nft/data_provider/collection.rs
+source: src/modules/nft/data_provider/nft_info.rs
 expression: nft
 ---
 Ok(

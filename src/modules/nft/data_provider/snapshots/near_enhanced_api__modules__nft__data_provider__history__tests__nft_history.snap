@@ -4,8 +4,8 @@ expression: history
 ---
 Ok(
     [
-        NftHistoryItem {
-            action_kind: "TRANSFER",
+        HistoryItem {
+            cause: "TRANSFER",
             old_account_id: Some(
                 AccountId(
                     "kbneoburner3.near",
@@ -23,8 +23,8 @@ Ok(
                 61367286,
             ),
         },
-        NftHistoryItem {
-            action_kind: "TRANSFER",
+        HistoryItem {
+            cause: "TRANSFER",
             old_account_id: Some(
                 AccountId(
                     "thewilderness.near",
@@ -42,8 +42,8 @@ Ok(
                 61367051,
             ),
         },
-        NftHistoryItem {
-            action_kind: "MINT",
+        HistoryItem {
+            cause: "MINT",
             old_account_id: None,
             new_account_id: Some(
                 AccountId(

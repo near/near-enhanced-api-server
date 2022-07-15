@@ -7,7 +7,7 @@ pub(crate) async fn get_nft_history(
     contract_id: &near_primitives::types::AccountId,
     token_id: &str,
     pagination: &types::query_params::HistoryPagination,
-) -> crate::Result<Vec<nft::schemas::NftHistoryItem>> {
+) -> crate::Result<Vec<nft::schemas::HistoryItem>> {
     let query = r"
         SELECT event_kind::text action_kind,
                token_old_owner_account_id old_account_id,
@@ -36,19 +36,19 @@ pub(crate) async fn get_nft_history(
     )
     .await?;
 
-    let mut result: Vec<nft::schemas::NftHistoryItem> = vec![];
+    let mut result: Vec<nft::schemas::HistoryItem> = vec![];
     for history in history_items {
         result.push(history.try_into()?);
     }
     Ok(result)
 }
 
-impl TryFrom<super::models::NftHistoryInfo> for nft::schemas::NftHistoryItem {
+impl TryFrom<super::models::NftHistoryInfo> for nft::schemas::HistoryItem {
     type Error = errors::Error;
 
     fn try_from(info: super::models::NftHistoryInfo) -> crate::Result<Self> {
         Ok(Self {
-            action_kind: info.action_kind,
+            cause: info.action_kind,
             old_account_id: types::account_id::extract_account_id(&info.old_account_id)?
                 .map(|account| account.into()),
             new_account_id: types::account_id::extract_account_id(&info.new_account_id)?

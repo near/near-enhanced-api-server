@@ -33,7 +33,7 @@ pub async fn get_nft_collection_overview(
 
     Ok(Json(schemas::NftCountsResponse {
         // TODO PHASE 2 We can data_provider metadata in the DB and update once in 10 minutes
-        nft_counts: super::data_provider::get_nft_count(
+        nft_counts: super::data_provider::get_nfts_count(
             &pool,
             &rpc_client,
             &block,
@@ -70,7 +70,7 @@ pub async fn get_nft_collection_by_contract(
     let pagination = types::query_params::Pagination::from(pagination_params.0);
 
     Ok(Json(schemas::NftCollectionResponse {
-        nft_collection: super::data_provider::get_nft_collection(
+        nft_collection: super::data_provider::get_nfts_by_contract(
             &rpc_client,
             request.contract_account_id.0.clone(),
             request.account_id.0.clone(),
@@ -137,12 +137,12 @@ pub async fn get_nft_history(
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     request: web::Path<schemas::NftRequest>,
     pagination_params: web::Query<types::query_params::HistoryPaginationParams>,
-) -> crate::Result<Json<schemas::NftHistoryResponse>> {
+) -> crate::Result<Json<schemas::HistoryResponse>> {
     let block = db_helpers::get_last_block(&pool).await?;
     let pagination =
         modules::check_and_get_history_pagination_params(&pool, pagination_params.0).await?;
 
-    Ok(Json(schemas::NftHistoryResponse {
+    Ok(Json(schemas::HistoryResponse {
         history: super::data_provider::get_nft_history(
             &pool,
             &request.contract_account_id.0,
@@ -154,12 +154,6 @@ pub async fn get_nft_history(
             &rpc_client,
             request.contract_account_id.0.clone(),
             request.token_id.clone(),
-            block.height,
-        )
-        .await?,
-        contract_metadata: super::data_provider::get_nft_contract_metadata(
-            &rpc_client,
-            request.contract_account_id.0.clone(),
             block.height,
         )
         .await?,

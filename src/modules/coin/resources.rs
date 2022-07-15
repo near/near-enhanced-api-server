@@ -170,7 +170,7 @@ pub async fn get_near_history(
 pub async fn get_coin_history(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
-    request: web::Path<schemas::BalanceHistoryRequest>,
+    request: web::Path<schemas::HistoryRequest>,
     pagination_params: web::Query<types::query_params::HistoryPaginationParams>,
 ) -> crate::Result<Json<schemas::HistoryResponse>> {
     if request.contract_account_id.to_string() == "near" {

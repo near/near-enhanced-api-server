@@ -4,8 +4,8 @@ expression: history
 ---
 Ok(
     [
-        NftHistoryItem {
-            action_kind: "TRANSFER",
+        HistoryItem {
+            cause: "TRANSFER",
             old_account_id: Some(
                 AccountId(
                     "staking.paras.near",
@@ -23,8 +23,8 @@ Ok(
                 64008270,
             ),
         },
-        NftHistoryItem {
-            action_kind: "TRANSFER",
+        HistoryItem {
+            cause: "TRANSFER",
             old_account_id: Some(
                 AccountId(
                     "9c89db18ec9cc9e29f1c717b88b2dade5897e8150adaa7461c83391d8b3704b9",
@@ -42,8 +42,8 @@ Ok(
                 63949217,
             ),
         },
-        NftHistoryItem {
-            action_kind: "TRANSFER",
+        HistoryItem {
+            cause: "TRANSFER",
             old_account_id: Some(
                 AccountId(
                     "wancu.near",
@@ -61,8 +61,8 @@ Ok(
                 63942175,
             ),
         },
-        NftHistoryItem {
-            action_kind: "TRANSFER",
+        HistoryItem {
+            cause: "TRANSFER",
             old_account_id: Some(
                 AccountId(
                     "staking.paras.near",
@@ -80,8 +80,8 @@ Ok(
                 63698908,
             ),
         },
-        NftHistoryItem {
-            action_kind: "TRANSFER",
+        HistoryItem {
+            cause: "TRANSFER",
             old_account_id: Some(
                 AccountId(
                     "wancu.near",
@@ -99,8 +99,8 @@ Ok(
                 61819311,
             ),
         },
-        NftHistoryItem {
-            action_kind: "MINT",
+        HistoryItem {
+            cause: "MINT",
             old_account_id: None,
             new_account_id: Some(
                 AccountId(

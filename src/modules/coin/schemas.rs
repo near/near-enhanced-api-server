@@ -17,7 +17,7 @@ pub struct BalanceByContractRequest {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
-pub struct BalanceHistoryRequest {
+pub struct HistoryRequest {
     pub account_id: types::AccountId,
     pub contract_account_id: types::AccountId,
 }

@@ -6,7 +6,7 @@ use borsh::{BorshDeserialize, BorshSerialize};
 use serde::{Deserialize, Serialize};
 
 // TODO PHASE 2 pagination by artificial index added to assets__non_fungible_token_events
-pub(crate) async fn get_nft_count(
+pub(crate) async fn get_nfts_count(
     pool: &sqlx::Pool<sqlx::Postgres>,
     rpc_client: &near_jsonrpc_client::JsonRpcClient,
     block: &db_helpers::Block,
@@ -92,7 +92,7 @@ pub(crate) async fn get_nft_count(
     Ok(result)
 }
 
-pub(crate) async fn get_nft_collection(
+pub(crate) async fn get_nfts_by_contract(
     rpc_client: &near_jsonrpc_client::JsonRpcClient,
     contract_id: near_primitives::types::AccountId,
     account_id: near_primitives::types::AccountId,
@@ -216,64 +216,64 @@ mod tests {
     use crate::modules::tests::*;
 
     #[tokio::test]
-    async fn test_nft_count() {
+    async fn test_nfts_count() {
         let pool = init_db().await;
         let rpc_client = init_rpc();
         let block = get_block();
         let account = near_primitives::types::AccountId::from_str("blondjesus.near").unwrap();
         let pagination = types::query_params::PaginationParams { limit: Some(10) };
 
-        let nft_count = get_nft_count(&pool, &rpc_client, &block, &account, pagination).await;
+        let nft_count = get_nfts_count(&pool, &rpc_client, &block, &account, pagination).await;
         insta::assert_debug_snapshot!(nft_count);
     }
 
     #[tokio::test]
-    async fn test_nft_count_empty() {
+    async fn test_nfts_count_empty() {
         let pool = init_db().await;
         let rpc_client = init_rpc();
         let block = get_block();
         let account = near_primitives::types::AccountId::from_str("frol.near").unwrap();
         let pagination = types::query_params::PaginationParams { limit: None };
 
-        let nft_count = get_nft_count(&pool, &rpc_client, &block, &account, pagination)
+        let nft_count = get_nfts_count(&pool, &rpc_client, &block, &account, pagination)
             .await
             .unwrap();
         assert!(nft_count.is_empty());
     }
 
     #[tokio::test]
-    async fn test_nft_count_with_contracts_with_no_metadata() {
+    async fn test_nfts_count_with_contracts_with_no_metadata() {
         let pool = init_db().await;
         let rpc_client = init_rpc();
         let block = get_block();
         let account = near_primitives::types::AccountId::from_str("vlad.near").unwrap();
         let pagination = types::query_params::PaginationParams { limit: Some(10) };
 
-        let nft_count = get_nft_count(&pool, &rpc_client, &block, &account, pagination).await;
+        let nft_count = get_nfts_count(&pool, &rpc_client, &block, &account, pagination).await;
         insta::assert_debug_snapshot!(nft_count);
     }
 
     #[tokio::test]
-    async fn test_nft_count_with_no_failed_receipts_in_result() {
+    async fn test_nfts_count_with_no_failed_receipts_in_result() {
         let pool = init_db().await;
         let rpc_client = init_rpc();
         let block = get_block();
         let account = near_primitives::types::AccountId::from_str("kbneoburner3.near").unwrap();
         let pagination = types::query_params::PaginationParams { limit: None };
 
-        let nft_count = get_nft_count(&pool, &rpc_client, &block, &account, pagination).await;
+        let nft_count = get_nfts_count(&pool, &rpc_client, &block, &account, pagination).await;
         insta::assert_debug_snapshot!(nft_count);
     }
 
     #[tokio::test]
-    async fn test_nft_collection() {
+    async fn test_nfts_by_contract() {
         let rpc_client = init_rpc();
         let block = get_block();
         let contract =
             near_primitives::types::AccountId::from_str("billionairebullsclub.near").unwrap();
         let account = near_primitives::types::AccountId::from_str("olenavorobei.near").unwrap();
 
-        let nfts = get_nft_collection(&rpc_client, contract, account, block.height, 4).await;
+        let nfts = get_nfts_by_contract(&rpc_client, contract, account, block.height, 4).await;
         insta::assert_debug_snapshot!(nfts);
     }
 
