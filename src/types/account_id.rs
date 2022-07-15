@@ -38,11 +38,9 @@ impl TypedData for AccountId {
 pub(crate) fn extract_account_id(
     account_id: &str,
 ) -> crate::Result<Option<near_primitives::types::AccountId>> {
-    if account_id.is_empty() {
-        Ok(None)
+    Ok(if account_id.is_empty() {
+        None
     } else {
-        Ok(Some(near_primitives::types::AccountId::from_str(
-            account_id,
-        )?))
-    }
+        Some(near_primitives::types::AccountId::from_str(account_id)?)
+    })
 }

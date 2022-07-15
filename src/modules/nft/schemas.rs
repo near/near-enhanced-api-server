@@ -1,33 +1,25 @@
 use paperclip::actix::Apiv2Schema;
 
 use crate::types;
+
 // *** Requests ***
 
-// todo rename and drop unused
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
-pub struct BalanceRequest {
+pub struct NftCountsRequest {
     pub account_id: types::AccountId,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
-pub struct BalanceByContractRequest {
-    pub account_id: types::AccountId,
-    pub contract_account_id: types::AccountId,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
-pub struct BalanceHistoryRequest {
+pub struct NftCollectionRequest {
     pub account_id: types::AccountId,
     pub contract_account_id: types::AccountId,
 }
 
 // duplicate in each folder
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
-pub struct ContractMetadataRequest {
+pub struct MetadataRequest {
     pub contract_account_id: types::AccountId,
 }
-
-// *** Responses ***
 
 /// `token_id` is available at `NftCollectionByContractResponse`
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
@@ -36,19 +28,19 @@ pub struct NftRequest {
     pub token_id: String,
 }
 
+// *** Responses ***
+
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
-pub struct NftCollectionOverviewResponse {
-    // TODO PHASE 1 naming
-    // NFTSometing or NftSomething? I prefer the second one, inspired by https://medium.com/fantageek/using-camelcase-for-abbreviations-232eb67d872
-    pub nft_collection_overview: Vec<NftCollectionByContract>,
+pub struct NftCountsResponse {
+    pub nft_counts: Vec<NftCount>,
     pub block_timestamp_nanos: types::U64,
     pub block_height: types::U64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
-pub struct NftCollectionByContractResponse {
+pub struct NftCollectionResponse {
     // TODO PHASE 1 naming
-    pub nft_collection: Vec<NonFungibleToken>,
+    pub nft_collection: Vec<Nft>,
     pub contract_metadata: NftContractMetadata,
     pub block_timestamp_nanos: types::U64,
     pub block_height: types::U64,
@@ -56,7 +48,7 @@ pub struct NftCollectionByContractResponse {
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 pub struct NftResponse {
-    pub nft: NonFungibleToken,
+    pub nft: Nft,
     pub contract_metadata: NftContractMetadata,
     pub block_timestamp_nanos: types::U64,
     pub block_height: types::U64,
@@ -66,16 +58,16 @@ pub struct NftResponse {
 pub struct NftHistoryResponse {
     // TODO PHASE 1 naming. nft_history? history?
     // Metadata: aLso think about MT, there will be also token_metadata. Should we name it coin_metadata? We can use here nft_metadata to avoid interceptions
-    pub token_history: Vec<NftHistoryItem>,
-    pub token: NonFungibleToken,
+    pub history: Vec<NftHistoryItem>,
+    pub nft: Nft,
     pub contract_metadata: NftContractMetadata,
     pub block_timestamp_nanos: types::U64,
     pub block_height: types::U64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
-pub struct NftContractMetadataResponse {
-    pub contract_metadata: NftContractMetadata,
+pub struct MetadataResponse {
+    pub metadata: NftContractMetadata,
     pub block_timestamp_nanos: types::U64,
     pub block_height: types::U64,
 }
@@ -87,6 +79,7 @@ pub struct NftContractMetadataResponse {
 /// `action_kind` is one of ["mint", "transfer", "burn"]
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 pub struct NftHistoryItem {
+    // todo add status
     pub action_kind: String,
     pub old_account_id: Option<types::AccountId>,
     pub new_account_id: Option<types::AccountId>,
@@ -97,7 +90,7 @@ pub struct NftHistoryItem {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
-pub struct NftCollectionByContract {
+pub struct NftCount {
     pub contract_account_id: types::AccountId,
     pub nft_count: u32,
     // TODO PHASE 1 naming.
@@ -121,10 +114,10 @@ pub struct NftContractMetadata {
 /// The type for Non Fungible Token. Inspired by
 /// https://nomicon.io/Standards/Tokens/NonFungibleToken/Metadata
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
-pub struct NonFungibleToken {
+pub struct Nft {
     pub token_id: String,
     pub owner_account_id: String,
-    pub token_metadata: NftItemMetadata,
+    pub metadata: NftMetadata,
     // TODO PHASE 1 do we want to show them? People often put here weird things
     // pub approved_account_ids: Option<std::collections::HashMap<AccountId, u64>>,
 }
@@ -132,7 +125,7 @@ pub struct NonFungibleToken {
 /// The type for Non Fungible Token Metadata. Inspired by
 /// https://nomicon.io/Standards/Tokens/NonFungibleToken/Metadata
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
-pub struct NftItemMetadata {
+pub struct NftMetadata {
     pub title: Option<String>, // ex. "Arch Nemesis: Mail Carrier" or "Parcel #5055"
     pub description: Option<String>, // free-form description
     pub media: Option<String>, // URL to associated media, preferably to decentralized, content-addressed data_provider

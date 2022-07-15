@@ -8,16 +8,12 @@ pub(crate) async fn get_near_history(
     balances_pool: &sqlx::Pool<sqlx::Postgres>,
     account_id: &near_primitives::types::AccountId,
     pagination: &types::query_params::HistoryPagination,
-) -> crate::Result<Vec<coin::schemas::NearHistoryItem>> {
+) -> crate::Result<Vec<coin::schemas::HistoryItem>> {
     let query = r"
         SELECT
             involved_account_id,
             delta_nonstaked_amount + delta_staked_amount delta_balance,
-            delta_nonstaked_amount delta_available_balance,
-            delta_staked_amount delta_staked_balance,
-            absolute_nonstaked_amount + absolute_staked_amount total_balance,
-            absolute_nonstaked_amount available_balance,
-            absolute_staked_amount staked_balance,
+            absolute_nonstaked_amount + absolute_staked_amount balance,
             cause,
             block_timestamp block_timestamp_nanos
         FROM balance_changes
@@ -37,7 +33,7 @@ pub(crate) async fn get_near_history(
     )
     .await?;
 
-    let mut result: Vec<coin::schemas::NearHistoryItem> = vec![];
+    let mut result: Vec<coin::schemas::HistoryItem> = vec![];
     for history in history_info {
         result.push(history.try_into()?);
     }
@@ -47,24 +43,33 @@ pub(crate) async fn get_near_history(
 // TODO PHASE 2 pagination by artificial index added to assets__fungible_token_events
 // TODO PHASE 2 change RPC call to DB call by adding absolute amount values to assets__fungible_token_events
 // TODO PHASE 2 make the decision about separate FT/MT tables or one table. Pagination implementation depends on this
-pub(crate) async fn get_ft_history(
+pub(crate) async fn get_coin_history(
     pool: &sqlx::Pool<sqlx::Postgres>,
     rpc_client: &near_jsonrpc_client::JsonRpcClient,
     contract_id: &near_primitives::types::AccountId,
     account_id: &near_primitives::types::AccountId,
     pagination: &types::query_params::HistoryPagination,
-) -> crate::Result<Vec<coin::schemas::CoinHistoryItem>> {
-    let mut last_balance = super::balance::get_ft_balance(
+) -> crate::Result<Vec<coin::schemas::HistoryItem>> {
+    // this is temp solution before we make changes to the DB
+    let mut last_balance = super::balance::get_ft_balance_by_contract(
         rpc_client,
         contract_id.clone(),
         account_id.clone(),
         pagination.block_height,
     )
     .await?;
+    let metadata = coin::schemas::Metadata::from(
+        super::metadata::get_ft_contract_metadata(
+            rpc_client,
+            contract_id.clone(),
+            pagination.block_height,
+        )
+        .await?,
+    );
 
     let account_id = account_id.to_string();
     let query = r"
-        SELECT blocks.block_height,
+        SELECT -- blocks.block_height,
                blocks.block_timestamp,
                assets__fungible_token_events.amount::numeric(45, 0),
                assets__fungible_token_events.event_kind::text,
@@ -80,7 +85,7 @@ pub(crate) async fn get_ft_history(
         ORDER BY emitted_at_block_timestamp desc
         LIMIT $4::numeric(20, 0)
     ";
-    let ft_history_info = db_helpers::select_retry_or_panic::<super::models::FtHistoryInfo>(
+    let history_info = db_helpers::select_retry_or_panic::<super::models::CoinHistoryInfo>(
         pool,
         query,
         &[
@@ -92,8 +97,8 @@ pub(crate) async fn get_ft_history(
     )
     .await?;
 
-    let mut result: Vec<coin::schemas::CoinHistoryItem> = vec![];
-    for db_info in ft_history_info {
+    let mut result: Vec<coin::schemas::HistoryItem> = vec![];
+    for db_info in history_info {
         let mut delta: i128 = types::numeric::to_i128(&db_info.amount)?;
         let balance = last_balance;
         // TODO PHASE 2 maybe we want to change assets__fungible_token_events also to affected/involved?
@@ -120,20 +125,20 @@ pub(crate) async fn get_ft_history(
         }
         last_balance = ((last_balance as i128) - delta) as u128;
 
-        result.push(coin::schemas::CoinHistoryItem {
-            action_kind: db_info.event_kind.clone(),
+        result.push(coin::schemas::HistoryItem {
+            cause: db_info.event_kind.clone(),
             involved_account_id: involved_account_id.map(|id| id.into()),
             delta_balance: delta.into(),
             balance: balance.into(),
-            coin_metadata: None,
+            coin_metadata: metadata.clone(),
             block_timestamp_nanos: types::numeric::to_u64(&db_info.block_timestamp)?.into(),
-            block_height: types::numeric::to_u64(&db_info.block_height)?.into(),
+            // block_height: types::numeric::to_u64(&db_info.block_height)?.into(),
         });
     }
     Ok(result)
 }
 
-impl TryFrom<super::models::NearHistoryInfo> for coin::schemas::NearHistoryItem {
+impl TryFrom<super::models::NearHistoryInfo> for coin::schemas::HistoryItem {
     type Error = errors::Error;
 
     fn try_from(info: super::models::NearHistoryInfo) -> crate::Result<Self> {
@@ -146,12 +151,9 @@ impl TryFrom<super::models::NearHistoryInfo> for coin::schemas::NearHistoryItem 
         Ok(Self {
             involved_account_id,
             delta_balance: types::numeric::to_i128(&info.delta_balance)?.into(),
-            delta_available_balance: types::numeric::to_i128(&info.delta_available_balance)?.into(),
-            delta_staked_balance: types::numeric::to_i128(&info.delta_staked_balance)?.into(),
-            total_balance: types::numeric::to_u128(&info.total_balance)?.into(),
-            available_balance: types::numeric::to_u128(&info.available_balance)?.into(),
-            staked_balance: types::numeric::to_u128(&info.staked_balance)?.into(),
+            balance: types::numeric::to_u128(&info.balance)?.into(),
             cause: info.cause,
+            coin_metadata: super::get_near_metadata(),
             block_timestamp_nanos: types::numeric::to_u64(&info.block_timestamp_nanos)?.into(),
         })
     }
@@ -160,11 +162,13 @@ impl TryFrom<super::models::NearHistoryInfo> for coin::schemas::NearHistoryItem 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::modules::tests::*;
 
     #[tokio::test]
     async fn test_near_history() {
-        let (_, _, block) = init().await;
+        let block = get_block();
         // Using the other pool because we have this table at the other DB
+        dotenv::dotenv().ok();
         let url_balances =
             &std::env::var("DATABASE_URL_BALANCES").expect("failed to get database url");
         let pool = sqlx::PgPool::connect(url_balances)
@@ -183,7 +187,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_coin_history() {
-        let (pool, rpc_client, block) = init().await;
+        let pool = init_db().await;
+        let rpc_client = init_rpc();
+        let block = get_block();
         let contract = near_primitives::types::AccountId::from_str("usn").unwrap();
         let account = near_primitives::types::AccountId::from_str("pushxo.near").unwrap();
         let pagination = types::query_params::HistoryPagination {
@@ -192,7 +198,7 @@ mod tests {
             limit: 10,
         };
 
-        let balance = get_ft_history(&pool, &rpc_client, &contract, &account, &pagination).await;
+        let balance = get_coin_history(&pool, &rpc_client, &contract, &account, &pagination).await;
         insta::assert_debug_snapshot!(balance);
     }
 }

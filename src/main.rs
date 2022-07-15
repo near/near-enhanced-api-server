@@ -4,12 +4,10 @@ use paperclip::actix::{web, OpenApiExt};
 pub(crate) use sqlx::types::BigDecimal;
 
 // todo . instead of account_id error
-
 // todo add status
-// django structure of files and naming
-// near history item: extra details with all extra fields
-// unify the answers
-// flatten?
+// todo near history item: extra details with all extra fields
+// todo unify the answers
+// todo flatten?
 
 mod config;
 mod db_helpers;
@@ -43,29 +41,28 @@ async fn playground_ui() -> impl actix_web::Responder {
         .insert_header(actix_web::http::header::ContentType::html())
         .body(
             r#"<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>NEAR Enhanced API powered by Pagoda - Playground</title>
-    <!-- Embed elements Elements via Web Component -->
-    <script src="https://unpkg.com/@stoplight/elements/web-components.min.js"></script>
-    <link rel="stylesheet" href="https://unpkg.com/@stoplight/elements/styles.min.css">
-  </head>
-  <body>
+                <html lang="en">
+                  <head>
+                    <meta charset="utf-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+                    <title>NEAR Enhanced API powered by Pagoda - Playground</title>
+                    <!-- Embed elements Elements via Web Component -->
+                    <script src="https://unpkg.com/@stoplight/elements/web-components.min.js"></script>
+                    <link rel="stylesheet" href="https://unpkg.com/@stoplight/elements/styles.min.css">
+                  </head>
+                  <body>
 
-    <elements-api
-      apiDescriptionUrl="/api/spec/v3.json"
-      router="hash"
-      layout="sidebar"
-    />
+                    <elements-api
+                      apiDescriptionUrl="/api/spec/v3.json"
+                      router="hash"
+                      layout="sidebar"
+                    />
 
-  </body>
-</html>"#,
+                  </body>
+                </html>"#,
         )
 }
 
-// TODO PHASE 1 wrap db takes too much time to respond
 #[tokio::main]
 async fn main() {
     dotenv::dotenv().ok();
@@ -151,8 +148,8 @@ async fn main() {
             .route("/", actix_web::web::get().to(playground_ui))
             .wrap_api_with_spec(spec);
 
-        app = app.configure(modules::coin::register_service);
-        app = app.configure(modules::nft::register_service);
+        app = app.configure(modules::coin::register_services);
+        app = app.configure(modules::nft::register_services);
 
         app.with_json_spec_at("/api/spec/v2.json")
             .with_json_spec_v3_at("/api/spec/v3.json")

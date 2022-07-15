@@ -1,0 +1,226 @@
+---
+source: src/modules/coin/data_provider/history.rs
+expression: balance
+---
+Ok(
+    [
+        HistoryItem {
+            involved_account_id: None,
+            delta_balance: I128(
+                101623970103823687500,
+            ),
+            balance: U128(
+                1720232195281062100155460,
+            ),
+            cause: "RECEIPT",
+            coin_metadata: Metadata {
+                name: "NEAR blockchain native token",
+                symbol: "NEAR",
+                icon: Some(
+                    "https://raw.githubusercontent.com/near/near-wallet/7ef3c824404282b76b36da2dff4f3e593e7f928d/packages/frontend/src/images/near.svg",
+                ),
+                decimals: 24,
+            },
+            block_timestamp_nanos: U64(
+                1655238577144947703,
+            ),
+        },
+        HistoryItem {
+            involved_account_id: None,
+            delta_balance: I128(
+                21805236558567385300904,
+            ),
+            balance: U128(
+                1720130571310958276467960,
+            ),
+            cause: "RECEIPT",
+            coin_metadata: Metadata {
+                name: "NEAR blockchain native token",
+                symbol: "NEAR",
+                icon: Some(
+                    "https://raw.githubusercontent.com/near/near-wallet/7ef3c824404282b76b36da2dff4f3e593e7f928d/packages/frontend/src/images/near.svg",
+                ),
+                decimals: 24,
+            },
+            block_timestamp_nanos: U64(
+                1655238576023448127,
+            ),
+        },
+        HistoryItem {
+            involved_account_id: None,
+            delta_balance: I128(
+                132895885775025917792770,
+            ),
+            balance: U128(
+                1698325334752390891167056,
+            ),
+            cause: "RECEIPT",
+            coin_metadata: Metadata {
+                name: "NEAR blockchain native token",
+                symbol: "NEAR",
+                icon: Some(
+                    "https://raw.githubusercontent.com/near/near-wallet/7ef3c824404282b76b36da2dff4f3e593e7f928d/packages/frontend/src/images/near.svg",
+                ),
+                decimals: 24,
+            },
+            block_timestamp_nanos: U64(
+                1655238574957099510,
+            ),
+        },
+        HistoryItem {
+            involved_account_id: Some(
+                AccountId(
+                    "zomland.near",
+                ),
+            ),
+            delta_balance: I128(
+                0,
+            ),
+            balance: U128(
+                1565429448977364973374286,
+            ),
+            cause: "RECEIPT",
+            coin_metadata: Metadata {
+                name: "NEAR blockchain native token",
+                symbol: "NEAR",
+                icon: Some(
+                    "https://raw.githubusercontent.com/near/near-wallet/7ef3c824404282b76b36da2dff4f3e593e7f928d/packages/frontend/src/images/near.svg",
+                ),
+                decimals: 24,
+            },
+            block_timestamp_nanos: U64(
+                1655238573809891921,
+            ),
+        },
+        HistoryItem {
+            involved_account_id: Some(
+                AccountId(
+                    "zomland.near",
+                ),
+            ),
+            delta_balance: I128(
+                -167086398855095326781174,
+            ),
+            balance: U128(
+                1565429448977364973374286,
+            ),
+            cause: "TRANSACTION",
+            coin_metadata: Metadata {
+                name: "NEAR blockchain native token",
+                symbol: "NEAR",
+                icon: Some(
+                    "https://raw.githubusercontent.com/near/near-wallet/7ef3c824404282b76b36da2dff4f3e593e7f928d/packages/frontend/src/images/near.svg",
+                ),
+                decimals: 24,
+            },
+            block_timestamp_nanos: U64(
+                1655238572443234931,
+            ),
+        },
+        HistoryItem {
+            involved_account_id: None,
+            delta_balance: I128(
+                101623970103823687500,
+            ),
+            balance: U128(
+                1732515847832460300155460,
+            ),
+            cause: "RECEIPT",
+            coin_metadata: Metadata {
+                name: "NEAR blockchain native token",
+                symbol: "NEAR",
+                icon: Some(
+                    "https://raw.githubusercontent.com/near/near-wallet/7ef3c824404282b76b36da2dff4f3e593e7f928d/packages/frontend/src/images/near.svg",
+                ),
+                decimals: 24,
+            },
+            block_timestamp_nanos: U64(
+                1655238555768202334,
+            ),
+        },
+        HistoryItem {
+            involved_account_id: None,
+            delta_balance: I128(
+                9411594535554956060890,
+            ),
+            balance: U128(
+                1732414223862356476467960,
+            ),
+            cause: "RECEIPT",
+            coin_metadata: Metadata {
+                name: "NEAR blockchain native token",
+                symbol: "NEAR",
+                icon: Some(
+                    "https://raw.githubusercontent.com/near/near-wallet/7ef3c824404282b76b36da2dff4f3e593e7f928d/packages/frontend/src/images/near.svg",
+                ),
+                decimals: 24,
+            },
+            block_timestamp_nanos: U64(
+                1655238554622402591,
+            ),
+        },
+        HistoryItem {
+            involved_account_id: None,
+            delta_balance: I128(
+                57286270361355272541374,
+            ),
+            balance: U128(
+                1723002629326801520407070,
+            ),
+            cause: "RECEIPT",
+            coin_metadata: Metadata {
+                name: "NEAR blockchain native token",
+                symbol: "NEAR",
+                icon: Some(
+                    "https://raw.githubusercontent.com/near/near-wallet/7ef3c824404282b76b36da2dff4f3e593e7f928d/packages/frontend/src/images/near.svg",
+                ),
+                decimals: 24,
+            },
+            block_timestamp_nanos: U64(
+                1655238553414981139,
+            ),
+        },
+        HistoryItem {
+            involved_account_id: None,
+            delta_balance: I128(
+                17557003937520464358912,
+            ),
+            balance: U128(
+                1665716358965446247865696,
+            ),
+            cause: "RECEIPT",
+            coin_metadata: Metadata {
+                name: "NEAR blockchain native token",
+                symbol: "NEAR",
+                icon: Some(
+                    "https://raw.githubusercontent.com/near/near-wallet/7ef3c824404282b76b36da2dff4f3e593e7f928d/packages/frontend/src/images/near.svg",
+                ),
+                decimals: 24,
+            },
+            block_timestamp_nanos: U64(
+                1655238552045091840,
+            ),
+        },
+        HistoryItem {
+            involved_account_id: None,
+            delta_balance: I128(
+                68473053959772436884896,
+            ),
+            balance: U128(
+                1648159355027925783506784,
+            ),
+            cause: "RECEIPT",
+            coin_metadata: Metadata {
+                name: "NEAR blockchain native token",
+                symbol: "NEAR",
+                icon: Some(
+                    "https://raw.githubusercontent.com/near/near-wallet/7ef3c824404282b76b36da2dff4f3e593e7f928d/packages/frontend/src/images/near.svg",
+                ),
+                decimals: 24,
+            },
+            block_timestamp_nanos: U64(
+                1655238550653634874,
+            ),
+        },
+    ],
+)

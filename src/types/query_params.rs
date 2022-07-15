@@ -10,8 +10,6 @@ pub struct BlockParams {
     pub block_height: Option<types::U64>,
 }
 
-// impl BlockParams validate ...
-
 // Designed to use together with BlockParams
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 pub struct PaginationParams {
@@ -35,22 +33,25 @@ pub struct HistoryPaginationParams {
     pub limit: Option<u32>,
 }
 
-// todo rename or move it
 // Helper for parsing the data from user
-pub(crate) struct CoinBalancesPagination {
+pub(crate) struct Pagination {
     pub limit: u32,
 }
 
-impl From<PaginationParams> for CoinBalancesPagination {
+impl From<PaginationParams> for Pagination {
     fn from(params: PaginationParams) -> Self {
         Self {
-            limit: get_limit(params.limit),
+            limit: params.limit.unwrap_or(DEFAULT_PAGE_LIMIT),
         }
     }
 }
 
-pub(crate) fn get_limit(limit: Option<u32>) -> u32 {
-    limit.unwrap_or(DEFAULT_PAGE_LIMIT)
+impl From<HistoryPaginationParams> for Pagination {
+    fn from(params: HistoryPaginationParams) -> Self {
+        Self {
+            limit: params.limit.unwrap_or(DEFAULT_PAGE_LIMIT),
+        }
+    }
 }
 
 pub(crate) struct HistoryPagination {

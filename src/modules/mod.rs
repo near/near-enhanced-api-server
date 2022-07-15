@@ -21,9 +21,10 @@ pub(crate) async fn check_account_exists(
 
 pub(crate) async fn check_and_get_history_pagination_params(
     pool: &sqlx::Pool<sqlx::Postgres>,
-    pagination_params: &types::query_params::HistoryPaginationParams,
+    pagination_params: types::query_params::HistoryPaginationParams,
 ) -> crate::Result<types::query_params::HistoryPagination> {
     types::query_params::check_limit(pagination_params.limit)?;
+    let pagination = types::query_params::Pagination::from(pagination_params);
     // if pagination_params.after_block_height.is_some() && pagination_params.after_timestamp_nanos.is_some() {
     //     return Err(errors::ErrorKind::InvalidInput(
     //         "Both block_height and block_timestamp_nanos found. Please provide only one of values"
@@ -36,33 +37,34 @@ pub(crate) async fn check_and_get_history_pagination_params(
     Ok(types::query_params::HistoryPagination {
         block_height: block.height,
         block_timestamp: block.timestamp,
-        limit: types::query_params::get_limit(pagination_params.limit),
+        limit: pagination.limit,
     })
 }
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
+    use crate::db_helpers;
 
-    pub(crate) async fn init() -> (
-        sqlx::Pool<sqlx::Postgres>,
-        near_jsonrpc_client::JsonRpcClient,
-        db_helpers::Block,
-    ) {
+    pub(crate) async fn init_db() -> sqlx::Pool<sqlx::Postgres> {
         dotenv::dotenv().ok();
         let db_url = &std::env::var("DATABASE_URL").expect("failed to get database url");
+
+        sqlx::PgPool::connect(db_url)
+            .await
+            .expect("failed to connect to the database")
+    }
+
+    pub(crate) fn init_rpc() -> near_jsonrpc_client::JsonRpcClient {
+        dotenv::dotenv().ok();
         let rpc_url = &std::env::var("RPC_URL").expect("failed to get RPC url");
         let connector = near_jsonrpc_client::JsonRpcClient::new_client();
+        connector.connect(rpc_url)
+    }
 
-        (
-            sqlx::PgPool::connect(db_url)
-                .await
-                .expect("failed to connect to the database"),
-            connector.connect(rpc_url),
-            db_helpers::Block {
-                timestamp: 1655571176644255779,
-                height: 68000000,
-            },
-        )
+    pub(crate) fn get_block() -> db_helpers::Block {
+        db_helpers::Block {
+            timestamp: 1655571176644255779,
+            height: 68000000,
+        }
     }
 }

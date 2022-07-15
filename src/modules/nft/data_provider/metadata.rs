@@ -85,41 +85,46 @@ impl TryFrom<NFTContractMetadata> for nft::schemas::NftContractMetadata {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::modules::tests::*;
     use std::str::FromStr;
 
     #[tokio::test]
     async fn test_nft_contract_metadata() {
-        let (rpc_client, block_height) = init();
+        let rpc_client = init_rpc();
+        let block = get_block();
         let contract = near_primitives::types::AccountId::from_str("comic.paras.near").unwrap();
 
-        let metadata = get_nft_contract_metadata(&rpc_client, contract, block_height).await;
+        let metadata = get_nft_contract_metadata(&rpc_client, contract, block.height).await;
         insta::assert_debug_snapshot!(metadata);
     }
 
     #[tokio::test]
     async fn test_nft_contract_metadata_no_contract_deployed() {
-        let (rpc_client, block_height) = init();
+        let rpc_client = init_rpc();
+        let block = get_block();
         let contract = near_primitives::types::AccountId::from_str("olga.near").unwrap();
 
-        let metadata = get_nft_contract_metadata(&rpc_client, contract, block_height).await;
+        let metadata = get_nft_contract_metadata(&rpc_client, contract, block.height).await;
         insta::assert_debug_snapshot!(metadata);
     }
 
     #[tokio::test]
     async fn test_nft_contract_metadata_other_contract_deployed() {
-        let (rpc_client, block_height) = init();
+        let rpc_client = init_rpc();
+        let block = get_block();
         let contract = near_primitives::types::AccountId::from_str("usn").unwrap();
 
-        let metadata = get_nft_contract_metadata(&rpc_client, contract, block_height).await;
+        let metadata = get_nft_contract_metadata(&rpc_client, contract, block.height).await;
         insta::assert_debug_snapshot!(metadata);
     }
 
     #[tokio::test]
     async fn test_nft_contract_metadata_broken_contract() {
-        let (rpc_client, block_height) = init();
+        let rpc_client = init_rpc();
+        let block = get_block();
         let contract = near_primitives::types::AccountId::from_str("nft.nearapps.near").unwrap();
 
-        let metadata = get_nft_contract_metadata(&rpc_client, contract, block_height).await;
+        let metadata = get_nft_contract_metadata(&rpc_client, contract, block.height).await;
         insta::assert_debug_snapshot!(metadata);
     }
 }

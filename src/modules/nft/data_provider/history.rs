@@ -62,10 +62,13 @@ impl TryFrom<super::models::NftHistoryInfo> for nft::schemas::NftHistoryItem {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::modules::tests::*;
+    use std::str::FromStr;
 
     #[tokio::test]
     async fn test_nft_history() {
-        let (pool, _, block) = init().await;
+        let pool = init_db().await;
+        let block = get_block();
         let contract = near_primitives::types::AccountId::from_str("x.paras.near").unwrap();
         let token = "293708:1";
         let pagination = types::query_params::HistoryPagination {
@@ -80,7 +83,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_nft_history_with_no_failed_receipts_in_result() {
-        let (pool, _, block) = init().await;
+        let pool = init_db().await;
+        let block = get_block();
         let contract = near_primitives::types::AccountId::from_str("thebullishbulls.near").unwrap();
         let token = "1349";
         let pagination = types::query_params::HistoryPagination {
@@ -94,8 +98,9 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_nft_history_token_does_not_exist() {
-        let (pool, _, block) = init().await;
+    async fn test_nft_history_nft_does_not_exist() {
+        let pool = init_db().await;
+        let block = get_block();
         let contract = near_primitives::types::AccountId::from_str("x.paras.near").unwrap();
         let token = "no_such_token";
         let pagination = types::query_params::HistoryPagination {

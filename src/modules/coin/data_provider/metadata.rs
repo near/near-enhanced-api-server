@@ -18,7 +18,7 @@ pub(crate) async fn get_ft_contract_metadata(
     let response =
         rpc_helpers::wrapped_call(rpc_client, request, block_height, &contract_id).await?;
 
-    let metadata = serde_json::from_slice::<FungibleTokenMetadata>(&response.result)?;
+    let metadata = serde_json::from_slice::<FtMetadata>(&response.result)?;
     Ok(coin::schemas::FtContractMetadata {
         spec: metadata.spec,
         name: metadata.name,
@@ -42,7 +42,7 @@ pub(crate) fn get_near_metadata() -> coin::schemas::Metadata {
 
 // Taken from https://github.com/near/near-sdk-rs/blob/master/near-contract-standards/src/fungible_token/metadata.rs
 #[derive(BorshDeserialize, BorshSerialize, Clone, Deserialize, Serialize)]
-pub struct FungibleTokenMetadata {
+pub struct FtMetadata {
     pub spec: String,
     pub name: String,
     pub symbol: String,
@@ -66,32 +66,36 @@ impl From<coin::schemas::FtContractMetadata> for coin::schemas::Metadata {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::modules::tests::*;
     use std::str::FromStr;
 
     #[tokio::test]
     async fn test_ft_contract_metadata() {
-        let (rpc_client, block_height) = init();
+        let rpc_client = init_rpc();
+        let block = get_block();
         let contract = near_primitives::types::AccountId::from_str("usn").unwrap();
 
-        let metadata = get_ft_contract_metadata(&rpc_client, contract, block_height).await;
+        let metadata = get_ft_contract_metadata(&rpc_client, contract, block.height).await;
         insta::assert_debug_snapshot!(metadata);
     }
 
     #[tokio::test]
     async fn test_ft_contract_metadata_no_contract_deployed() {
-        let (rpc_client, block_height) = init();
+        let rpc_client = init_rpc();
+        let block = get_block();
         let contract = near_primitives::types::AccountId::from_str("olga.near").unwrap();
 
-        let metadata = get_ft_contract_metadata(&rpc_client, contract, block_height).await;
+        let metadata = get_ft_contract_metadata(&rpc_client, contract, block.height).await;
         insta::assert_debug_snapshot!(metadata);
     }
 
     #[tokio::test]
     async fn test_ft_contract_metadata_other_contract_deployed() {
-        let (rpc_client, block_height) = init();
+        let rpc_client = init_rpc();
+        let block = get_block();
         let contract = near_primitives::types::AccountId::from_str("comic.paras.near").unwrap();
 
-        let metadata = get_ft_contract_metadata(&rpc_client, contract, block_height).await;
+        let metadata = get_ft_contract_metadata(&rpc_client, contract, block.height).await;
         insta::assert_debug_snapshot!(metadata);
     }
 }

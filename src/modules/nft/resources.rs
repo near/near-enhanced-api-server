@@ -22,23 +22,23 @@ use super::schemas;
 pub async fn get_nft_collection_overview(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
-    request: web::Path<schemas::BalanceRequest>,
+    request: web::Path<schemas::NftCountsRequest>,
     block_params: web::Query<types::query_params::BlockParams>,
     pagination_params: web::Query<types::query_params::PaginationParams>,
-) -> crate::Result<Json<schemas::NftCollectionOverviewResponse>> {
+) -> crate::Result<Json<schemas::NftCountsResponse>> {
     types::query_params::check_limit(pagination_params.limit)?;
     types::query_params::check_block_params(&block_params)?;
     let block = db_helpers::get_block_from_params(&pool, &block_params).await?;
     modules::check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
 
-    Ok(Json(schemas::NftCollectionOverviewResponse {
+    Ok(Json(schemas::NftCountsResponse {
         // TODO PHASE 2 We can data_provider metadata in the DB and update once in 10 minutes
-        nft_collection_overview: super::data_provider::get_nft_count(
+        nft_counts: super::data_provider::get_nft_count(
             &pool,
             &rpc_client,
             &block,
             &request.account_id.0,
-            &pagination_params,
+            pagination_params.0,
         )
         .await?,
         block_timestamp_nanos: types::U64::from(block.timestamp),
@@ -59,22 +59,23 @@ pub async fn get_nft_collection_overview(
 pub async fn get_nft_collection_by_contract(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
-    request: web::Path<schemas::BalanceByContractRequest>,
+    request: web::Path<schemas::NftCollectionRequest>,
     block_params: web::Query<types::query_params::BlockParams>,
     pagination_params: web::Query<types::query_params::PaginationParams>,
-) -> crate::Result<Json<schemas::NftCollectionByContractResponse>> {
+) -> crate::Result<Json<schemas::NftCollectionResponse>> {
     types::query_params::check_limit(pagination_params.limit)?;
     types::query_params::check_block_params(&block_params)?;
     let block = db_helpers::get_block_from_params(&pool, &block_params).await?;
     modules::check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
+    let pagination = types::query_params::Pagination::from(pagination_params.0);
 
-    Ok(Json(schemas::NftCollectionByContractResponse {
+    Ok(Json(schemas::NftCollectionResponse {
         nft_collection: super::data_provider::get_nft_collection(
             &rpc_client,
             request.contract_account_id.0.clone(),
             request.account_id.0.clone(),
             block.height,
-            types::query_params::get_limit(pagination_params.limit),
+            pagination.limit,
         )
         .await?,
         contract_metadata: super::data_provider::get_nft_contract_metadata(
@@ -89,11 +90,11 @@ pub async fn get_nft_collection_by_contract(
 }
 
 #[api_v2_operation]
-/// Get NFT details
+/// Get NFT
 ///
 /// This endpoint returns the NFT detailed information
 /// for the given token_id, NFT contract_id, timestamp/block_height.
-pub async fn get_nft_item_details(
+pub async fn get_nft(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     request: web::Path<schemas::NftRequest>,
@@ -103,7 +104,7 @@ pub async fn get_nft_item_details(
     let block = db_helpers::get_block_from_params(&pool, &block_params).await?;
 
     Ok(Json(schemas::NftResponse {
-        nft: super::data_provider::get_nft_metadata(
+        nft: super::data_provider::get_nft(
             &rpc_client,
             request.contract_account_id.0.clone(),
             request.token_id.clone(),
@@ -139,17 +140,17 @@ pub async fn get_nft_history(
 ) -> crate::Result<Json<schemas::NftHistoryResponse>> {
     let block = db_helpers::get_last_block(&pool).await?;
     let pagination =
-        modules::check_and_get_history_pagination_params(&pool, &pagination_params).await?;
+        modules::check_and_get_history_pagination_params(&pool, pagination_params.0).await?;
 
     Ok(Json(schemas::NftHistoryResponse {
-        token_history: super::data_provider::get_nft_history(
+        history: super::data_provider::get_nft_history(
             &pool,
             &request.contract_account_id.0,
             &request.token_id,
             &pagination,
         )
         .await?,
-        token: super::data_provider::get_nft_metadata(
+        nft: super::data_provider::get_nft(
             &rpc_client,
             request.contract_account_id.0.clone(),
             request.token_id.clone(),
@@ -175,14 +176,14 @@ pub async fn get_nft_history(
 pub async fn get_nft_contract_metadata(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
-    request: web::Path<schemas::ContractMetadataRequest>,
+    request: web::Path<schemas::MetadataRequest>,
     block_params: web::Query<types::query_params::BlockParams>,
-) -> crate::Result<Json<schemas::NftContractMetadataResponse>> {
+) -> crate::Result<Json<schemas::MetadataResponse>> {
     types::query_params::check_block_params(&block_params)?;
     let block = db_helpers::get_block_from_params(&pool, &block_params).await?;
 
-    Ok(Json(schemas::NftContractMetadataResponse {
-        contract_metadata: super::data_provider::get_nft_contract_metadata(
+    Ok(Json(schemas::MetadataResponse {
+        metadata: super::data_provider::get_nft_contract_metadata(
             &rpc_client,
             request.contract_account_id.0.clone(),
             block.height,

@@ -45,7 +45,11 @@ pub(crate) async fn wrapped_call(
             if let Some(RpcQueryError::ContractExecutionError { vm_error, .. }) = x.handler_error()
             {
                 if vm_error.contains("CodeDoesNotExist") || vm_error.contains("MethodNotFound") {
-                    return Err(errors::contract_not_found(contract_id, block_height).into());
+                    return Err(errors::ErrorKind::InvalidInput(format!(
+                        "The account `{}` does not implement any suitable contract at block {}",
+                        contract_id, block_height
+                    ))
+                    .into());
                 }
             }
             Err(x.into())

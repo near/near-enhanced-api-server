@@ -1,0 +1,118 @@
+---
+source: src/modules/nft/data_provider/history.rs
+expression: history
+---
+Ok(
+    [
+        NftHistoryItem {
+            action_kind: "TRANSFER",
+            old_account_id: Some(
+                AccountId(
+                    "staking.paras.near",
+                ),
+            ),
+            new_account_id: Some(
+                AccountId(
+                    "9c89db18ec9cc9e29f1c717b88b2dade5897e8150adaa7461c83391d8b3704b9",
+                ),
+            ),
+            block_timestamp_nanos: U64(
+                1650558366159559202,
+            ),
+            block_height: U64(
+                64008270,
+            ),
+        },
+        NftHistoryItem {
+            action_kind: "TRANSFER",
+            old_account_id: Some(
+                AccountId(
+                    "9c89db18ec9cc9e29f1c717b88b2dade5897e8150adaa7461c83391d8b3704b9",
+                ),
+            ),
+            new_account_id: Some(
+                AccountId(
+                    "staking.paras.near",
+                ),
+            ),
+            block_timestamp_nanos: U64(
+                1650485218795247427,
+            ),
+            block_height: U64(
+                63949217,
+            ),
+        },
+        NftHistoryItem {
+            action_kind: "TRANSFER",
+            old_account_id: Some(
+                AccountId(
+                    "wancu.near",
+                ),
+            ),
+            new_account_id: Some(
+                AccountId(
+                    "9c89db18ec9cc9e29f1c717b88b2dade5897e8150adaa7461c83391d8b3704b9",
+                ),
+            ),
+            block_timestamp_nanos: U64(
+                1650476462474086004,
+            ),
+            block_height: U64(
+                63942175,
+            ),
+        },
+        NftHistoryItem {
+            action_kind: "TRANSFER",
+            old_account_id: Some(
+                AccountId(
+                    "staking.paras.near",
+                ),
+            ),
+            new_account_id: Some(
+                AccountId(
+                    "wancu.near",
+                ),
+            ),
+            block_timestamp_nanos: U64(
+                1650168837264497827,
+            ),
+            block_height: U64(
+                63698908,
+            ),
+        },
+        NftHistoryItem {
+            action_kind: "TRANSFER",
+            old_account_id: Some(
+                AccountId(
+                    "wancu.near",
+                ),
+            ),
+            new_account_id: Some(
+                AccountId(
+                    "staking.paras.near",
+                ),
+            ),
+            block_timestamp_nanos: U64(
+                1647797026589178520,
+            ),
+            block_height: U64(
+                61819311,
+            ),
+        },
+        NftHistoryItem {
+            action_kind: "MINT",
+            old_account_id: None,
+            new_account_id: Some(
+                AccountId(
+                    "wancu.near",
+                ),
+            ),
+            block_timestamp_nanos: U64(
+                1645634034724772357,
+            ),
+            block_height: U64(
+                60119475,
+            ),
+        },
+    ],
+)

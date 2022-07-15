@@ -1,0 +1,61 @@
+---
+source: src/modules/nft/data_provider/history.rs
+expression: history
+---
+Ok(
+    [
+        NftHistoryItem {
+            action_kind: "TRANSFER",
+            old_account_id: Some(
+                AccountId(
+                    "kbneoburner3.near",
+                ),
+            ),
+            new_account_id: Some(
+                AccountId(
+                    "kbneo.near",
+                ),
+            ),
+            block_timestamp_nanos: U64(
+                1647196176561087306,
+            ),
+            block_height: U64(
+                61367286,
+            ),
+        },
+        NftHistoryItem {
+            action_kind: "TRANSFER",
+            old_account_id: Some(
+                AccountId(
+                    "thewilderness.near",
+                ),
+            ),
+            new_account_id: Some(
+                AccountId(
+                    "kbneoburner3.near",
+                ),
+            ),
+            block_timestamp_nanos: U64(
+                1647195876097756264,
+            ),
+            block_height: U64(
+                61367051,
+            ),
+        },
+        NftHistoryItem {
+            action_kind: "MINT",
+            old_account_id: None,
+            new_account_id: Some(
+                AccountId(
+                    "thewilderness.near",
+                ),
+            ),
+            block_timestamp_nanos: U64(
+                1647195873478686254,
+            ),
+            block_height: U64(
+                61367049,
+            ),
+        },
+    ],
+)

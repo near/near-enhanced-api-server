@@ -4,7 +4,7 @@ mod data_provider;
 mod resources;
 mod schemas;
 
-pub(crate) fn register_service(app: &mut web::ServiceConfig) {
+pub(crate) fn register_services(app: &mut web::ServiceConfig) {
     app.service(
         web::resource("/accounts/{account_id}/NFT")
             .route(web::get().to(resources::get_nft_collection_overview)),
@@ -15,7 +15,7 @@ pub(crate) fn register_service(app: &mut web::ServiceConfig) {
     )
     .service(
         web::resource("/NFT/{contract_account_id}/{token_id}")
-            .route(web::get().to(resources::get_nft_item_details)),
+            .route(web::get().to(resources::get_nft)),
     )
     .service(
         web::resource("/NFT/{contract_account_id}/{token_id}/history")

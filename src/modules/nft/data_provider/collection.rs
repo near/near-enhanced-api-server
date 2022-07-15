@@ -11,8 +11,8 @@ pub(crate) async fn get_nft_count(
     rpc_client: &near_jsonrpc_client::JsonRpcClient,
     block: &db_helpers::Block,
     account_id: &near_primitives::types::AccountId,
-    pagination: &types::query_params::PaginationParams,
-) -> crate::Result<Vec<nft::schemas::NftCollectionByContract>> {
+    pagination_params: types::query_params::PaginationParams,
+) -> crate::Result<Vec<nft::schemas::NftCount>> {
     let query = r"
         WITH relevant_events AS (
             SELECT emitted_at_block_timestamp, token_id, emitted_by_contract_account_id, token_old_owner_account_id, token_new_owner_account_id
@@ -56,18 +56,19 @@ pub(crate) async fn get_nft_count(
         LIMIT $3::numeric(20, 0)
     ";
 
+    let pagination = types::query_params::Pagination::from(pagination_params);
     let info_by_contract = db_helpers::select_retry_or_panic::<super::models::NftCount>(
         pool,
         query,
         &[
             account_id.to_string(),
             block.timestamp.to_string(),
-            types::query_params::get_limit(pagination.limit).to_string(),
+            pagination.limit.to_string(),
         ],
     )
     .await?;
 
-    let mut result: Vec<nft::schemas::NftCollectionByContract> = vec![];
+    let mut result: Vec<nft::schemas::NftCount> = vec![];
     for info in info_by_contract {
         if let Ok(contract_id) = near_primitives::types::AccountId::from_str(&info.contract_id) {
             let metadata = super::metadata::get_nft_contract_metadata(
@@ -77,7 +78,7 @@ pub(crate) async fn get_nft_count(
             )
             .await
             .unwrap_or_else(|_| super::metadata::get_default_nft_contract_metadata());
-            result.push(nft::schemas::NftCollectionByContract {
+            result.push(nft::schemas::NftCount {
                 contract_account_id: contract_id.into(),
                 nft_count: info.count as u32,
                 last_updated_at_timestamp_nanos: types::numeric::to_u128(
@@ -97,7 +98,7 @@ pub(crate) async fn get_nft_collection(
     account_id: near_primitives::types::AccountId,
     block_height: u64,
     limit: u32,
-) -> crate::Result<Vec<nft::schemas::NonFungibleToken>> {
+) -> crate::Result<Vec<nft::schemas::Nft>> {
     // TODO PHASE 2 pagination
     // RPC supports pagination, but the order is defined by the each contract and we can't control it.
     // For now, we are ready to serve only the first page
@@ -117,18 +118,17 @@ pub(crate) async fn get_nft_collection(
     let tokens = serde_json::from_slice::<Vec<Token>>(&response.result)?;
     let mut result = vec![];
     for token in tokens {
-        result.push(nft::schemas::NonFungibleToken::try_from(token)?);
+        result.push(nft::schemas::Nft::try_from(token)?);
     }
     Ok(result)
 }
 
-// todo nft naming
-pub(crate) async fn get_nft_metadata(
+pub(crate) async fn get_nft(
     rpc_client: &near_jsonrpc_client::JsonRpcClient,
     contract_id: near_primitives::types::AccountId,
     token_id: String,
     block_height: u64,
-) -> crate::Result<nft::schemas::NonFungibleToken> {
+) -> crate::Result<nft::schemas::Nft> {
     let request = rpc_helpers::get_function_call_request(
         block_height,
         contract_id.clone(),
@@ -144,7 +144,7 @@ pub(crate) async fn get_nft_metadata(
             token_id, contract_id, block_height
         ))
         .into()),
-        Some(token) => nft::schemas::NonFungibleToken::try_from(token),
+        Some(token) => nft::schemas::Nft::try_from(token),
     }
 }
 
@@ -178,7 +178,7 @@ pub struct TokenMetadata {
     pub reference_hash: Option<types::vector::Base64VecU8>, // Base64-encoded sha256 hash of JSON from reference field. Required if `reference` is included.
 }
 
-impl TryFrom<Token> for nft::schemas::NonFungibleToken {
+impl TryFrom<Token> for nft::schemas::Nft {
     type Error = errors::Error;
 
     fn try_from(token: Token) -> crate::Result<Self> {
@@ -192,7 +192,7 @@ impl TryFrom<Token> for nft::schemas::NonFungibleToken {
         Ok(Self {
             token_id: token.token_id,
             owner_account_id: token.owner_id.0.to_string(),
-            token_metadata: nft::schemas::NftItemMetadata {
+            metadata: nft::schemas::NftMetadata {
                 title: metadata.title,
                 description: metadata.description,
                 media: metadata.media,
@@ -213,25 +213,29 @@ impl TryFrom<Token> for nft::schemas::NonFungibleToken {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::modules::nft;
+    use crate::modules::tests::*;
 
     #[tokio::test]
     async fn test_nft_count() {
-        let (pool, rpc_client, block) = init().await;
+        let pool = init_db().await;
+        let rpc_client = init_rpc();
+        let block = get_block();
         let account = near_primitives::types::AccountId::from_str("blondjesus.near").unwrap();
         let pagination = types::query_params::PaginationParams { limit: Some(10) };
 
-        let nft_count = get_nft_count(&pool, &rpc_client, &block, &account, &pagination).await;
+        let nft_count = get_nft_count(&pool, &rpc_client, &block, &account, pagination).await;
         insta::assert_debug_snapshot!(nft_count);
     }
 
     #[tokio::test]
-    async fn test_nft_count_no_nfts() {
-        let (pool, rpc_client, block) = init().await;
+    async fn test_nft_count_empty() {
+        let pool = init_db().await;
+        let rpc_client = init_rpc();
+        let block = get_block();
         let account = near_primitives::types::AccountId::from_str("frol.near").unwrap();
         let pagination = types::query_params::PaginationParams { limit: None };
 
-        let nft_count = get_nft_count(&pool, &rpc_client, &block, &account, &pagination)
+        let nft_count = get_nft_count(&pool, &rpc_client, &block, &account, pagination)
             .await
             .unwrap();
         assert!(nft_count.is_empty());
@@ -239,52 +243,59 @@ mod tests {
 
     #[tokio::test]
     async fn test_nft_count_with_contracts_with_no_metadata() {
-        let (pool, rpc_client, block) = init().await;
+        let pool = init_db().await;
+        let rpc_client = init_rpc();
+        let block = get_block();
         let account = near_primitives::types::AccountId::from_str("vlad.near").unwrap();
         let pagination = types::query_params::PaginationParams { limit: Some(10) };
 
-        let nft_count = get_nft_count(&pool, &rpc_client, &block, &account, &pagination).await;
+        let nft_count = get_nft_count(&pool, &rpc_client, &block, &account, pagination).await;
         insta::assert_debug_snapshot!(nft_count);
     }
 
     #[tokio::test]
     async fn test_nft_count_with_no_failed_receipts_in_result() {
-        let (pool, rpc_client, block) = init().await;
+        let pool = init_db().await;
+        let rpc_client = init_rpc();
+        let block = get_block();
         let account = near_primitives::types::AccountId::from_str("kbneoburner3.near").unwrap();
         let pagination = types::query_params::PaginationParams { limit: None };
 
-        let nft_count = get_nft_count(&pool, &rpc_client, &block, &account, &pagination).await;
+        let nft_count = get_nft_count(&pool, &rpc_client, &block, &account, pagination).await;
         insta::assert_debug_snapshot!(nft_count);
     }
 
     #[tokio::test]
     async fn test_nft_collection() {
-        let (rpc_client, block_height) = init();
+        let rpc_client = init_rpc();
+        let block = get_block();
         let contract =
             near_primitives::types::AccountId::from_str("billionairebullsclub.near").unwrap();
         let account = near_primitives::types::AccountId::from_str("olenavorobei.near").unwrap();
 
-        let nfts = get_nft_collection(&rpc_client, contract, account, block_height, 4).await;
+        let nfts = get_nft_collection(&rpc_client, contract, account, block.height, 4).await;
         insta::assert_debug_snapshot!(nfts);
     }
 
     #[tokio::test]
-    async fn test_nft_metadata() {
-        let (rpc_client, block_height) = init();
+    async fn test_nft() {
+        let rpc_client = init_rpc();
+        let block = get_block();
         let contract = near_primitives::types::AccountId::from_str("x.paras.near").unwrap();
         let token = "415815:1".to_string();
 
-        let nft = get_nft_metadata(&rpc_client, contract, token, block_height).await;
+        let nft = get_nft(&rpc_client, contract, token, block.height).await;
         insta::assert_debug_snapshot!(nft);
     }
 
     #[tokio::test]
-    async fn test_nft_metadata_token_does_not_exist() {
-        let (rpc_client, block_height) = init();
+    async fn test_nft_does_not_exist() {
+        let rpc_client = init_rpc();
+        let block = get_block();
         let contract = near_primitives::types::AccountId::from_str("x.paras.near").unwrap();
         let token = "no_such_token".to_string();
 
-        let nft = get_nft_metadata(&rpc_client, contract, token, block_height).await;
+        let nft = get_nft(&rpc_client, contract, token, block.height).await;
         insta::assert_debug_snapshot!(nft);
     }
 }
