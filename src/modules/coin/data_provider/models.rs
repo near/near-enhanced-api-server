@@ -7,22 +7,6 @@ pub(crate) struct AccountChangesBalance {
 }
 
 #[derive(sqlx::FromRow)]
-pub(crate) struct Block {
-    pub block_height: BigDecimal,
-    pub block_timestamp: BigDecimal,
-}
-
-#[derive(sqlx::FromRow)]
-pub(crate) struct ActionKind {
-    pub action_kind: String,
-}
-
-#[derive(sqlx::FromRow)]
-pub(crate) struct AccountId {
-    pub account_id: String,
-}
-
-#[derive(sqlx::FromRow)]
 pub(crate) struct NearHistoryInfo {
     pub involved_account_id: Option<String>,
     pub delta_balance: BigDecimal,
@@ -45,21 +29,4 @@ pub(crate) struct FtHistoryInfo {
     pub event_kind: String,
     pub old_owner_id: String,
     pub new_owner_id: String,
-}
-
-#[derive(sqlx::FromRow)]
-pub(crate) struct NftHistoryInfo {
-    pub action_kind: String,
-    pub old_account_id: String,
-    pub new_account_id: String,
-    // pub index: super::types::U128,
-    pub block_timestamp_nanos: BigDecimal,
-    pub block_height: BigDecimal,
-}
-
-#[derive(sqlx::FromRow)]
-pub(crate) struct NftCount {
-    pub contract_id: String,
-    pub count: i64,
-    pub last_updated_at_timestamp: BigDecimal,
 }

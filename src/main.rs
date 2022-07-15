@@ -1,8 +1,26 @@
 use actix_cors::Cors;
 use actix_web::{App, HttpServer, ResponseError};
 use paperclip::actix::{web, OpenApiExt};
+pub(crate) use sqlx::types::BigDecimal;
 
-use near_enhanced_api::{config, errors, types};
+// todo . instead of account_id error
+
+// todo add status
+// django structure of files and naming
+// near history item: extra details with all extra fields
+// unify the answers
+// flatten?
+
+mod config;
+mod db_helpers;
+mod errors;
+mod modules;
+mod rpc_helpers;
+mod types;
+
+pub(crate) const LOGGER_MSG: &str = "near_enhanced_api";
+
+pub(crate) type Result<T> = std::result::Result<T, errors::Error>;
 
 fn get_cors(cors_allowed_origins: &[String]) -> Cors {
     let mut cors = Cors::permissive();
@@ -47,6 +65,7 @@ async fn playground_ui() -> impl actix_web::Responder {
         )
 }
 
+// TODO PHASE 1 wrap db takes too much time to respond
 #[tokio::main]
 async fn main() {
     dotenv::dotenv().ok();
@@ -120,62 +139,22 @@ async fn main() {
             ..Default::default()
         };
 
-        App::new()
+        let mut app = App::new()
             .app_data(json_config)
             .wrap(actix_web::middleware::Logger::default())
             .app_data(web::Data::new(pool.clone()))
-            .app_data(web::Data::new(types::DBWrapper {
+            .app_data(web::Data::new(db_helpers::DBWrapper {
                 pool: pool_balances.clone(),
             }))
             .app_data(web::Data::new(rpc_client.clone()))
             .wrap(get_cors(&cors_allowed_origins))
             .route("/", actix_web::web::get().to(playground_ui))
-            .wrap_api_with_spec(spec)
-            .service(
-                web::resource("/accounts/{account_id}/coins/NEAR")
-                    .route(web::get().to(near_enhanced_api::get_near_balance)),
-            )
-            .service(
-                web::resource("/accounts/{account_id}/coins")
-                    .route(web::get().to(near_enhanced_api::get_coin_balances)),
-            )
-            .service(
-                web::resource("/accounts/{account_id}/coins/{contract_account_id}")
-                    .route(web::get().to(near_enhanced_api::get_balances_by_contract)),
-            )
-            .service(
-                web::resource("/accounts/{account_id}/NFT")
-                    .route(web::get().to(near_enhanced_api::get_nft_collection_overview)),
-            )
-            .service(
-                web::resource("/accounts/{account_id}/NFT/{contract_account_id}")
-                    .route(web::get().to(near_enhanced_api::get_nft_collection_by_contract)),
-            )
-            .service(
-                web::resource("/NFT/{contract_account_id}/{token_id}")
-                    .route(web::get().to(near_enhanced_api::get_nft_item_details)),
-            )
-            .service(
-                web::resource("/accounts/{account_id}/coins/NEAR/history")
-                    .route(web::get().to(near_enhanced_api::get_near_history)),
-            )
-            .service(
-                web::resource("/accounts/{account_id}/coins/{contract_account_id}/history")
-                    .route(web::get().to(near_enhanced_api::get_coin_history)),
-            )
-            .service(
-                web::resource("/NFT/{contract_account_id}/{token_id}/history")
-                    .route(web::get().to(near_enhanced_api::get_nft_history)),
-            )
-            .service(
-                web::resource("/nep141/metadata/{contract_account_id}")
-                    .route(web::get().to(near_enhanced_api::get_ft_contract_metadata)),
-            )
-            .service(
-                web::resource("/nep171/metadata/{contract_account_id}")
-                    .route(web::get().to(near_enhanced_api::get_nft_contract_metadata)),
-            )
-            .with_json_spec_at("/api/spec/v2.json")
+            .wrap_api_with_spec(spec);
+
+        app = app.configure(modules::coin::register_service);
+        app = app.configure(modules::nft::register_service);
+
+        app.with_json_spec_at("/api/spec/v2.json")
             .with_json_spec_v3_at("/api/spec/v3.json")
             .build()
     })
