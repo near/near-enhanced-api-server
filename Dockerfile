@@ -6,9 +6,9 @@ RUN rustup toolchain install nightly
 
 WORKDIR /tmp/
 COPY Cargo.toml Cargo.lock ./
-RUN mkdir src && echo 'fn main() {}' > src/main.rs && cargo +nightly build -Z sparse-registry
+RUN mkdir src && echo 'fn main() {}' > src/main.rs && cargo +nightly build -Z sparse-registry --release
 COPY ./src ./src
-RUN cargo +nightly build -Z sparse-registry --offline
+RUN cargo +nightly build -Z sparse-registry --offline --release
 
 
 FROM ubuntu:20.04
@@ -16,5 +16,5 @@ FROM ubuntu:20.04
 RUN apt update && apt install -yy openssl ca-certificates
 
 USER nobody
-COPY --from=build /tmp/target/debug/near-enhanced-api /
+COPY --from=build /tmp/target/release/near-enhanced-api /
 ENTRYPOINT ["/near-enhanced-api"]

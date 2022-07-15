@@ -155,7 +155,6 @@ async fn main() {
     .bind(addr)
     .unwrap()
     .shutdown_timeout(5)
-    .disable_signals()
     .run();
 
     server.await.expect("Something went wrong with the server");
