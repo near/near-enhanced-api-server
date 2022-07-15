@@ -58,7 +58,7 @@ pub(crate) async fn get_coin_history(
         pagination.block_height,
     )
     .await?;
-    let metadata = coin::schemas::Metadata::from(
+    let metadata = coin::schemas::CoinMetadata::from(
         super::metadata::get_ft_contract_metadata(
             rpc_client,
             contract_id.clone(),

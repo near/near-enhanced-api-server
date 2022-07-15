@@ -17,7 +17,7 @@ Ok(
                 0,
             ),
             cause: "TRANSFER",
-            coin_metadata: Metadata {
+            coin_metadata: CoinMetadata {
                 name: "USN",
                 symbol: "USN",
                 icon: Some(
@@ -38,7 +38,7 @@ Ok(
                 49721045500000000000,
             ),
             cause: "MINT",
-            coin_metadata: Metadata {
+            coin_metadata: CoinMetadata {
                 name: "USN",
                 symbol: "USN",
                 icon: Some(

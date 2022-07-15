@@ -38,9 +38,8 @@ pub struct NftCountsResponse {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
-pub struct NftCollectionResponse {
-    // TODO PHASE 1 naming
-    pub nft_collection: Vec<Nft>,
+pub struct NftsResponse {
+    pub nfts: Vec<Nft>,
     pub contract_metadata: NftContractMetadata,
     pub block_timestamp_nanos: types::U64,
     pub block_height: types::U64,

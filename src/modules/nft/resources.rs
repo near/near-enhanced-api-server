@@ -62,15 +62,15 @@ pub async fn get_nft_collection_by_contract(
     request: web::Path<schemas::NftCollectionRequest>,
     block_params: web::Query<types::query_params::BlockParams>,
     pagination_params: web::Query<types::query_params::PaginationParams>,
-) -> crate::Result<Json<schemas::NftCollectionResponse>> {
+) -> crate::Result<Json<schemas::NftsResponse>> {
     types::query_params::check_limit(pagination_params.limit)?;
     types::query_params::check_block_params(&block_params)?;
     let block = db_helpers::get_block_from_params(&pool, &block_params).await?;
     modules::check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
     let pagination = types::query_params::Pagination::from(pagination_params.0);
 
-    Ok(Json(schemas::NftCollectionResponse {
-        nft_collection: super::data_provider::get_nfts_by_contract(
+    Ok(Json(schemas::NftsResponse {
+        nfts: super::data_provider::get_nfts_by_contract(
             &rpc_client,
             request.contract_account_id.0.clone(),
             request.account_id.0.clone(),

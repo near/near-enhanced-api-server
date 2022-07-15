@@ -14,7 +14,7 @@ Ok(
                     "ft.metafoxonry.near",
                 ),
             ),
-            metadata: Metadata {
+            metadata: CoinMetadata {
                 name: "MFOX",
                 symbol: "MFOX",
                 icon: Some(
@@ -33,7 +33,7 @@ Ok(
                     "ft.nekotoken.near",
                 ),
             ),
-            metadata: Metadata {
+            metadata: CoinMetadata {
                 name: "NEKO",
                 symbol: "NEKO",
                 icon: Some(
@@ -52,7 +52,7 @@ Ok(
                     "gear.enleap.near",
                 ),
             ),
-            metadata: Metadata {
+            metadata: CoinMetadata {
                 name: "GEAR",
                 symbol: "GEAR",
                 icon: Some(
@@ -71,7 +71,7 @@ Ok(
                     "nexp.near",
                 ),
             ),
-            metadata: Metadata {
+            metadata: CoinMetadata {
                 name: "NEXP",
                 symbol: "NEXP",
                 icon: Some(
@@ -90,7 +90,7 @@ Ok(
                     "utopia.secretskelliessociety.near",
                 ),
             ),
-            metadata: Metadata {
+            metadata: CoinMetadata {
                 name: "Utopia",
                 symbol: "UTO",
                 icon: Some(

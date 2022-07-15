@@ -13,7 +13,7 @@ Ok(
                 1720232195281062100155460,
             ),
             cause: "RECEIPT",
-            coin_metadata: Metadata {
+            coin_metadata: CoinMetadata {
                 name: "NEAR blockchain native token",
                 symbol: "NEAR",
                 icon: Some(
@@ -34,7 +34,7 @@ Ok(
                 1720130571310958276467960,
             ),
             cause: "RECEIPT",
-            coin_metadata: Metadata {
+            coin_metadata: CoinMetadata {
                 name: "NEAR blockchain native token",
                 symbol: "NEAR",
                 icon: Some(
@@ -55,7 +55,7 @@ Ok(
                 1698325334752390891167056,
             ),
             cause: "RECEIPT",
-            coin_metadata: Metadata {
+            coin_metadata: CoinMetadata {
                 name: "NEAR blockchain native token",
                 symbol: "NEAR",
                 icon: Some(
@@ -80,7 +80,7 @@ Ok(
                 1565429448977364973374286,
             ),
             cause: "RECEIPT",
-            coin_metadata: Metadata {
+            coin_metadata: CoinMetadata {
                 name: "NEAR blockchain native token",
                 symbol: "NEAR",
                 icon: Some(
@@ -105,7 +105,7 @@ Ok(
                 1565429448977364973374286,
             ),
             cause: "TRANSACTION",
-            coin_metadata: Metadata {
+            coin_metadata: CoinMetadata {
                 name: "NEAR blockchain native token",
                 symbol: "NEAR",
                 icon: Some(
@@ -126,7 +126,7 @@ Ok(
                 1732515847832460300155460,
             ),
             cause: "RECEIPT",
-            coin_metadata: Metadata {
+            coin_metadata: CoinMetadata {
                 name: "NEAR blockchain native token",
                 symbol: "NEAR",
                 icon: Some(
@@ -147,7 +147,7 @@ Ok(
                 1732414223862356476467960,
             ),
             cause: "RECEIPT",
-            coin_metadata: Metadata {
+            coin_metadata: CoinMetadata {
                 name: "NEAR blockchain native token",
                 symbol: "NEAR",
                 icon: Some(
@@ -168,7 +168,7 @@ Ok(
                 1723002629326801520407070,
             ),
             cause: "RECEIPT",
-            coin_metadata: Metadata {
+            coin_metadata: CoinMetadata {
                 name: "NEAR blockchain native token",
                 symbol: "NEAR",
                 icon: Some(
@@ -189,7 +189,7 @@ Ok(
                 1665716358965446247865696,
             ),
             cause: "RECEIPT",
-            coin_metadata: Metadata {
+            coin_metadata: CoinMetadata {
                 name: "NEAR blockchain native token",
                 symbol: "NEAR",
                 icon: Some(
@@ -210,7 +210,7 @@ Ok(
                 1648159355027925783506784,
             ),
             cause: "RECEIPT",
-            coin_metadata: Metadata {
+            coin_metadata: CoinMetadata {
                 name: "NEAR blockchain native token",
                 symbol: "NEAR",
                 icon: Some(

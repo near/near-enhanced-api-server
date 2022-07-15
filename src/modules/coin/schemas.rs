@@ -34,7 +34,7 @@ pub struct ContractMetadataRequest {
 pub struct NearBalanceResponse {
     /// Sum of staked and nonstaked balances
     pub balance: types::U128,
-    pub metadata: Metadata,
+    pub metadata: CoinMetadata,
     pub block_timestamp_nanos: types::U64,
     pub block_height: types::U64,
 }
@@ -75,12 +75,10 @@ pub struct FtContractMetadataResponse {
 pub struct Coin {
     /// "nearprotocol" for NEAR, "nep141" for FT
     pub standard: String,
-    // TODO PHASE 1 (idea) it would be great to match this naming with `NearBalanceResponse.total_balance`
-    // because we can add here staking info later. This name could always give the answer about total balance
     pub balance: types::U128,
     /// null for NEAR, not null otherwise
     pub contract_account_id: Option<types::AccountId>,
-    pub metadata: Metadata,
+    pub metadata: CoinMetadata,
     // TODO PHASE 1 (idea) I think it would be great to add here the info about last update moment. Timestamp, later also index
     // I'm already doing it at NftCollectionByContract
 }
@@ -96,7 +94,7 @@ pub struct HistoryItem {
     pub delta_balance: types::I128,
     pub balance: types::U128,
     pub cause: String,
-    pub coin_metadata: Metadata,
+    pub coin_metadata: CoinMetadata,
     pub block_timestamp_nanos: types::U64,
     // TODO PHASE 2 add this when we have all the data in the same DB. Now we can't join with blocks
     // pub block_height: types::U64,
@@ -105,11 +103,10 @@ pub struct HistoryItem {
 /// This type describes general Metadata info, collecting the most important fields from different standards in the one format.
 /// `decimals` may contain `0` if it's not applicable (e.g. if it's general MT metadata)
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
-pub struct Metadata {
+pub struct CoinMetadata {
     pub name: String,
     pub symbol: String,
     pub icon: Option<String>,
-    // TODO PHASE 1 discuss and check the doc here
     pub decimals: u8,
 }
 

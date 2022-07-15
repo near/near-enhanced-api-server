@@ -100,7 +100,7 @@ pub(crate) async fn get_coin_balances_by_contract(
         standard: "nep141".to_string(),
         contract_account_id: Some(contract_id.clone().into()),
         balance: balance.into(),
-        metadata: coin::schemas::Metadata {
+        metadata: coin::schemas::CoinMetadata {
             name: metadata.name,
             symbol: metadata.symbol,
             icon: metadata.icon,

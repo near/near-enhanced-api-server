@@ -30,8 +30,8 @@ pub(crate) async fn get_ft_contract_metadata(
     })
 }
 
-pub(crate) fn get_near_metadata() -> coin::schemas::Metadata {
-    coin::schemas::Metadata {
+pub(crate) fn get_near_metadata() -> coin::schemas::CoinMetadata {
+    coin::schemas::CoinMetadata {
         name: "NEAR blockchain native token".to_string(),
         symbol: "NEAR".to_string(),
         // TODO PHASE 2 re-check the icon. It's the best I can find
@@ -52,9 +52,9 @@ pub struct FtMetadata {
     pub decimals: u8,
 }
 
-impl From<coin::schemas::FtContractMetadata> for coin::schemas::Metadata {
+impl From<coin::schemas::FtContractMetadata> for coin::schemas::CoinMetadata {
     fn from(metadata: coin::schemas::FtContractMetadata) -> Self {
-        coin::schemas::Metadata {
+        coin::schemas::CoinMetadata {
             name: metadata.name,
             symbol: metadata.symbol,
             icon: metadata.icon,

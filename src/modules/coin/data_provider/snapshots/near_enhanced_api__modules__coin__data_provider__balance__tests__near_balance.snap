@@ -7,7 +7,7 @@ Ok(
         balance: U128(
             99584050584968800000000,
         ),
-        metadata: Metadata {
+        metadata: CoinMetadata {
             name: "NEAR blockchain native token",
             symbol: "NEAR",
             icon: Some(

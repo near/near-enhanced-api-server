@@ -5,9 +5,6 @@ pub(crate) use sqlx::types::BigDecimal;
 
 // todo . instead of account_id error
 // todo add status
-// todo near history item: extra details with all extra fields
-// todo unify the answers
-// todo flatten?
 
 mod config;
 mod db_helpers;
