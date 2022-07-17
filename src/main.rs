@@ -71,6 +71,10 @@ async fn main() {
         .with_env_filter(env_filter)
         .with_writer(std::io::stderr)
         .init();
+    tracing::debug!(
+        target: crate::LOGGER_MSG,
+        "NEAR Enhanced API Server is initializing..."
+    );
 
     let db_url = &std::env::var("DATABASE_URL").expect("failed to get database url");
     let pool = sqlx::PgPool::connect(db_url)
@@ -156,6 +160,11 @@ async fn main() {
     .unwrap()
     .shutdown_timeout(5)
     .run();
+
+    tracing::debug!(
+        target: crate::LOGGER_MSG,
+        "NEAR Enhanced API Server is starting..."
+    );
 
     server.await.expect("Something went wrong with the server");
 }
