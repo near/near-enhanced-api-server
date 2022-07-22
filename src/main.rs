@@ -61,7 +61,7 @@ async fn playground_ui() -> impl actix_web::Responder {
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> std::io::Result<()> {
     dotenv::dotenv().ok();
 
     let env_filter = tracing_subscriber::EnvFilter::new(
@@ -166,5 +166,5 @@ async fn main() {
         "NEAR Enhanced API Server is starting..."
     );
 
-    server.await.expect("Something went wrong with the server");
+    server.await
 }
