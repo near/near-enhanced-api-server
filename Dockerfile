@@ -6,9 +6,9 @@ RUN rustup toolchain install nightly
 
 WORKDIR /tmp/
 COPY Cargo.toml Cargo.lock ./
-RUN mkdir src && echo 'fn main() {}' > src/main.rs && cargo +nightly build -Z sparse-registry --release
+RUN mkdir src && echo 'fn main() {}' > src/main.rs && cargo build --release
 COPY ./src ./src
-RUN cargo +nightly build -Z sparse-registry --offline --release
+RUN cargo build --offline --release
 
 
 FROM ubuntu:20.04
