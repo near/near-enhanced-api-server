@@ -62,6 +62,7 @@ async fn playground_ui() -> impl actix_web::Responder {
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
+    eprintln!("HACK");
     dotenv::dotenv().ok();
 
     let env_filter = tracing_subscriber::EnvFilter::new(
