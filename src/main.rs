@@ -60,23 +60,7 @@ async fn playground_ui() -> impl actix_web::Responder {
         )
 }
 
-#[tokio::main]
-async fn main() -> std::io::Result<()> {
-    eprintln!("HACK");
-    dotenv::dotenv().ok();
-
-    let env_filter = tracing_subscriber::EnvFilter::new(
-        "near=info,near_jsonrpc_client=warn,near_enhanced_api=debug",
-    );
-    tracing_subscriber::fmt::Subscriber::builder()
-        .with_env_filter(env_filter)
-        .with_writer(std::io::stderr)
-        .init();
-    tracing::debug!(
-        target: crate::LOGGER_MSG,
-        "NEAR Enhanced API Server is initializing..."
-    );
-
+async fn run() -> std::io::Result<()> {
     let db_url = &std::env::var("DATABASE_URL").expect("failed to get database url");
     let pool = sqlx::PgPool::connect(db_url)
         .await
@@ -168,4 +152,26 @@ async fn main() -> std::io::Result<()> {
     );
 
     server.await
+}
+
+fn main() -> std::io::Result<()> {
+    dotenv::dotenv().ok();
+
+    let env_filter = tracing_subscriber::EnvFilter::new(
+        "near=info,near_jsonrpc_client=warn,near_enhanced_api=debug",
+    );
+    tracing_subscriber::fmt::Subscriber::builder()
+        .with_env_filter(env_filter)
+        .with_writer(std::io::stderr)
+        .init();
+    tracing::debug!(
+        target: crate::LOGGER_MSG,
+        "NEAR Enhanced API Server is initializing..."
+    );
+
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .unwrap()
+        .block_on(run())
 }
