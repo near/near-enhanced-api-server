@@ -6,7 +6,7 @@ RUN rustup toolchain install nightly
 
 WORKDIR /tmp/
 COPY Cargo.toml Cargo.lock ./
-RUN mkdir src && echo 'fn main() {}' > src/main.rs && cargo +nightly build -Z sparse-registry --release
+RUN mkdir src && echo 'fn main() {}' > src/main.rs && cargo +nightly build -Z sparse-registry --release && rm -r src
 COPY ./src ./src
 RUN cargo +nightly build -Z sparse-registry --offline --release
 
