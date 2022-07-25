@@ -1,14 +1,11 @@
-FROM rust:1.61.0 AS build
-
-# We have to use sparse-registry nightly cargo feature to avoid running out of RAM:
-# https://github.com/rust-lang/cargo/issues/10781
-RUN rustup toolchain install nightly
+FROM rust:1.62 AS build
 
 WORKDIR /tmp/
 COPY Cargo.toml Cargo.lock ./
-RUN mkdir src && echo 'fn main() {}' > src/main.rs && cargo +nightly build -Z sparse-registry --release
+RUN mkdir src && echo 'fn main() {}' > src/main.rs && cargo build --release && rm -r src
 COPY ./src ./src
-RUN cargo +nightly build -Z sparse-registry --offline --release
+# NOTE: We need to touch main.rs file in order to force cargo incremental compilation to pick up, otherwise it keeps an empty app
+RUN touch src/main.rs && cargo build --offline --release
 
 
 FROM ubuntu:20.04
