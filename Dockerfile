@@ -4,6 +4,7 @@ WORKDIR /tmp/
 COPY Cargo.toml Cargo.lock ./
 RUN mkdir src && echo 'fn main() {}' > src/main.rs && cargo build --release && rm -r src
 COPY ./src ./src
+# NOTE: We need to touch main.rs file in order to force cargo incremental compilation to pick up, otherwise it keeps an empty app
 RUN touch src/main.rs && cargo build --offline --release
 
 
