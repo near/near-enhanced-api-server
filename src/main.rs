@@ -3,9 +3,6 @@ use actix_web::{App, HttpServer, ResponseError};
 use paperclip::actix::{web, OpenApiExt};
 pub(crate) use sqlx::types::BigDecimal;
 
-// todo . instead of account_id error
-// todo add status
-
 mod config;
 mod db_helpers;
 mod errors;

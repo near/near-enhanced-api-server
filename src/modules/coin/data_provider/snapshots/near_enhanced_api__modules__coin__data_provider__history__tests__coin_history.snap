@@ -17,6 +17,7 @@ Ok(
                 0,
             ),
             cause: "TRANSFER",
+            status: "SUCCESS",
             coin_metadata: CoinMetadata {
                 name: "USN",
                 symbol: "USN",
@@ -38,6 +39,7 @@ Ok(
                 49721045500000000000,
             ),
             cause: "MINT",
+            status: "SUCCESS",
             coin_metadata: CoinMetadata {
                 name: "USN",
                 symbol: "USN",

@@ -11,6 +11,7 @@ pub(crate) struct NearHistoryInfo {
     pub delta_balance: BigDecimal,
     pub balance: BigDecimal,
     pub cause: String,
+    pub status: String,
     // pub index: super::types::U128,
     pub block_timestamp_nanos: BigDecimal,
     // pub block_height: super::types::U64,
@@ -18,11 +19,12 @@ pub(crate) struct NearHistoryInfo {
 
 #[derive(sqlx::FromRow)]
 pub(crate) struct CoinHistoryInfo {
-    // todo add status, add symbol
+    // TODO PHASE 2 add symbol
     // pub block_height: BigDecimal,
     pub block_timestamp: BigDecimal,
     pub amount: BigDecimal,
-    pub event_kind: String,
+    pub cause: String,
+    pub status: String,
     pub old_owner_id: String,
     pub new_owner_id: String,
 }

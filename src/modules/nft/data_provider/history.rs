@@ -9,18 +9,21 @@ pub(crate) async fn get_nft_history(
     pagination: &types::query_params::HistoryPagination,
 ) -> crate::Result<Vec<nft::schemas::HistoryItem>> {
     let query = r"
-        SELECT event_kind::text action_kind,
-               token_old_owner_account_id old_account_id,
-               token_new_owner_account_id new_account_id,
-               emitted_at_block_timestamp block_timestamp_nanos,
-               block_height
+        SELECT
+            event_kind::text cause,
+            CASE WHEN execution_outcomes.status IN ('SUCCESS_VALUE', 'SUCCESS_RECEIPT_ID') THEN 'SUCCESS'
+                ELSE 'FAILURE'
+            END status,
+            token_old_owner_account_id old_account_id,
+            token_new_owner_account_id new_account_id,
+            emitted_at_block_timestamp block_timestamp_nanos,
+            block_height
         FROM assets__non_fungible_token_events
             JOIN blocks ON assets__non_fungible_token_events.emitted_at_block_timestamp = blocks.block_timestamp
             JOIN execution_outcomes ON assets__non_fungible_token_events.emitted_for_receipt_id = execution_outcomes.receipt_id
         WHERE token_id = $1
             AND emitted_by_contract_account_id = $2
             AND emitted_at_block_timestamp < $3::numeric(20, 0)
-            AND execution_outcomes.status IN ('SUCCESS_VALUE', 'SUCCESS_RECEIPT_ID')
         ORDER BY emitted_at_block_timestamp DESC
         LIMIT $4::numeric(20, 0)
     ";
@@ -48,7 +51,8 @@ impl TryFrom<super::models::NftHistoryInfo> for nft::schemas::HistoryItem {
 
     fn try_from(info: super::models::NftHistoryInfo) -> crate::Result<Self> {
         Ok(Self {
-            cause: info.action_kind,
+            cause: info.cause,
+            status: info.status,
             old_account_id: types::account_id::extract_account_id(&info.old_account_id)?
                 .map(|account| account.into()),
             new_account_id: types::account_id::extract_account_id(&info.new_account_id)?
@@ -82,7 +86,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_nft_history_with_no_failed_receipts_in_result() {
+    async fn test_nft_history_with_failed_receipts() {
         let pool = init_db().await;
         let block = get_block();
         let contract = near_primitives::types::AccountId::from_str("thebullishbulls.near").unwrap();

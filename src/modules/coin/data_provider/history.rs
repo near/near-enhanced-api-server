@@ -15,6 +15,7 @@ pub(crate) async fn get_near_history(
             delta_nonstaked_amount + delta_staked_amount delta_balance,
             absolute_nonstaked_amount + absolute_staked_amount balance,
             cause,
+            status,
             block_timestamp block_timestamp_nanos
         FROM balance_changes
         WHERE affected_account_id = $1 AND block_timestamp < $2::numeric(20, 0)
@@ -69,17 +70,20 @@ pub(crate) async fn get_coin_history(
 
     let account_id = account_id.to_string();
     let query = r"
-        SELECT -- blocks.block_height,
-               blocks.block_timestamp,
-               assets__fungible_token_events.amount::numeric(45, 0),
-               assets__fungible_token_events.event_kind::text,
-               assets__fungible_token_events.token_old_owner_account_id old_owner_id,
-               assets__fungible_token_events.token_new_owner_account_id new_owner_id
+        SELECT
+            -- blocks.block_height,
+            blocks.block_timestamp,
+            assets__fungible_token_events.amount::numeric(45, 0),
+            assets__fungible_token_events.event_kind::text cause,
+            CASE WHEN execution_outcomes.status IN ('SUCCESS_VALUE', 'SUCCESS_RECEIPT_ID') THEN 'SUCCESS'
+                ELSE 'FAILURE'
+            END status,
+            assets__fungible_token_events.token_old_owner_account_id old_owner_id,
+            assets__fungible_token_events.token_new_owner_account_id new_owner_id
         FROM assets__fungible_token_events
             JOIN blocks ON assets__fungible_token_events.emitted_at_block_timestamp = blocks.block_timestamp
             JOIN execution_outcomes ON assets__fungible_token_events.emitted_for_receipt_id = execution_outcomes.receipt_id
         WHERE emitted_by_contract_account_id = $1
-            AND execution_outcomes.status IN ('SUCCESS_VALUE', 'SUCCESS_RECEIPT_ID')
             AND (token_old_owner_account_id = $2 OR token_new_owner_account_id = $2)
             AND emitted_at_block_timestamp <= $3::numeric(20, 0)
         ORDER BY emitted_at_block_timestamp desc
@@ -115,24 +119,27 @@ pub(crate) async fn get_coin_history(
             );
         };
 
-        // TODO PHASE 2 this strange error will go away after we add absolute amounts to the DB
-        if (last_balance as i128) - delta < 0 {
-            return Err(errors::ErrorKind::InternalError(format!(
-                "Balance could not be negative: account {}, contract {}",
-                account_id, contract_id
-            ))
-            .into());
+        if db_info.status == "SUCCESS" {
+            // TODO PHASE 2 this strange error will go away after we add absolute amounts to the DB
+            if (last_balance as i128) - delta < 0 {
+                return Err(errors::ErrorKind::InternalError(format!(
+                    "Balance could not be negative: account {}, contract {}",
+                    account_id, contract_id
+                ))
+                .into());
+            }
+            last_balance = ((last_balance as i128) - delta) as u128;
         }
-        last_balance = ((last_balance as i128) - delta) as u128;
 
         result.push(coin::schemas::HistoryItem {
-            cause: db_info.event_kind.clone(),
+            cause: db_info.cause.clone(),
             involved_account_id: involved_account_id.map(|id| id.into()),
             delta_balance: delta.into(),
             balance: balance.into(),
             coin_metadata: metadata.clone(),
             block_timestamp_nanos: types::numeric::to_u64(&db_info.block_timestamp)?.into(),
             // block_height: types::numeric::to_u64(&db_info.block_height)?.into(),
+            status: db_info.status,
         });
     }
     Ok(result)
@@ -153,6 +160,7 @@ impl TryFrom<super::models::NearHistoryInfo> for coin::schemas::HistoryItem {
             delta_balance: types::numeric::to_i128(&info.delta_balance)?.into(),
             balance: types::numeric::to_u128(&info.balance)?.into(),
             cause: info.cause,
+            status: info.status,
             coin_metadata: super::get_near_metadata(),
             block_timestamp_nanos: types::numeric::to_u64(&info.block_timestamp_nanos)?.into(),
         })
@@ -186,12 +194,56 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_near_history_with_failed_receipts() {
+        let block = db_helpers::Block {
+            timestamp: 1618591017607373869,
+            height: 34943083
+        };
+        // Using the other pool because we have this table at the other DB
+        dotenv::dotenv().ok();
+        let url_balances =
+            &std::env::var("DATABASE_URL_BALANCES").expect("failed to get database url");
+        let pool = sqlx::PgPool::connect(url_balances)
+            .await
+            .expect("failed to connect to the balances database");
+        let account = near_primitives::types::AccountId::from_str("zubkowi.near").unwrap();
+        let pagination = types::query_params::HistoryPagination {
+            block_height: block.height,
+            block_timestamp: block.timestamp,
+            limit: 10,
+        };
+
+        let balance = get_near_history(&pool, &account, &pagination).await;
+        insta::assert_debug_snapshot!(balance);
+    }
+
+    #[tokio::test]
     async fn test_coin_history() {
         let pool = init_db().await;
         let rpc_client = init_rpc();
         let block = get_block();
         let contract = near_primitives::types::AccountId::from_str("usn").unwrap();
         let account = near_primitives::types::AccountId::from_str("pushxo.near").unwrap();
+        let pagination = types::query_params::HistoryPagination {
+            block_height: block.height,
+            block_timestamp: block.timestamp,
+            limit: 10,
+        };
+
+        let balance = get_coin_history(&pool, &rpc_client, &contract, &account, &pagination).await;
+        insta::assert_debug_snapshot!(balance);
+    }
+
+    #[tokio::test]
+    async fn test_coin_history_with_failed_receipts() {
+        let pool = init_db().await;
+        let rpc_client = init_rpc();
+        let block = db_helpers::Block {
+            timestamp: 1651062637353692535,
+            height: 64408633
+        };
+        let contract = near_primitives::types::AccountId::from_str("sweat_token_testing.near").unwrap();
+        let account = near_primitives::types::AccountId::from_str("intmainreturn0.near").unwrap();
         let pagination = types::query_params::HistoryPagination {
             block_height: block.height,
             block_timestamp: block.timestamp,

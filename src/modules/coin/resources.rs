@@ -4,8 +4,7 @@ use paperclip::actix::{
 };
 use validator::HasLen;
 
-use super::schemas;
-use crate::modules::coin::data_provider;
+use super::{data_provider, schemas};
 use crate::{db_helpers, errors, modules, types};
 
 #[api_v2_operation]
@@ -23,7 +22,7 @@ pub async fn get_near_balance(
     modules::check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
 
     Ok(Json(
-        super::data_provider::get_near_balance(&pool, &block, &request.account_id.0).await?,
+        data_provider::get_near_balance(&pool, &block, &request.account_id.0).await?,
     ))
 }
 

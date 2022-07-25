@@ -16,6 +16,7 @@ Ok(
                     "9c89db18ec9cc9e29f1c717b88b2dade5897e8150adaa7461c83391d8b3704b9",
                 ),
             ),
+            status: "SUCCESS",
             block_timestamp_nanos: U64(
                 1650558366159559202,
             ),
@@ -35,6 +36,7 @@ Ok(
                     "staking.paras.near",
                 ),
             ),
+            status: "SUCCESS",
             block_timestamp_nanos: U64(
                 1650485218795247427,
             ),
@@ -54,6 +56,7 @@ Ok(
                     "9c89db18ec9cc9e29f1c717b88b2dade5897e8150adaa7461c83391d8b3704b9",
                 ),
             ),
+            status: "SUCCESS",
             block_timestamp_nanos: U64(
                 1650476462474086004,
             ),
@@ -73,6 +76,7 @@ Ok(
                     "wancu.near",
                 ),
             ),
+            status: "SUCCESS",
             block_timestamp_nanos: U64(
                 1650168837264497827,
             ),
@@ -92,6 +96,7 @@ Ok(
                     "staking.paras.near",
                 ),
             ),
+            status: "SUCCESS",
             block_timestamp_nanos: U64(
                 1647797026589178520,
             ),
@@ -107,11 +112,44 @@ Ok(
                     "wancu.near",
                 ),
             ),
+            status: "SUCCESS",
             block_timestamp_nanos: U64(
                 1645634034724772357,
             ),
             block_height: U64(
                 60119475,
+            ),
+        },
+        HistoryItem {
+            cause: "MINT",
+            old_account_id: None,
+            new_account_id: Some(
+                AccountId(
+                    "xvtrvgx.near",
+                ),
+            ),
+            status: "FAILURE",
+            block_timestamp_nanos: U64(
+                1645632287080597503,
+            ),
+            block_height: U64(
+                60118129,
+            ),
+        },
+        HistoryItem {
+            cause: "MINT",
+            old_account_id: None,
+            new_account_id: Some(
+                AccountId(
+                    "kbneoburner3.near",
+                ),
+            ),
+            status: "FAILURE",
+            block_timestamp_nanos: U64(
+                1645632280460384115,
+            ),
+            block_height: U64(
+                60118124,
             ),
         },
     ],

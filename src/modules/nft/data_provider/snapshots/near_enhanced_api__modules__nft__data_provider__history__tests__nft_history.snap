@@ -16,6 +16,7 @@ Ok(
                     "kbneo.near",
                 ),
             ),
+            status: "SUCCESS",
             block_timestamp_nanos: U64(
                 1647196176561087306,
             ),
@@ -35,6 +36,7 @@ Ok(
                     "kbneoburner3.near",
                 ),
             ),
+            status: "SUCCESS",
             block_timestamp_nanos: U64(
                 1647195876097756264,
             ),
@@ -50,6 +52,7 @@ Ok(
                     "thewilderness.near",
                 ),
             ),
+            status: "SUCCESS",
             block_timestamp_nanos: U64(
                 1647195873478686254,
             ),

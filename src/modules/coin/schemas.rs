@@ -80,7 +80,7 @@ pub struct Coin {
     pub contract_account_id: Option<types::AccountId>,
     pub metadata: CoinMetadata,
     // TODO PHASE 1 (idea) I think it would be great to add here the info about last update moment. Timestamp, later also index
-    // I'm already doing it at NftCollectionByContract
+    // I'm already doing it at NftCount
 }
 
 /// This type describes the history of coin movements for the given user.
@@ -94,6 +94,7 @@ pub struct HistoryItem {
     pub delta_balance: types::I128,
     pub balance: types::U128,
     pub cause: String,
+    pub status: String,
     pub coin_metadata: CoinMetadata,
     pub block_timestamp_nanos: types::U64,
     // TODO PHASE 2 add this when we have all the data in the same DB. Now we can't join with blocks

@@ -75,12 +75,12 @@ pub struct MetadataResponse {
 /// `cause` is one of ["mint", "transfer", "burn"]
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 pub struct HistoryItem {
-    // todo add status
     pub cause: String,
     pub old_account_id: Option<types::AccountId>,
     pub new_account_id: Option<types::AccountId>,
     // TODO PHASE 2 add index here
     // pub index: types::U128,
+    pub status: String,
     pub block_timestamp_nanos: types::U64,
     pub block_height: types::U64,
 }
