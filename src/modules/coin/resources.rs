@@ -14,7 +14,7 @@ use crate::{db_helpers, errors, modules, types};
 /// for the given timestamp/block_height.
 pub async fn get_near_balance(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
-    request: web::Path<schemas::BalanceRequest>,
+    request: actix_web_validator::Path<schemas::BalanceRequest>,
     block_params: web::Query<types::query_params::BlockParams>,
 ) -> crate::Result<Json<schemas::NearBalanceResponse>> {
     types::query_params::check_block_params(&block_params)?;
@@ -41,7 +41,7 @@ pub async fn get_near_balance(
 pub async fn get_coin_balances(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
-    request: web::Path<schemas::BalanceRequest>,
+    request: actix_web_validator::Path<schemas::BalanceRequest>,
     block_params: web::Query<types::query_params::BlockParams>,
     // TODO PHASE 2 pagination by index (recently updated go first)
     pagination_params: web::Query<types::query_params::PaginationParams>,
@@ -94,7 +94,7 @@ pub async fn get_coin_balances(
 pub async fn get_coin_balances_by_contract(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
-    request: web::Path<schemas::BalanceByContractRequest>,
+    request: actix_web_validator::Path<schemas::BalanceByContractRequest>,
     block_params: web::Query<types::query_params::BlockParams>,
 ) -> crate::Result<Json<schemas::CoinBalancesResponse>> {
     if request.contract_account_id.to_string() == "near" {
@@ -134,7 +134,7 @@ pub async fn get_coin_balances_by_contract(
 pub async fn get_near_history(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     pool_balances: web::Data<db_helpers::DBWrapper>,
-    request: web::Path<schemas::BalanceRequest>,
+    request: actix_web_validator::Path<schemas::BalanceRequest>,
     pagination_params: web::Query<types::query_params::HistoryPaginationParams>,
 ) -> crate::Result<Json<schemas::HistoryResponse>> {
     let block = db_helpers::get_last_block(&pool).await?;
@@ -169,7 +169,7 @@ pub async fn get_near_history(
 pub async fn get_coin_history(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
-    request: web::Path<schemas::HistoryRequest>,
+    request: actix_web_validator::Path<schemas::HistoryRequest>,
     pagination_params: web::Query<types::query_params::HistoryPaginationParams>,
 ) -> crate::Result<Json<schemas::HistoryResponse>> {
     if request.contract_account_id.to_string() == "near" {
@@ -207,7 +207,7 @@ pub async fn get_coin_history(
 pub async fn get_ft_contract_metadata(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
-    request: web::Path<schemas::ContractMetadataRequest>,
+    request: actix_web_validator::Path<schemas::ContractMetadataRequest>,
     block_params: web::Query<types::query_params::BlockParams>,
 ) -> crate::Result<Json<schemas::FtContractMetadataResponse>> {
     types::query_params::check_block_params(&block_params)?;

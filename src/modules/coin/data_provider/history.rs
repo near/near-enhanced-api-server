@@ -197,7 +197,7 @@ mod tests {
     async fn test_near_history_with_failed_receipts() {
         let block = db_helpers::Block {
             timestamp: 1618591017607373869,
-            height: 34943083
+            height: 34943083,
         };
         // Using the other pool because we have this table at the other DB
         dotenv::dotenv().ok();
@@ -240,9 +240,10 @@ mod tests {
         let rpc_client = init_rpc();
         let block = db_helpers::Block {
             timestamp: 1651062637353692535,
-            height: 64408633
+            height: 64408633,
         };
-        let contract = near_primitives::types::AccountId::from_str("sweat_token_testing.near").unwrap();
+        let contract =
+            near_primitives::types::AccountId::from_str("sweat_token_testing.near").unwrap();
         let account = near_primitives::types::AccountId::from_str("intmainreturn0.near").unwrap();
         let pagination = types::query_params::HistoryPagination {
             block_height: block.height,

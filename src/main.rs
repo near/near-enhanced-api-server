@@ -1,5 +1,6 @@
 use actix_cors::Cors;
 use actix_web::{App, HttpServer, ResponseError};
+use actix_web_validator::PathConfig;
 use paperclip::actix::{web, OpenApiExt};
 pub(crate) use sqlx::types::BigDecimal;
 
@@ -107,6 +108,16 @@ async fn main() -> std::io::Result<()> {
                 .into()
             });
 
+        let path_config = PathConfig::default().error_handler(|err, _| {
+            let error_message = err.to_string();
+            actix_web::error::InternalError::from_response(
+                err,
+                errors::Error::from_error_kind(errors::ErrorKind::InvalidInput(error_message))
+                    .error_response(),
+            )
+            .into()
+        });
+
         let mut spec = paperclip::v2::models::DefaultApiRaw::default();
         spec.schemes
             .insert(paperclip::v2::models::OperationProtocol::Https);
@@ -136,6 +147,7 @@ async fn main() -> std::io::Result<()> {
 
         let mut app = App::new()
             .app_data(json_config)
+            .app_data(path_config)
             .wrap(actix_web::middleware::Logger::default())
             .app_data(web::Data::new(pool.clone()))
             .app_data(web::Data::new(db_helpers::DBWrapper {
