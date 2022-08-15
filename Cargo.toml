@@ -7,8 +7,8 @@ rust-version = "1.61.0"
 edition = "2021"
 
 [dependencies]
-actix-web = "4.0.1"
-actix-http = "3.0.4"
+actix-web = { version = "4.0.1", features = ["macros"] }
+actix-http = { version = "3.0.4" }
 actix-cors = "0.6.1"
 borsh = { version = "0.9.1" }
 derive_more = "0.99.9"
@@ -16,7 +16,7 @@ dotenv = "0.15.0"
 futures = "0.3.5"
 hex = "0.4"
 num-traits = "0.2.15"
-paperclip = { version = "0.7.0", features = ["v2", "v3", "actix4"] }
+paperclip = { version = "0.7.1", features = ["v2", "v3", "actix4", "actix4-validator"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 strum = { version = "0.24", features = ["derive"] }
@@ -24,7 +24,9 @@ sqlx = { version = "0.6", features = ["runtime-tokio-native-tls", "postgres", "b
 tokio = { version = "1.1", features = ["full"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-validator = "0.15"
+
+actix-web-validator = "4.0.0"
+validator = { version = "0.15", features = ["derive"] }
 
 near-primitives = "0.14.0"
 near-jsonrpc-client = "0.4.0-beta.0"

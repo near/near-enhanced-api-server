@@ -1,30 +1,36 @@
 use paperclip::actix::Apiv2Schema;
+use validator::{Validate, ValidationError};
 
 use crate::types;
 
 // *** Requests ***
 
 // move to coins
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
+#[derive(Validate, Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 pub struct BalanceRequest {
+    #[validate(custom = "near_primitives::types::AccountId::validate")]
     pub account_id: types::AccountId,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
+#[derive(Validate, Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 pub struct BalanceByContractRequest {
+    #[validate(custom = "near_primitives::types::AccountId::validate")]
     pub account_id: types::AccountId,
+    #[validate(custom = "near_primitives::types::AccountId::validate")]
     pub contract_account_id: types::AccountId,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
+#[derive(Validate, Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 pub struct HistoryRequest {
+    #[validate(custom = "near_primitives::types::AccountId::validate")]
     pub account_id: types::AccountId,
     pub contract_account_id: types::AccountId,
 }
 
 // duplicate in each folder
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
+#[derive(Validate, Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 pub struct ContractMetadataRequest {
+    #[validate(custom = "near_primitives::types::AccountId::validate")]
     pub contract_account_id: types::AccountId,
 }
 
@@ -122,4 +128,8 @@ pub struct FtContractMetadata {
     pub reference: Option<String>,
     pub reference_hash: Option<String>,
     pub decimals: u8,
+}
+
+pub fn validate(account_id: &str) -> Result<(), ValidationError> {
+    Err(ValidationError::new("something"))
 }

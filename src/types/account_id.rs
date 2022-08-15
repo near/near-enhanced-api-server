@@ -2,8 +2,10 @@ use std::fmt;
 use std::str::FromStr;
 
 use derive_more::{AsRef, Deref, From, FromStr, Into};
+use near_primitives::account::id::{ParseAccountError, ParseErrorKind};
 use paperclip::v2::{models::DataType, schema::TypedData};
 use serde::{Deserialize, Serialize};
+use validator::{Validate, ValidationErrors};
 
 #[derive(
     Eq,
