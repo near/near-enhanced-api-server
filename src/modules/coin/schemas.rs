@@ -1,12 +1,13 @@
 use paperclip::actix::Apiv2Schema;
-
+use validator::{Validate};
 use crate::types;
 
 // *** Requests ***
 
 // move to coins
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
+#[derive(Validate, Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 pub struct BalanceRequest {
+    #[validate(custom = "crate::errors::validate_account_id")]
     pub account_id: types::AccountId,
 }
 

@@ -57,6 +57,7 @@ async fn playground_ui() -> impl actix_web::Responder {
         )
 }
 
+// http://127.0.0.1:3050/#/paths/NFT-contract_account_id---token_id/get
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
     dotenv::dotenv().ok();

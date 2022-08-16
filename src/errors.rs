@@ -104,3 +104,10 @@ impl From<near_primitives::account::id::ParseAccountError> for ErrorKind {
         Self::InternalError(format!("Could not parse account: {:#?}", error))
     }
 }
+
+pub(crate) fn validate_account_id(account_id: &str) -> Result<(), validator::ValidationError> {
+    match near_primitives::types::AccountId::validate(account_id) {
+        Ok(_) => Ok(()),
+        Err(x) => Err(validator::ValidationError::new("something"))
+    }
+}
