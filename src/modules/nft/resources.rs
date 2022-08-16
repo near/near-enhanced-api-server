@@ -7,7 +7,7 @@ use crate::{db_helpers, modules, types};
 
 use super::schemas;
 
-#[api_v2_operation]
+#[api_v2_operation(tags(NFT))]
 /// Get user's NFT collection overview
 ///
 /// For the given account_id and timestamp/block_height, this endpoint returns
@@ -46,7 +46,7 @@ pub async fn get_nft_collection_overview(
     }))
 }
 
-#[api_v2_operation]
+#[api_v2_operation(tags(NFT))]
 /// Get user's NFT collection by contract
 ///
 /// This endpoint returns the list of NFTs, each of them contains all the detailed NFT information,
@@ -89,7 +89,7 @@ pub async fn get_nft_collection_by_contract(
     }))
 }
 
-#[api_v2_operation]
+#[api_v2_operation(tags(NFT))]
 /// Get NFT
 ///
 /// This endpoint returns the NFT detailed information
@@ -122,7 +122,7 @@ pub async fn get_nft(
     }))
 }
 
-#[api_v2_operation]
+#[api_v2_operation(tags(NFT))]
 /// Get NFT history
 ///
 /// This endpoint returns the history of operations for the given NFT and timestamp/block_height.
@@ -162,7 +162,7 @@ pub async fn get_nft_history(
     }))
 }
 
-#[api_v2_operation]
+#[api_v2_operation(tags(NFT))]
 /// Get NFT contract metadata
 ///
 /// This endpoint returns the metadata for given NFT contract and timestamp/block_height.
