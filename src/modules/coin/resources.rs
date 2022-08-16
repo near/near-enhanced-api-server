@@ -9,32 +9,6 @@ use validator::HasLen;
 use super::{data_provider, schemas};
 use crate::{db_helpers, errors, modules, types};
 
-trait X {
-    fn update_parameter(x: &mut paperclip::v2::models::DefaultOperationRaw);
-    fn update_security(x: &mut paperclip::v2::models::DefaultOperationRaw);
-    fn update_security_definitions(x: &mut std::collections::BTreeMap<String, paperclip::v2::models::SecurityScheme>);
-    fn update_definitions(x: &mut std::collections::BTreeMap<String, paperclip::v2::models::DefaultSchemaRaw>);
-}
-
-impl<T> X for actix_web_validator::Path<T> {
-    fn update_parameter(x: &mut DefaultOperationRaw) {
-
-    }
-
-    fn update_security(x: &mut DefaultOperationRaw) {
-
-    }
-
-    fn update_security_definitions(x: &mut BTreeMap<String, SecurityScheme>) {
-
-    }
-
-    fn update_definitions(x: &mut BTreeMap<String, paperclip::v2::models::DefaultSchemaRaw>) {
-        // paperclip::actix::OperationModifier::update_definitions(x);
-    }
-}
-
-
 #[api_v2_operation]
 /// Get user's NEAR balance
 ///

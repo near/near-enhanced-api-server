@@ -8,7 +8,7 @@ edition = "2021"
 
 [dependencies]
 actix-web = { version = "4.0.1", features = ["macros"] }
-actix-web-validator = "4.0.0"
+actix-web-validator = "3.0.0"
 actix-http = "3.0.4"
 actix-cors = "0.6.1"
 borsh = { version = "0.9.1" }
@@ -25,7 +25,7 @@ sqlx = { version = "0.6", features = ["runtime-tokio-native-tls", "postgres", "b
 tokio = { version = "1.1", features = ["full"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-validator = { version = "0.15", features = ["derive"] }
+validator = { version = "0.14", features = ["derive"] }
 
 near-primitives = "0.14.0"
 near-jsonrpc-client = "0.4.0-beta.0"
