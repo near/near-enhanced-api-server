@@ -7,7 +7,7 @@ use validator::HasLen;
 use super::{data_provider, schemas};
 use crate::{db_helpers, errors, modules, types};
 
-#[api_v2_operation]
+#[api_v2_operation(tags(Coins))]
 /// Get user's NEAR balance
 ///
 /// This endpoint returns the NEAR balance of the given account_id
@@ -26,7 +26,7 @@ pub async fn get_near_balance(
     ))
 }
 
-#[api_v2_operation]
+#[api_v2_operation(tags(Coins))]
 /// Get user's coin balances
 ///
 /// This endpoint returns all the countable coin balances (including NEAR, FTs, later will add MTs)
@@ -79,7 +79,7 @@ pub async fn get_coin_balances(
     }))
 }
 
-#[api_v2_operation]
+#[api_v2_operation(tags(Coins))]
 /// Get user's coin balances by contract
 ///
 /// This endpoint returns all the countable coin balances of the given account_id,
@@ -122,7 +122,7 @@ pub async fn get_coin_balances_by_contract(
     }))
 }
 
-#[api_v2_operation]
+#[api_v2_operation(tags(Coins))]
 /// Get user's NEAR history
 ///
 /// This endpoint returns the history of operations with NEAR coin
@@ -154,7 +154,7 @@ pub async fn get_near_history(
     }))
 }
 
-#[api_v2_operation]
+#[api_v2_operation(tags(Coins))]
 /// Get user's coin history by contract
 ///
 /// This endpoint returns the history of coin operations (FT, other standards)
@@ -196,7 +196,7 @@ pub async fn get_coin_history(
     }))
 }
 
-#[api_v2_operation]
+#[api_v2_operation(tags(Coins))]
 /// Get FT contract metadata
 ///
 /// This endpoint returns the metadata for given FT contract and timestamp/block_height.
