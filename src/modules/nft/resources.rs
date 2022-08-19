@@ -22,7 +22,7 @@ use super::schemas;
 pub async fn get_nft_collection_overview(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
-    request: web::Path<schemas::NftCountsRequest>,
+    request: actix_web_validator::Path<schemas::NftCountsRequest>,
     block_params: web::Query<types::query_params::BlockParams>,
     pagination_params: web::Query<types::query_params::PaginationParams>,
 ) -> crate::Result<Json<schemas::NftCountsResponse>> {
@@ -59,7 +59,7 @@ pub async fn get_nft_collection_overview(
 pub async fn get_nft_collection_by_contract(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
-    request: web::Path<schemas::NftCollectionRequest>,
+    request: actix_web_validator::Path<schemas::NftCollectionRequest>,
     block_params: web::Query<types::query_params::BlockParams>,
     pagination_params: web::Query<types::query_params::PaginationParams>,
 ) -> crate::Result<Json<schemas::NftsResponse>> {
@@ -97,7 +97,7 @@ pub async fn get_nft_collection_by_contract(
 pub async fn get_nft(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
-    request: web::Path<schemas::NftRequest>,
+    request: actix_web_validator::Path<schemas::NftRequest>,
     block_params: web::Query<types::query_params::BlockParams>,
 ) -> crate::Result<Json<schemas::NftResponse>> {
     types::query_params::check_block_params(&block_params)?;
@@ -135,7 +135,7 @@ pub async fn get_nft(
 pub async fn get_nft_history(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
-    request: web::Path<schemas::NftRequest>,
+    request: actix_web_validator::Path<schemas::NftRequest>,
     pagination_params: web::Query<types::query_params::HistoryPaginationParams>,
 ) -> crate::Result<Json<schemas::HistoryResponse>> {
     let block = db_helpers::get_last_block(&pool).await?;
@@ -170,7 +170,7 @@ pub async fn get_nft_history(
 pub async fn get_nft_contract_metadata(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
-    request: web::Path<schemas::MetadataRequest>,
+    request: actix_web_validator::Path<schemas::MetadataRequest>,
     block_params: web::Query<types::query_params::BlockParams>,
 ) -> crate::Result<Json<schemas::MetadataResponse>> {
     types::query_params::check_block_params(&block_params)?;
