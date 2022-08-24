@@ -22,6 +22,7 @@ use super::schemas;
 pub async fn get_nft_collection_overview(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
+    _: crate::types::pagoda_api_key::PagodaApiKey,
     request: actix_web_validator::Path<schemas::NftCountsRequest>,
     block_params: web::Query<types::query_params::BlockParams>,
     pagination_params: web::Query<types::query_params::PaginationParams>,
@@ -59,6 +60,7 @@ pub async fn get_nft_collection_overview(
 pub async fn get_nft_collection_by_contract(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
+    _: crate::types::pagoda_api_key::PagodaApiKey,
     request: actix_web_validator::Path<schemas::NftCollectionRequest>,
     block_params: web::Query<types::query_params::BlockParams>,
     pagination_params: web::Query<types::query_params::PaginationParams>,
@@ -97,6 +99,7 @@ pub async fn get_nft_collection_by_contract(
 pub async fn get_nft(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
+    _: crate::types::pagoda_api_key::PagodaApiKey,
     request: actix_web_validator::Path<schemas::NftRequest>,
     block_params: web::Query<types::query_params::BlockParams>,
 ) -> crate::Result<Json<schemas::NftResponse>> {
@@ -135,6 +138,7 @@ pub async fn get_nft(
 pub async fn get_nft_history(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
+    _: crate::types::pagoda_api_key::PagodaApiKey,
     request: actix_web_validator::Path<schemas::NftRequest>,
     pagination_params: web::Query<types::query_params::HistoryPaginationParams>,
 ) -> crate::Result<Json<schemas::HistoryResponse>> {
@@ -170,6 +174,7 @@ pub async fn get_nft_history(
 pub async fn get_nft_contract_metadata(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
+    _: crate::types::pagoda_api_key::PagodaApiKey,
     request: actix_web_validator::Path<schemas::MetadataRequest>,
     block_params: web::Query<types::query_params::BlockParams>,
 ) -> crate::Result<Json<schemas::MetadataResponse>> {

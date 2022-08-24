@@ -221,6 +221,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "actix-web-prom"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9df3127d20a5d01c9fc9aceb969a38d31a6767e1b48a54d55a8f56c769a84923"
+dependencies = [
+ "actix-web",
+ "futures-core",
+ "pin-project-lite",
+ "prometheus",
+]
+
+[[package]]
 name = "actix-web-validator"
 version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1563,6 +1575,7 @@ dependencies = [
  "actix-cors",
  "actix-http",
  "actix-web",
+ "actix-web-prom",
  "actix-web-validator",
  "borsh",
  "derive_more",
@@ -1874,8 +1887,7 @@ dependencies = [
 [[package]]
 name = "paperclip"
 version = "0.7.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f399678683ec199ddca1dd54db957dd158dedb5fc90826eb2a7e6c0800c3a868"
+source = "git+https://github.com/near/paperclip?branch=fix/security-schema-v3-translation#4c83cdc4714f4f28fd05a997aa9383e6bbdd8609"
 dependencies = [
  "anyhow",
  "indexmap",
@@ -1898,8 +1910,7 @@ dependencies = [
 [[package]]
 name = "paperclip-actix"
 version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "29880bc57ef516c272d6fdd215ecaf96375d9a5dbac5412d849b9f9afd0d7298"
+source = "git+https://github.com/near/paperclip?branch=fix/security-schema-v3-translation#4c83cdc4714f4f28fd05a997aa9383e6bbdd8609"
 dependencies = [
  "actix-service",
  "actix-web",
@@ -1915,8 +1926,7 @@ dependencies = [
 [[package]]
 name = "paperclip-core"
 version = "0.5.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0bee516533b655ba63e41e788b49a2beb1139e1eebafb143e7cb56b8cabb5da1"
+source = "git+https://github.com/near/paperclip?branch=fix/security-schema-v3-translation#4c83cdc4714f4f28fd05a997aa9383e6bbdd8609"
 dependencies = [
  "actix-web",
  "actix-web-validator",
@@ -1938,8 +1948,7 @@ dependencies = [
 [[package]]
 name = "paperclip-macros"
 version = "0.6.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e89990be67318e3da29c92adb3377e0251a8eee10b4f91ff349cbf2da945e9d1"
+source = "git+https://github.com/near/paperclip?branch=fix/security-schema-v3-translation#4c83cdc4714f4f28fd05a997aa9383e6bbdd8609"
 dependencies = [
  "heck",
  "http",
@@ -2156,6 +2165,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dd96a1e8ed2596c337f8eae5f24924ec83f5ad5ab21ea8e455d3566c69fbcaf7"
 dependencies = [
  "unicode-ident",
+]
+
+[[package]]
+name = "prometheus"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cface98dfa6d645ea4c789839f176e4b072265d085bfcc48eaa8d137f58d3c39"
+dependencies = [
+ "cfg-if 1.0.0",
+ "fnv",
+ "lazy_static",
+ "memchr",
+ "parking_lot 0.12.1",
+ "thiserror",
 ]
 
 [[package]]

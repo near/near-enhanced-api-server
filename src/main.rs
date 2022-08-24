@@ -1,6 +1,6 @@
 use actix_cors::Cors;
 use actix_web::{App, HttpServer, ResponseError};
-use actix_web_prom::{PrometheusMetricsBuilder};
+use actix_web_prom::PrometheusMetricsBuilder;
 use actix_web_validator::PathConfig;
 use paperclip::actix::{web, OpenApiExt};
 pub(crate) use sqlx::types::BigDecimal;
@@ -80,17 +80,20 @@ async fn main() -> std::io::Result<()> {
         .build()
         .unwrap();
 
-    let db_url = &std::env::var("DATABASE_URL").expect("failed to get database url");
+    let db_url = &std::env::var("DATABASE_URL")
+        .expect("failed to get database url from DATABASE_URL env variable");
     let pool = sqlx::PgPool::connect(db_url)
         .await
         .expect("failed to connect to the database");
 
-    let url_balances = &std::env::var("DATABASE_URL_BALANCES").expect("failed to get database url");
+    let url_balances = &std::env::var("DATABASE_URL_BALANCES")
+        .expect("failed to get database url from DATABASE_URL_BALANCES env variable");
     let pool_balances = sqlx::PgPool::connect(url_balances)
         .await
         .expect("failed to connect to the balances database");
 
-    let rpc_url = &std::env::var("RPC_URL").expect("failed to get RPC url");
+    let rpc_url =
+        &std::env::var("RPC_URL").expect("failed to get RPC url from RPC_URL env variable");
     let rpc_client = near_jsonrpc_client::JsonRpcClient::connect(rpc_url);
 
     let config::Config {
