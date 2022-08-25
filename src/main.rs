@@ -1,5 +1,6 @@
 use actix_cors::Cors;
 use actix_web::{App, HttpServer, ResponseError};
+use actix_web_prom::{PrometheusMetricsBuilder};
 use actix_web_validator::PathConfig;
 use paperclip::actix::{web, OpenApiExt};
 pub(crate) use sqlx::types::BigDecimal;
@@ -73,6 +74,11 @@ async fn main() -> std::io::Result<()> {
         target: crate::LOGGER_MSG,
         "NEAR Enhanced API Server is initializing..."
     );
+
+    let prometheus = PrometheusMetricsBuilder::new("api")
+        .endpoint("/metrics")
+        .build()
+        .unwrap();
 
     let db_url = &std::env::var("DATABASE_URL").expect("failed to get database url");
     let pool = sqlx::PgPool::connect(db_url)
@@ -149,6 +155,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(json_config)
             .app_data(path_config)
             .wrap(actix_web::middleware::Logger::default())
+            .wrap(prometheus.clone())
             .app_data(web::Data::new(pool.clone()))
             .app_data(web::Data::new(db_helpers::DBWrapper {
                 pool: pool_balances.clone(),
