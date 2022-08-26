@@ -11,6 +11,7 @@ actix-web = { version = "4.0.1", features = ["macros"] }
 actix-web-validator = "3.0.0"
 actix-http = "3.0.4"
 actix-cors = "0.6.1"
+actix-web-prom = "0.6.0"
 borsh = { version = "0.9.1" }
 derive_more = "0.99.9"
 dotenv = "0.15.0"
