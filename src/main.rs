@@ -1,5 +1,5 @@
 use actix_cors::Cors;
-use actix_web::{App, HttpServer, ResponseError};
+use actix_web::{App, HttpServer, ResponseError, middleware::Logger};
 use actix_web_prom::PrometheusMetricsBuilder;
 use actix_web_validator::PathConfig;
 use paperclip::actix::{web, OpenApiExt};
@@ -63,14 +63,8 @@ async fn playground_ui() -> impl actix_web::Responder {
 async fn main() -> std::io::Result<()> {
     dotenv::dotenv().ok();
 
-    let env_filter = tracing_subscriber::EnvFilter::new(
-        "near=info,near_jsonrpc_client=warn,near_enhanced_api=debug",
-    );
-    tracing_subscriber::fmt::Subscriber::builder()
-        .with_env_filter(env_filter)
-        .with_writer(std::io::stderr)
-        .init();
-    tracing::debug!(
+    env_logger::init_from_env(env_logger::Env::new().default_filter_or("debug"));
+    log::debug!(
         target: crate::LOGGER_MSG,
         "NEAR Enhanced API Server is initializing..."
     );
@@ -157,7 +151,7 @@ async fn main() -> std::io::Result<()> {
         let mut app = App::new()
             .app_data(json_config)
             .app_data(path_config)
-            .wrap(actix_web::middleware::Logger::default())
+            .wrap(Logger::default())
             .wrap(prometheus.clone())
             .app_data(web::Data::new(pool.clone()))
             .app_data(web::Data::new(db_helpers::DBWrapper {
@@ -180,7 +174,7 @@ async fn main() -> std::io::Result<()> {
     .shutdown_timeout(5)
     .run();
 
-    tracing::debug!(
+    log::debug!(
         target: crate::LOGGER_MSG,
         "NEAR Enhanced API Server is starting..."
     );

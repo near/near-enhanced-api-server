@@ -150,7 +150,7 @@ pub(crate) async fn select_retry_or_panic<T: Send + Unpin + for<'r> sqlx::FromRo
     let mut interval = INTERVAL;
     let mut retry_attempt = 0usize;
 
-    tracing::info!(
+    log::info!(
         target: crate::LOGGER_MSG,
         "DB request:\n{}\nParams:{}",
         query,
@@ -177,7 +177,7 @@ pub(crate) async fn select_retry_or_panic<T: Send + Unpin + for<'r> sqlx::FromRo
         {
             Ok(res) => return Ok(res),
             Err(async_error) => {
-                tracing::warn!(
+                log::warn!(
                     target: crate::LOGGER_MSG,
                     "Error occurred during {:#?}:\nFailed SELECT:\n{}Params:{}\n Retrying in {} milliseconds...",
                     async_error,
