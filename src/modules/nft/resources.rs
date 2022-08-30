@@ -12,13 +12,13 @@ use super::schemas;
 ///
 /// For the given account_id and timestamp/block_height, this endpoint returns
 /// the number of NFTs grouped by contract_id, together with the corresponding NFT contract metadata.
-/// NFT contract is presented if the account_id has at least one NFT there.
+/// NFT contract will be presented if the account_id has at least one NFT there.
 ///
 /// `block_timestamp_nanos` helps you to choose the moment of time, we fix the blockchain state at that time.
 ///
 /// **Limitations**
-/// * We provide only up to 100 items, where recently updated data goes first.
-///   Full-featured pagination will be provided later.
+/// * We currently provide the most recent 100 items.
+///   Full-featured pagination will be provided in later phases.
 pub async fn get_nft_collection_overview(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
@@ -50,13 +50,12 @@ pub async fn get_nft_collection_overview(
 #[api_v2_operation(tags(NFT))]
 /// Get user's NFT collection by contract
 ///
-/// This endpoint returns the list of NFTs, each of them contains all the detailed NFT information,
-/// for the given account_id, NFT contract_id, timestamp/block_height.
+/// This endpoint returns the list of NFTs with full details for the given account_id, NFT contract_id, timestamp/block_height.
 /// You can copy the token_id from this response and then ask for NFT history.
 ///
 /// **Limitations**
-/// * We provide only up to 100 items.
-///   Full-featured pagination will be provided later.
+/// * We currently provide the most recent 100 items.
+///   Full-featured pagination will be provided in later phases.
 pub async fn get_nft_collection_by_contract(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
@@ -94,7 +93,7 @@ pub async fn get_nft_collection_by_contract(
 #[api_v2_operation(tags(NFT))]
 /// Get NFT
 ///
-/// This endpoint returns the NFT detailed information
+/// This endpoint returns detailed information on the NFT
 /// for the given token_id, NFT contract_id, timestamp/block_height.
 pub async fn get_nft(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
@@ -129,12 +128,12 @@ pub async fn get_nft(
 /// Get NFT history
 ///
 /// This endpoint returns the history of operations for the given NFT and timestamp/block_height.
-/// Keep in mind, it does not related to a concrete account_id; the whole history is shown.
+/// Note: The result does not related to a concrete account_id; the whole history is shown.
 ///
 /// **Limitations**
 /// * For now, we support only NFT contracts which implement Events NEP.
-/// * We provide only up to 100 items, where recent updates go first.
-///   Full-featured pagination will be provided later.
+/// * We currently provide the most recent 100 items.
+///   Full-featured pagination will be provided in later phases.
 pub async fn get_nft_history(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
@@ -170,7 +169,7 @@ pub async fn get_nft_history(
 /// Get NFT contract metadata
 ///
 /// This endpoint returns the metadata for given NFT contract and timestamp/block_height.
-/// Keep in mind, this is contract-wide metadata. Each NFT also has its own metadata.
+/// Note: This is contract-wide metadata. Each NFT also has its own metadata.
 pub async fn get_nft_contract_metadata(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
