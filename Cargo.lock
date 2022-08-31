@@ -1887,7 +1887,7 @@ dependencies = [
 [[package]]
 name = "paperclip"
 version = "0.7.1"
-source = "git+https://github.com/near/paperclip?branch=fix/security-schema-v3-translation#50d11b96f302abc83237749fce279bcf3ca4f16d"
+source = "git+https://github.com/near/paperclip?branch=feat/respect-host-in-v2-to-v3-servers-conversion#e9b0cec02e8d059cf4d465f0bc48027d1a7250f5"
 dependencies = [
  "anyhow",
  "indexmap",
@@ -1897,7 +1897,7 @@ dependencies = [
  "paperclip-actix",
  "paperclip-core",
  "paperclip-macros",
- "parking_lot 0.11.2",
+ "parking_lot 0.12.1",
  "semver",
  "serde",
  "serde_derive",
@@ -1910,7 +1910,7 @@ dependencies = [
 [[package]]
 name = "paperclip-actix"
 version = "0.5.1"
-source = "git+https://github.com/near/paperclip?branch=fix/security-schema-v3-translation#50d11b96f302abc83237749fce279bcf3ca4f16d"
+source = "git+https://github.com/near/paperclip?branch=feat/respect-host-in-v2-to-v3-servers-conversion#e9b0cec02e8d059cf4d465f0bc48027d1a7250f5"
 dependencies = [
  "actix-service",
  "actix-web",
@@ -1919,14 +1919,14 @@ dependencies = [
  "openapiv3",
  "paperclip-core",
  "paperclip-macros",
- "parking_lot 0.11.2",
+ "parking_lot 0.12.1",
  "serde_json",
 ]
 
 [[package]]
 name = "paperclip-core"
 version = "0.5.2"
-source = "git+https://github.com/near/paperclip?branch=fix/security-schema-v3-translation#50d11b96f302abc83237749fce279bcf3ca4f16d"
+source = "git+https://github.com/near/paperclip?branch=feat/respect-host-in-v2-to-v3-servers-conversion#e9b0cec02e8d059cf4d465f0bc48027d1a7250f5"
 dependencies = [
  "actix-web",
  "actix-web-validator",
@@ -1935,7 +1935,7 @@ dependencies = [
  "once_cell",
  "openapiv3",
  "paperclip-macros",
- "parking_lot 0.11.2",
+ "parking_lot 0.12.1",
  "pin-project",
  "regex",
  "serde",
@@ -1948,7 +1948,7 @@ dependencies = [
 [[package]]
 name = "paperclip-macros"
 version = "0.6.1"
-source = "git+https://github.com/near/paperclip?branch=fix/security-schema-v3-translation#50d11b96f302abc83237749fce279bcf3ca4f16d"
+source = "git+https://github.com/near/paperclip?branch=feat/respect-host-in-v2-to-v3-servers-conversion#e9b0cec02e8d059cf4d465f0bc48027d1a7250f5"
 dependencies = [
  "heck",
  "http",
