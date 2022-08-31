@@ -131,7 +131,7 @@ pub async fn get_nft(
 /// **Note:** The result is not related to a concrete `account_id`; the whole history is shown.
 ///
 /// **Limitations**
-/// * For now, we support only NFT contracts which implement the Events NEP standard.
+/// * For now, we only support NFT contracts that implement the Events NEP standard.
 /// * We currently provide the most recent 100 items.
 ///   Full-featured pagination will be provided in later phases.
 pub async fn get_nft_history(
