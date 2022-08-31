@@ -10,8 +10,8 @@ use crate::{db_helpers, errors, modules, types};
 #[api_v2_operation(tags(Coins))]
 /// Get user's NEAR balance
 ///
-/// This endpoint returns the NEAR balance of the given account_id
-/// for the given timestamp/block_height.
+/// This endpoint returns the NEAR balance of the given `account_id`
+/// at the given `timestamp`/`block_height`.
 pub async fn get_near_balance(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     _: crate::types::pagoda_api_key::PagodaApiKey,
@@ -30,15 +30,15 @@ pub async fn get_near_balance(
 #[api_v2_operation(tags(Coins))]
 /// Get user's coin balances
 ///
-/// This endpoint returns all the countable coin balances (including NEAR, FTs, later will add MTs)
-/// of the given account_id, for the given timestamp/block_height.
+/// This endpoint returns all the countable coin balances (including NEAR, fungible tokens, and _multi-tokens_)
+/// of the given `account_id`, at the given `timestamp`/`block_height`.
 ///
 /// **Limitations**
-/// * For now, we support only the balance for NEAR and FT contracts which implement Events NEP.
-///   We are working on the solution to support the other FT contracts, including `wrap.near` and bridged tokens.
+/// * For now, we only support the balance for NEAR and FT contracts that implement the Events NEP standard.
+///   We are working on a solution to support other FT contracts, including `wrap.near` and bridged tokens.
 /// * We are in the process of supporting Multi Token balances.
 /// * We currently provide the most recent 100 items.
-///   Full-featured pagination will be provided in the later phases.
+///   Full-featured pagination will be provided in an upcoming update.
 pub async fn get_coin_balances(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
@@ -84,14 +84,14 @@ pub async fn get_coin_balances(
 #[api_v2_operation(tags(Coins))]
 /// Get user's coin balances by contract
 ///
-/// This endpoint returns all the countable coin balances of the given account_id,
-/// for the given contract and timestamp/block_height.
-/// For FT contract, the response has only 1 item in the list.
-/// For MT contracts, there could be several balances (MT support is not ready yet).
+/// This endpoint returns all the countable coin balances of the given `account_id`,
+/// for the given contract and `timestamp`/`block_height`.
+/// For FT contracts, the response has only 1 item in the list.
+/// For MT contracts, there could be several balances (MT support is still under development).
 ///
 /// **Limitations**
-/// * For now, we support only the balance for FT contracts which implement Events NEP.
-///   We are working on the solution to support the other FT contracts, including `wrap.near` and bridged tokens.
+/// * For now, we support only the balance for FT contracts that implement the Events NEP standard.
+///   We are working on a solution to support other FT contracts, including `wrap.near` and bridged tokens.
 /// * We are in the process of supporting Multi Token balances.
 pub async fn get_coin_balances_by_contract(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
@@ -128,12 +128,12 @@ pub async fn get_coin_balances_by_contract(
 #[api_v2_operation(tags(Coins))]
 /// Get user's NEAR history
 ///
-/// This endpoint returns the history of operations with NEAR coin
-/// for the given account_id, timestamp/block_height.
+/// This endpoint returns the history of operations with NEAR coins
+/// for the given `account_id`, `timestamp`/`block_height`.
 ///
 /// **Limitations**
 /// * We currently provide the most recent 100 items.
-///   Full-featured pagination will be provided in the later phases.
+///   Full-featured pagination will be provided in an upcoming update.
 pub async fn get_near_history(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     pool_balances: web::Data<db_helpers::DBWrapper>,
@@ -162,14 +162,14 @@ pub async fn get_near_history(
 /// Get user's coin history by contract
 ///
 /// This endpoint returns the history of coin operations (FT, other standards)
-/// for the given account_id, contract_id, timestamp/block_height.
+/// for the given `account_id`, `contract_id`, `timestamp`/`block_height`.
 ///
 /// **Limitations**
-/// * For now, we support only FT contracts which implement Events NEP.
-///   We are working on the solution to support the other FT contracts, including `wrap.near` and bridged tokens.
+/// * For now, we support only FT contracts that implement the Events NEP standard.
+///   We are working on a solution to support other FT contracts, including `wrap.near` and bridged tokens.
 /// * We are in the process of supporting Multi Token history.
 /// * We currently provide the most recent 100 items.
-///   Full-featured pagination will be provided in the later phases.
+///   Full-featured pagination will be provided in an upcoming update.
 pub async fn get_coin_history(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
@@ -204,11 +204,11 @@ pub async fn get_coin_history(
 #[api_v2_operation(tags(Coins))]
 /// Get FT contract metadata
 ///
-/// This endpoint returns the metadata for given FT contract and timestamp/block_height.
+/// This endpoint returns the metadata for a given FT contract and `timestamp`/`block_height`.
 ///
 /// **Limitations**
-/// * For now, we support only FT contracts which implement Events NEP.
-///   We work on the solution to support the other FT contracts, including `wrap.near` and bridged tokens.
+/// * For now, we support only FT contracts that implement the Events NEP standard.
+///   We are working on a solution to support other FT contracts, including `wrap.near` and bridged tokens.
 pub async fn get_ft_contract_metadata(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
