@@ -2,7 +2,13 @@ use sqlx::{postgres::PgRow, Arguments};
 
 use crate::{errors, types, BigDecimal};
 
-const DB_RETRY_COUNT: usize = 1;
+// The DB replicas apply the WALs each X seconds (X=30 or 300 in our case, depend on replica).
+// If the SELECT query started right before WAL started to apply, the query is cancelled.
+// That's why we need to try the second time.
+// If it hits the limit again, it makes to sense to try run it the third time,
+// 99% we will hit the limit again, that's why we have 2 here
+const DB_RETRY_COUNT: usize = 2;
+
 const INTERVAL: std::time::Duration = std::time::Duration::from_millis(100);
 const MAX_DELAY_TIME: std::time::Duration = std::time::Duration::from_secs(120);
 
