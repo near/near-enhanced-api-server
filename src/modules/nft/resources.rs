@@ -10,11 +10,11 @@ use super::schemas;
 #[api_v2_operation(tags(NFT))]
 /// Get user's NFT collection overview
 ///
-/// For the given account_id and timestamp/block_height, this endpoint returns
-/// the number of NFTs grouped by contract_id, together with the corresponding NFT contract metadata.
-/// NFT contract will be presented if the account_id has at least one NFT there.
+/// For the given `account_id` and `timestamp` or `block_height`, this endpoint returns
+/// the number of NFTs grouped by `contract_id`, together with the corresponding NFT contract metadata.
+/// The NFT contract will be present in the response if the `account_id` has at least one NFT there.
 ///
-/// `block_timestamp_nanos` helps you to choose the moment of time, we fix the blockchain state at that time.
+/// **Note:** `block_timestamp_nanos` helps you choose a moment in time, fixing the blockchain state at that time.
 ///
 /// **Limitations**
 /// * We currently provide the most recent 100 items.
