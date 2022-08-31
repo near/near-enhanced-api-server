@@ -50,8 +50,8 @@ pub async fn get_nft_collection_overview(
 #[api_v2_operation(tags(NFT))]
 /// Get user's NFT collection by contract
 ///
-/// This endpoint returns the list of NFTs with full details for the given account_id, NFT contract_id, timestamp/block_height.
-/// You can copy the token_id from this response and then ask for NFT history.
+/// This endpoint returns the list of NFTs with full details for the given `account_id`, NFT `contract_id`, `timestamp`/`block_height`.
+/// You can use the `token_id` from this response and then request the NFT history for that token.
 ///
 /// **Limitations**
 /// * We currently provide the most recent 100 items.
@@ -94,7 +94,7 @@ pub async fn get_nft_collection_by_contract(
 /// Get NFT
 ///
 /// This endpoint returns detailed information on the NFT
-/// for the given token_id, NFT contract_id, timestamp/block_height.
+/// for the given `token_id`, NFT `contract_id`, `timestamp`/`block_height`.
 pub async fn get_nft(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
@@ -127,11 +127,11 @@ pub async fn get_nft(
 #[api_v2_operation(tags(NFT))]
 /// Get NFT history
 ///
-/// This endpoint returns the history of operations for the given NFT and timestamp/block_height.
-/// Note: The result does not related to a concrete account_id; the whole history is shown.
+/// This endpoint returns the transaction history for the given NFT and `timestamp`/`block_height`.
+/// **Note:** The result is not related to a concrete `account_id`; the whole history is shown.
 ///
 /// **Limitations**
-/// * For now, we support only NFT contracts which implement Events NEP.
+/// * For now, we support only NFT contracts which implement the Events NEP standard.
 /// * We currently provide the most recent 100 items.
 ///   Full-featured pagination will be provided in later phases.
 pub async fn get_nft_history(
@@ -168,8 +168,8 @@ pub async fn get_nft_history(
 #[api_v2_operation(tags(NFT))]
 /// Get NFT contract metadata
 ///
-/// This endpoint returns the metadata for given NFT contract and timestamp/block_height.
-/// Note: This is contract-wide metadata. Each NFT also has its own metadata.
+/// This endpoint returns the metadata for a given NFT contract and `timestamp`/`block_height`.
+/// **Note:** This is contract-wide metadata. Each NFT also has its own metadata.
 pub async fn get_nft_contract_metadata(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
