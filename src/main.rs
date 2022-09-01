@@ -104,8 +104,6 @@ async fn main() -> std::io::Result<()> {
         cors_allowed_origins,
         limits,
     } = config::Config::default();
-    let api_server_public_host =
-        std::env::var("API_SERVER_PUBLIC_HOST").unwrap_or_else(|_| addr.clone());
 
     let server = HttpServer::new(move || {
         let json_config = web::JsonConfig::default()
@@ -131,26 +129,12 @@ async fn main() -> std::io::Result<()> {
         });
 
         let mut spec = paperclip::v2::models::DefaultApiRaw::default();
-        spec.schemes
-            .insert(paperclip::v2::models::OperationProtocol::Https);
-        spec.schemes
-            .insert(paperclip::v2::models::OperationProtocol::Http);
-        spec.host = Some(api_server_public_host.clone());
+        if let Ok(api_server_public_host) = std::env::var("API_SERVER_PUBLIC_HOST") {
+            spec.schemes
+                .insert(paperclip::v2::models::OperationProtocol::Https);
+            spec.host = Some(api_server_public_host);
+        }
         spec.base_path = Some("/".to_string());
-        spec.tags = vec![
-            paperclip::v2::models::Tag {
-                name: "Accounts".to_string(),
-                description: Some("Most common actions with accounts in NEAR".to_string()),
-                external_docs: None,
-            },
-            paperclip::v2::models::Tag {
-                name: "Standards".to_string(),
-                description: Some(
-                    "Manipulate with NEAR Enhancement Proposal (NEP) Standards".to_string(),
-                ),
-                external_docs: None,
-            },
-        ];
         spec.info = paperclip::v2::models::Info {
             version: "0.1".into(),
             title: "NEAR Enhanced API powered by Pagoda".into(),
