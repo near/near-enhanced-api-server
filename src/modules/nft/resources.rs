@@ -128,7 +128,7 @@ pub async fn get_nft(
 /// Get NFT history
 ///
 /// This endpoint returns the transaction history for the given NFT and `timestamp`/`block_height`.
-/// **Note:** The result is not related to a concrete `account_id`; the whole history is shown.
+/// **Note:** The result is centered around the history of the specific NFT and will return list of its passing owners and metadata.
 ///
 /// **Limitations**
 /// * For now, we only support NFT contracts that implement the Events NEP standard.
