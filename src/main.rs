@@ -138,6 +138,13 @@ async fn main() -> std::io::Result<()> {
         spec.info = paperclip::v2::models::Info {
             version: "0.1".into(),
             title: "NEAR Enhanced API powered by Pagoda".into(),
+            description: Some(r#"Try out our newly released Enhanced APIs - Balances (in Beta) and get what you need for all kinds of balances and token information at ease.
+
+Call single Pagoda API endpoint to access both our speedy RPC (instructions in Keys tab, and we support all [NEAR RPC APIs](https://docs.near.org/api/rpc/access-keys)) and Enhanced APIs using the endpoint below, no URL switch needed.
+
+Grab your API keys and give it a try! We will be adding more advanced Enhanced APIs in our offering, so stay tuned. Get the data you need without extra processing, NEAR Blockchain data query has never been easier!
+
+We would love to hear from you on the data query APIs you need, please leave feedback using the widget in the lower-right corner."#.to_string()),
             ..Default::default()
         };
 
