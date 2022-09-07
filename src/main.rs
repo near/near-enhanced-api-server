@@ -27,8 +27,9 @@ fn get_cors(cors_allowed_origins: &[String]) -> Cors {
         .allowed_headers(vec![
             actix_web::http::header::AUTHORIZATION,
             actix_web::http::header::ACCEPT,
+            actix_web::http::header::CONTENT_TYPE,
         ])
-        .allowed_header(actix_web::http::header::CONTENT_TYPE)
+        .allowed_header("x-api-key")
         .max_age(3600)
 }
 
