@@ -135,21 +135,21 @@ async fn main() -> std::io::Result<()> {
                 .insert(paperclip::v2::models::OperationProtocol::Https);
             spec.host = Some(api_server_public_host);
         }
-        spec.base_path = Some("/".to_string());
+        spec.base_path = std::env::var("API_BASE_PATH").ok();
+        let base_path = spec.base_path.as_deref().unwrap_or("/");
         spec.info = paperclip::v2::models::Info {
             version: "0.1".into(),
             title: "NEAR Enhanced API powered by Pagoda".into(),
-            description: Some(r#"Try out our newly released Enhanced APIs - Balances (in Beta) and get what you need for all kinds of balances and token information at ease.
+            description: Some(format!(r#"Try out our newly released Enhanced APIs - Balances (in Beta) and get what you need for all kinds of balances and token information at ease.
+            Call Enhanced APIs using the endpoint in the API URL box, varies by Network.
 
-Call single Pagoda API endpoint to access both our speedy RPC (instructions in Keys tab, and we support all [NEAR RPC APIs](https://docs.near.org/api/rpc/access-keys)) and Enhanced APIs using the endpoint in the API URL box, no URL switch needed between RPC and Enhanced API usage, varies by Network
+https://near-testnet.api.pagoda.co{base_path}
 
-https://near-testnet.api.pagoda.co
-
-https://near-mainnet.api.pagoda.co
+https://near-mainnet.api.pagoda.co{base_path}
 
 Grab your API keys and give it a try! We will be adding more advanced Enhanced APIs in our offering, so stay tuned. Get the data you need without extra processing, NEAR Blockchain data query has never been easier!
 
-We would love to hear from you on the data APIs you need, please leave feedback using the widget in the lower-right corner."#.to_string()),
+We would love to hear from you on the data APIs you need, please leave feedback using the widget in the lower-right corner."#)),
             ..Default::default()
         };
 
