@@ -141,7 +141,7 @@ async fn main() -> std::io::Result<()> {
             version: "0.1".into(),
             title: "NEAR Enhanced API powered by Pagoda".into(),
             description: Some(format!(r#"Try out our newly released Enhanced APIs - Balances (in Beta) and get what you need for all kinds of balances and token information at ease.
-            Call Enhanced APIs using the endpoint in the API URL box, varies by Network.
+Call Enhanced APIs using the endpoint in the API URL box, varies by Network.
 
 https://near-testnet.api.pagoda.co{base_path}
 
