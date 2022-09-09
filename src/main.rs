@@ -135,8 +135,8 @@ async fn main() -> std::io::Result<()> {
                 .insert(paperclip::v2::models::OperationProtocol::Https);
             spec.host = Some(api_server_public_host);
         }
-        spec.base_path = std::env::var("API_BASE_PATH").ok();
-        let base_path = spec.base_path.as_deref().unwrap_or("/");
+        let base_path = std::env::var("API_BASE_PATH").ok().unwrap_or(String::from(""));
+        spec.base_path = Some(base_path.clone());
         spec.info = paperclip::v2::models::Info {
             version: "0.1".into(),
             title: "NEAR Enhanced API powered by Pagoda".into(),
@@ -170,8 +170,8 @@ We would love to hear from you on the data APIs you need, please leave feedback 
         app = app.configure(modules::coin::register_services);
         app = app.configure(modules::nft::register_services);
 
-        app.with_json_spec_at("/api/spec/v2.json")
-            .with_json_spec_v3_at("/api/spec/v3.json")
+        app.with_json_spec_at(format!("{base_path}/spec/v2.json").as_str())
+            .with_json_spec_v3_at(format!("{base_path}/spec/v3.json").as_str())
             .build()
     })
     .bind(addr)
