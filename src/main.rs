@@ -135,7 +135,7 @@ async fn main() -> std::io::Result<()> {
                 .insert(paperclip::v2::models::OperationProtocol::Https);
             spec.host = Some(api_server_public_host);
         }
-        let base_path = std::env::var("API_BASE_PATH").ok().unwrap_or("/".to_string());
+        let base_path = std::env::var("API_BASE_PATH").ok().unwrap_or(String::from(""));
         spec.base_path = Some(base_path.clone());
         spec.info = paperclip::v2::models::Info {
             version: "0.1".into(),
