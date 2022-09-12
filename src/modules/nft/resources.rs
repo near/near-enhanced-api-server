@@ -30,7 +30,7 @@ pub async fn get_nft_collection_overview(
     types::query_params::check_limit(pagination_params.limit)?;
     types::query_params::check_block_params(&block_params)?;
     let block = db_helpers::get_block_from_params(&pool, &block_params).await?;
-    modules::check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
+    modules::check_account_exists(&rpc_client, &request.account_id.0, block.height).await?;
 
     Ok(Json(schemas::NftCountsResponse {
         // TODO PHASE 2 We can data_provider metadata in the DB and update once in 10 minutes
@@ -67,7 +67,7 @@ pub async fn get_nft_collection_by_contract(
     types::query_params::check_limit(pagination_params.limit)?;
     types::query_params::check_block_params(&block_params)?;
     let block = db_helpers::get_block_from_params(&pool, &block_params).await?;
-    modules::check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
+    modules::check_account_exists(&rpc_client, &request.account_id.0, block.height).await?;
     let pagination = types::query_params::Pagination::from(pagination_params.0);
 
     Ok(Json(schemas::NftsResponse {

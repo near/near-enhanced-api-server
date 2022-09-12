@@ -50,7 +50,7 @@ async fn playground_ui() -> impl actix_web::Responder {
                   <body>
 
                     <elements-api
-                      apiDescriptionUrl="/api/spec/v3.json"
+                      apiDescriptionUrl="/spec/v3.json"
                       router="hash"
                       layout="sidebar"
                     />
@@ -135,7 +135,7 @@ async fn main() -> std::io::Result<()> {
                 .insert(paperclip::v2::models::OperationProtocol::Https);
             spec.host = Some(api_server_public_host);
         }
-        let base_path = std::env::var("API_BASE_PATH").ok().unwrap_or(String::from(""));
+        let base_path = std::env::var("API_BASE_PATH").unwrap_or_else(|_| "".to_string());
         spec.base_path = Some(base_path.clone());
         spec.info = paperclip::v2::models::Info {
             version: "0.1".into(),
