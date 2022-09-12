@@ -169,10 +169,10 @@ pub struct TokenMetadata {
     pub media: Option<String>, // URL to associated media, preferably to decentralized, content-addressed data_provider
     pub media_hash: Option<types::vector::Base64VecU8>, // Base64-encoded sha256 hash of content referenced by the `media` field. Required if `media` is included.
     pub copies: Option<u64>, // number of copies of this set of metadata in existence when token was minted.
-    pub issued_at: Option<String>, // ISO 8601 datetime when token was issued or minted
-    pub expires_at: Option<String>, // ISO 8601 datetime when token expires
-    pub starts_at: Option<String>, // ISO 8601 datetime when token starts being valid
-    pub updated_at: Option<String>, // ISO 8601 datetime when token was last updated
+    //pub issued_at: Option<String>, // ISO 8601 datetime when token was issued or minted
+    //pub expires_at: Option<String>, // ISO 8601 datetime when token expires
+    //pub starts_at: Option<String>, // ISO 8601 datetime when token starts being valid
+    //pub updated_at: Option<String>, // ISO 8601 datetime when token was last updated
     pub extra: Option<String>, // anything extra the NFT wants to data_provider on-chain. Can be stringified JSON.
     pub reference: Option<String>, // URL to an off-chain JSON file with more info.
     pub reference_hash: Option<types::vector::Base64VecU8>, // Base64-encoded sha256 hash of JSON from reference field. Required if `reference` is included.
@@ -198,10 +198,10 @@ impl TryFrom<Token> for nft::schemas::Nft {
                 media: metadata.media,
                 media_hash: types::vector::base64_to_string(&metadata.media_hash)?,
                 copies: metadata.copies,
-                issued_at: metadata.issued_at,
-                expires_at: metadata.expires_at,
-                starts_at: metadata.starts_at,
-                updated_at: metadata.updated_at,
+                //issued_at: metadata.issued_at,
+                //expires_at: metadata.expires_at,
+                //starts_at: metadata.starts_at,
+                //updated_at: metadata.updated_at,
                 extra: metadata.extra,
                 reference: metadata.reference,
                 reference_hash: types::vector::base64_to_string(&metadata.reference_hash)?,
