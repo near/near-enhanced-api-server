@@ -4,19 +4,50 @@ pub(crate) mod coin;
 pub(crate) mod nft;
 
 pub(crate) async fn check_account_exists(
-    pool: &sqlx::Pool<sqlx::Postgres>,
+    rpc_client: &near_jsonrpc_client::JsonRpcClient,
     account_id: &near_primitives::types::AccountId,
-    block_timestamp: u64,
+    block_height: u64,
 ) -> crate::Result<()> {
-    if !db_helpers::does_account_exist(pool, account_id, block_timestamp).await? {
-        Err(errors::ErrorKind::InvalidInput(format!(
-            "account_id {} does not exist at block_timestamp {}",
-            account_id, block_timestamp
-        ))
-        .into())
-    } else {
-        Ok(())
+    let request = near_jsonrpc_client::methods::query::RpcQueryRequest {
+        block_reference: near_primitives::types::BlockId::Height(block_height).into(),
+        request: near_primitives::views::QueryRequest::ViewAccount {
+            account_id: account_id.clone(),
+        },
+    };
+    for _ in 0..5 {
+        match rpc_client.call(&request).await {
+            Err(near_jsonrpc_client::errors::JsonRpcError::ServerError(
+                near_jsonrpc_client::errors::JsonRpcServerError::HandlerError(
+                    near_jsonrpc_client::methods::query::RpcQueryError::UnknownAccount { .. },
+                ),
+            )) => {
+                return Err(errors::ErrorKind::InvalidInput(format!(
+                    "account_id {} does not exist at block_height {}",
+                    account_id, block_height
+                ))
+                .into())
+            }
+            Err(err) => {
+                tracing::warn!(target: crate::LOGGER_MSG, "Checking account existence via JSON RPC failed with: {:?}. Re-trying immediatelly", err);
+                continue;
+            }
+            Ok(response) => {
+                if let near_jsonrpc_primitives::types::query::QueryResponseKind::ViewAccount(_) =
+                    response.kind
+                {
+                    return Ok(());
+                } else {
+                    tracing::warn!(target: crate::LOGGER_MSG, "Checking account existence returned invalid response: {:?}. Re-trying immediatelly", response);
+                    continue;
+                }
+            }
+        }
     }
+    Err(errors::ErrorKind::InternalError(format!(
+        "could not check if account_id {} exists after several attemps",
+        account_id
+    ))
+    .into())
 }
 
 pub(crate) async fn check_and_get_history_pagination_params(

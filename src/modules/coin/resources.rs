@@ -14,13 +14,14 @@ use crate::{db_helpers, errors, modules, types};
 /// at the given `timestamp`/`block_height`.
 pub async fn get_near_balance(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
+    rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     _: crate::types::pagoda_api_key::PagodaApiKey,
     request: actix_web_validator::Path<schemas::BalanceRequest>,
     block_params: web::Query<types::query_params::BlockParams>,
 ) -> crate::Result<Json<schemas::NearBalanceResponse>> {
     types::query_params::check_block_params(&block_params)?;
     let block = db_helpers::get_block_from_params(&pool, &block_params).await?;
-    modules::check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
+    modules::check_account_exists(&rpc_client, &request.account_id.0, block.height).await?;
 
     Ok(Json(
         data_provider::get_near_balance(&pool, &block, &request.account_id.0).await?,
@@ -51,7 +52,7 @@ pub async fn get_coin_balances(
     types::query_params::check_limit(pagination_params.limit)?;
     let mut pagination = types::query_params::Pagination::from(pagination_params.0);
     let block = db_helpers::get_block_from_params(&pool, &block_params).await?;
-    modules::check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
+    modules::check_account_exists(&rpc_client, &request.account_id.0, block.height).await?;
 
     let mut balances: Vec<schemas::Coin> = vec![];
     balances.push(
@@ -108,7 +109,7 @@ pub async fn get_coin_balances_by_contract(
     }
     types::query_params::check_block_params(&block_params)?;
     let block = db_helpers::get_block_from_params(&pool, &block_params).await?;
-    modules::check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
+    modules::check_account_exists(&rpc_client, &request.account_id.0, block.height).await?;
 
     let balances = data_provider::get_coin_balances_by_contract(
         &rpc_client,
@@ -137,12 +138,13 @@ pub async fn get_coin_balances_by_contract(
 pub async fn get_near_history(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     pool_balances: web::Data<db_helpers::DBWrapper>,
+    rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     _: crate::types::pagoda_api_key::PagodaApiKey,
     request: actix_web_validator::Path<schemas::BalanceRequest>,
     pagination_params: web::Query<types::query_params::HistoryPaginationParams>,
 ) -> crate::Result<Json<schemas::HistoryResponse>> {
     let block = db_helpers::get_last_block(&pool).await?;
-    modules::check_account_exists(&pool, &request.account_id.0, block.timestamp).await?;
+    modules::check_account_exists(&rpc_client, &request.account_id.0, block.height).await?;
     let pagination =
         modules::check_and_get_history_pagination_params(&pool, pagination_params.0).await?;
 
@@ -185,7 +187,8 @@ pub async fn get_coin_history(
     }
     let pagination =
         modules::check_and_get_history_pagination_params(&pool, pagination_params.0).await?;
-    modules::check_account_exists(&pool, &request.account_id.0, pagination.block_timestamp).await?;
+    modules::check_account_exists(&rpc_client, &request.account_id.0, pagination.block_height)
+        .await?;
 
     Ok(Json(schemas::HistoryResponse {
         history: data_provider::get_coin_history(

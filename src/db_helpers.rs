@@ -24,11 +24,6 @@ struct BlockView {
 }
 
 #[derive(sqlx::FromRow)]
-struct ActionKindView {
-    pub action_kind: String,
-}
-
-#[derive(sqlx::FromRow)]
 pub(crate) struct AccountId {
     pub account_id: String,
 }
@@ -47,35 +42,6 @@ impl TryFrom<&BlockView> for Block {
             height: types::numeric::to_u64(&block.block_height)?,
         })
     }
-}
-
-// TODO PHASE 2+ we are loosing +1 second here, it's painful. It could be computed much easier in Aurora DB
-pub(crate) async fn does_account_exist(
-    pool: &sqlx::Pool<sqlx::Postgres>,
-    account_id: &near_primitives::types::AccountId,
-    block_timestamp: u64,
-) -> crate::Result<bool> {
-    // for the given timestamp, account exists if
-    // 1. we have at least 1 row at action_receipt_actions table
-    // 2. last successful action_kind != DELETE_ACCOUNT
-    let query = r"
-        SELECT action_kind::text
-        FROM action_receipt_actions JOIN execution_outcomes ON action_receipt_actions.receipt_id = execution_outcomes.receipt_id
-        WHERE receipt_predecessor_account_id = $1
-            AND action_receipt_actions.receipt_included_in_block_timestamp <= $2::numeric(20, 0)
-            AND execution_outcomes.status IN ('SUCCESS_VALUE', 'SUCCESS_RECEIPT_ID')
-        ORDER BY receipt_included_in_block_timestamp DESC, index_in_action_receipt DESC
-        LIMIT 1
-     ";
-    Ok(select_retry_or_panic::<ActionKindView>(
-        pool,
-        query,
-        &[account_id.to_string(), block_timestamp.to_string()],
-    )
-    .await?
-    .first()
-    .map(|kind| kind.action_kind != "DELETE_ACCOUNT")
-    .unwrap_or_else(|| false))
 }
 
 pub(crate) async fn get_block_from_params(
