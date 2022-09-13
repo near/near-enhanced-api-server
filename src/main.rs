@@ -86,13 +86,24 @@ async fn main() -> std::io::Result<()> {
 
     let db_url = &std::env::var("DATABASE_URL")
         .expect("failed to get database url from DATABASE_URL env variable");
-    let pool = sqlx::PgPool::connect(db_url)
+
+    // See https://docs.rs/sqlx/latest/sqlx/struct.Pool.html#2-connection-limits-mysql-mssql-postgres
+    // for setting connection limits.
+    let db_max_connections: u32 = std::env::var("DATABASE_MAX_CONNECTIONS")
+        .unwrap_or("97".to_string())
+        .parse()
+        .expect("Failed to parse DATABASE_MAX_CONNECTIONS value as u32");
+    let pool = sqlx::postgres::PgPoolOptions::new()
+        .max_connections(db_max_connections)
+        .connect(db_url)
         .await
         .expect("failed to connect to the database");
 
     let url_balances = &std::env::var("DATABASE_URL_BALANCES")
         .expect("failed to get database url from DATABASE_URL_BALANCES env variable");
-    let pool_balances = sqlx::PgPool::connect(url_balances)
+    let pool_balances = sqlx::postgres::PgPoolOptions::new()
+        .max_connections(db_max_connections)
+        .connect(url_balances)
         .await
         .expect("failed to connect to the balances database");
 
