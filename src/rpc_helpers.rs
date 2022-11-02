@@ -65,6 +65,17 @@ pub(crate) async fn wrapped_call(
                     .into()),
                 };
             }
+            Err(near_jsonrpc_client::errors::JsonRpcError::ServerError(
+                near_jsonrpc_client::errors::JsonRpcServerError::HandlerError(
+                    near_jsonrpc_client::methods::query::RpcQueryError::UnknownAccount { .. },
+                ),
+            )) => {
+                return Err(errors::ErrorKind::InvalidInput(format!(
+                    "account_id {} does not exist at block_height {}",
+                    contract_id, block_height
+                ))
+                .into())
+            }
             Err(x) => {
                 if let Some(RpcQueryError::ContractExecutionError { vm_error, .. }) =
                     x.handler_error()

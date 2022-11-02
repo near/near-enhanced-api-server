@@ -11,7 +11,7 @@ pub(crate) async fn get_nfts_count(
     rpc_client: &near_jsonrpc_client::JsonRpcClient,
     block: &db_helpers::Block,
     account_id: &near_primitives::types::AccountId,
-    pagination_params: types::query_params::PaginationParams,
+    limit: u32,
 ) -> crate::Result<Vec<nft::schemas::NftCount>> {
     let query = r"
         WITH relevant_events AS (
@@ -56,14 +56,13 @@ pub(crate) async fn get_nfts_count(
         LIMIT $3::numeric(20, 0)
     ";
 
-    let pagination = types::query_params::Pagination::from(pagination_params);
     let info_by_contract = db_helpers::select_retry_or_panic::<super::models::NftCount>(
         pool,
         query,
         &[
             account_id.to_string(),
             block.timestamp.to_string(),
-            pagination.limit.to_string(),
+            limit.to_string(),
         ],
     )
     .await?;
@@ -221,9 +220,8 @@ mod tests {
         let rpc_client = init_rpc();
         let block = get_block();
         let account = near_primitives::types::AccountId::from_str("blondjesus.near").unwrap();
-        let pagination = types::query_params::PaginationParams { limit: Some(10) };
 
-        let nft_count = get_nfts_count(&pool, &rpc_client, &block, &account, pagination).await;
+        let nft_count = get_nfts_count(&pool, &rpc_client, &block, &account, 10).await;
         insta::assert_debug_snapshot!(nft_count);
     }
 
@@ -233,9 +231,8 @@ mod tests {
         let rpc_client = init_rpc();
         let block = get_block();
         let account = near_primitives::types::AccountId::from_str("frol.near").unwrap();
-        let pagination = types::query_params::PaginationParams { limit: None };
 
-        let nft_count = get_nfts_count(&pool, &rpc_client, &block, &account, pagination)
+        let nft_count = get_nfts_count(&pool, &rpc_client, &block, &account, 10)
             .await
             .unwrap();
         assert!(nft_count.is_empty());
@@ -247,9 +244,8 @@ mod tests {
         let rpc_client = init_rpc();
         let block = get_block();
         let account = near_primitives::types::AccountId::from_str("vlad.near").unwrap();
-        let pagination = types::query_params::PaginationParams { limit: Some(10) };
 
-        let nft_count = get_nfts_count(&pool, &rpc_client, &block, &account, pagination).await;
+        let nft_count = get_nfts_count(&pool, &rpc_client, &block, &account, 10).await;
         insta::assert_debug_snapshot!(nft_count);
     }
 
@@ -259,9 +255,8 @@ mod tests {
         let rpc_client = init_rpc();
         let block = get_block();
         let account = near_primitives::types::AccountId::from_str("kbneoburner3.near").unwrap();
-        let pagination = types::query_params::PaginationParams { limit: None };
 
-        let nft_count = get_nfts_count(&pool, &rpc_client, &block, &account, pagination).await;
+        let nft_count = get_nfts_count(&pool, &rpc_client, &block, &account, 10).await;
         insta::assert_debug_snapshot!(nft_count);
     }
 

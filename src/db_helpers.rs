@@ -44,10 +44,44 @@ impl TryFrom<&BlockView> for Block {
     }
 }
 
-pub(crate) async fn get_block_from_params(
+pub(crate) async fn checked_get_block_from_pagination(
+    pool: &sqlx::Pool<sqlx::Postgres>,
+    pagination: &types::query_params::Pagination,
+) -> crate::Result<Block> {
+    if let Some(event_index) = pagination.after_event_index {
+        let timestamp = (event_index / (100_000_000 * 100_000_000)) as u64;
+        checked_get_block(
+            pool,
+            &types::query_params::BlockParams {
+                block_timestamp_nanos: Some(timestamp.into()),
+                block_height: None,
+            },
+        )
+        .await
+    } else {
+        checked_get_block(
+            pool,
+            &types::query_params::BlockParams {
+                block_timestamp_nanos: None,
+                block_height: None,
+            },
+        )
+        .await
+    }
+}
+
+pub(crate) async fn checked_get_block(
     pool: &sqlx::Pool<sqlx::Postgres>,
     params: &types::query_params::BlockParams,
 ) -> crate::Result<Block> {
+    if params.block_height.is_some() && params.block_timestamp_nanos.is_some() {
+        return Err(errors::ErrorKind::InvalidInput(
+            "Both block_height and block_timestamp_nanos found. Please provide only one of values"
+                .to_string(),
+        )
+        .into());
+    }
+
     if let Some(block_height) = params.block_height {
         match select_retry_or_panic::<BlockView>(
             pool,
@@ -105,6 +139,27 @@ pub(crate) async fn get_last_block(pool: &sqlx::Pool<sqlx::Postgres>) -> crate::
           ORDER BY block_timestamp DESC
           LIMIT 1",
         &[],
+    )
+    .await?
+    .first()
+    {
+        None => Err(errors::ErrorKind::DBError("blocks table is empty".to_string()).into()),
+        Some(block) => Ok(Block::try_from(block)?),
+    }
+}
+
+pub(crate) async fn get_previous_block(
+    pool: &sqlx::Pool<sqlx::Postgres>,
+    current_block_timestamp: u64,
+) -> crate::Result<Block> {
+    match select_retry_or_panic::<BlockView>(
+        pool,
+        r"SELECT block_height, block_timestamp
+          FROM blocks
+          WHERE block_timestamp < $1::numeric(20, 0)
+          ORDER BY block_timestamp DESC
+          LIMIT 1",
+        &[current_block_timestamp.to_string()],
     )
     .await?
     .first()

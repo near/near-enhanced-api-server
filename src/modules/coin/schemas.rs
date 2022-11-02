@@ -102,18 +102,18 @@ pub struct Coin {
 /// Coins could be NEAR, FT, it could be also later used for Multi Tokens.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 pub struct HistoryItem {
-    // TODO PHASE 2 add index here
-    // pub index: types::U128,
-    // TODO PHASE 1 (idea) do we want to add here tx_hash/receipt_id? We may want to add it at many places
+    // For native NEAR, the reason of balance change could be receipt, tx or even validators reward (going nowhere)
+    // That's why I decide not to serve it at all for now
+    // pub receipt_id: String,
+    pub event_index: types::U128,
     pub involved_account_id: Option<types::AccountId>,
-    pub delta_balance: types::I128,
+    pub delta_balance: String, // we can't use here I128 because it could be U128::MAX both with positive or negative sign
     pub balance: types::U128,
     pub cause: String,
     pub status: String,
     pub coin_metadata: CoinMetadata,
     pub block_timestamp_nanos: types::U64,
-    // TODO PHASE 2 add this when we have all the data in the same DB. Now we can't join with blocks
-    // pub block_height: types::U64,
+    pub block_height: types::U64,
 }
 
 /// This type describes general Metadata info, collecting the most important fields from different standards in the one format.

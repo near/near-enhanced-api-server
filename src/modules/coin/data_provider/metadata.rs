@@ -30,6 +30,15 @@ pub(crate) async fn get_ft_contract_metadata(
     })
 }
 
+pub(crate) fn get_default_metadata() -> coin::schemas::CoinMetadata {
+    coin::schemas::CoinMetadata {
+        name: "The contract did not provide the metadata".to_string(),
+        symbol: "The contract did not provide the symbol".to_string(),
+        icon: None,
+        decimals: 0,
+    }
+}
+
 pub(crate) fn get_near_metadata() -> coin::schemas::CoinMetadata {
     coin::schemas::CoinMetadata {
         name: "NEAR blockchain native token".to_string(),
@@ -41,7 +50,7 @@ pub(crate) fn get_near_metadata() -> coin::schemas::CoinMetadata {
 }
 
 // Taken from https://github.com/near/near-sdk-rs/blob/master/near-contract-standards/src/fungible_token/metadata.rs
-#[derive(BorshDeserialize, BorshSerialize, Clone, Deserialize, Serialize)]
+#[derive(BorshDeserialize, BorshSerialize, Clone, Deserialize, Serialize, Debug)]
 pub struct FtMetadata {
     pub spec: String,
     pub name: String,
@@ -69,6 +78,7 @@ mod tests {
     use crate::modules::tests::*;
     use std::str::FromStr;
 
+    // todo add test on bridged contracts after we decide something on https://github.com/near/near-enhanced-api-server/issues/43
     #[tokio::test]
     async fn test_ft_contract_metadata() {
         let rpc_client = init_rpc();
