@@ -33,11 +33,16 @@ fn get_cors(cors_allowed_origins: &[String]) -> Cors {
         .max_age(3600)
 }
 
+fn get_api_base_path() -> String {
+    std::env::var("API_BASE_PATH").unwrap_or_else(|_| "".to_string())
+}
+
 async fn playground_ui() -> impl actix_web::Responder {
+    let base_path = get_api_base_path();
     actix_web::HttpResponse::Ok()
         .insert_header(actix_web::http::header::ContentType::html())
         .body(
-            r#"<!doctype html>
+            format!(r#"<!doctype html>
                 <html lang="en">
                   <head>
                     <meta charset="utf-8">
@@ -50,13 +55,13 @@ async fn playground_ui() -> impl actix_web::Responder {
                   <body>
 
                     <elements-api
-                      apiDescriptionUrl="/spec/v3.json"
+                      apiDescriptionUrl="{base_path}/spec/v3.json"
                       router="hash"
                       layout="sidebar"
                     />
 
                   </body>
-                </html>"#,
+                </html>"#),
         )
 }
 
@@ -90,7 +95,7 @@ async fn main() -> std::io::Result<()> {
     // See https://docs.rs/sqlx/latest/sqlx/struct.Pool.html#2-connection-limits-mysql-mssql-postgres
     // for setting connection limits.
     let db_max_connections: u32 = std::env::var("DATABASE_MAX_CONNECTIONS")
-        .unwrap_or("97".to_string())
+        .unwrap_or_else(|_| "97".to_string())
         .parse()
         .expect("Failed to parse DATABASE_MAX_CONNECTIONS value as u32");
     let pool = sqlx::postgres::PgPoolOptions::new()
@@ -146,7 +151,7 @@ async fn main() -> std::io::Result<()> {
                 .insert(paperclip::v2::models::OperationProtocol::Https);
             spec.host = Some(api_server_public_host);
         }
-        let base_path = std::env::var("API_BASE_PATH").unwrap_or_else(|_| "".to_string());
+        let base_path = get_api_base_path();
         spec.base_path = Some(base_path.clone());
         spec.info = paperclip::v2::models::Info {
             version: "0.1".into(),
