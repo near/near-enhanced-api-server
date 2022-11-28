@@ -2,7 +2,7 @@ use crate::{db_helpers, errors, types};
 
 pub(crate) mod coin;
 pub(crate) mod nft;
-
+pub(crate) mod transaction;
 pub(crate) async fn check_account_exists(
     rpc_client: &near_jsonrpc_client::JsonRpcClient,
     account_id: &near_primitives::types::AccountId,

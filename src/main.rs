@@ -185,7 +185,7 @@ We would love to hear from you on the data APIs you need, please leave feedback 
 
         app = app.configure(modules::coin::register_services);
         app = app.configure(modules::nft::register_services);
-
+        app = app.configure(modules::transaction::register_services);
         app.with_json_spec_at(format!("{base_path}/spec/v2.json").as_str())
             .with_json_spec_v3_at(format!("{base_path}/spec/v3.json").as_str())
             .build()

@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use paperclip::actix::{api_v2_errors, Apiv2Schema};
 
 use near_jsonrpc_client::errors::JsonRpcError;
@@ -107,6 +109,15 @@ impl From<near_primitives::account::id::ParseAccountError> for ErrorKind {
 
 pub(crate) fn validate_account_id(account_id: &str) -> Result<(), validator::ValidationError> {
     match near_primitives::types::AccountId::validate(account_id) {
+        Ok(_) => Ok(()),
+        Err(_) => Err(validator::ValidationError::new("")),
+    }
+}
+
+pub(crate) fn validate_crypto_hash(
+    crypto_hash: &str,
+) -> Result<(), validator::ValidationError> {
+    match near_primitives::hash::CryptoHash::from_str(crypto_hash) {
         Ok(_) => Ok(()),
         Err(_) => Err(validator::ValidationError::new("")),
     }

@@ -1,6 +1,5 @@
 use crate::{errors, types};
 use paperclip::actix::Apiv2Schema;
-
 const DEFAULT_PAGE_LIMIT: u32 = 20;
 const MAX_PAGE_LIMIT: u32 = 100;
 
