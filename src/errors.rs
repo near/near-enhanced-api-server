@@ -114,9 +114,7 @@ pub(crate) fn validate_account_id(account_id: &str) -> Result<(), validator::Val
     }
 }
 
-pub(crate) fn validate_crypto_hash(
-    crypto_hash: &str,
-) -> Result<(), validator::ValidationError> {
+pub(crate) fn validate_crypto_hash(crypto_hash: &str) -> Result<(), validator::ValidationError> {
     match near_primitives::hash::CryptoHash::from_str(crypto_hash) {
         Ok(_) => Ok(()),
         Err(_) => Err(validator::ValidationError::new("")),

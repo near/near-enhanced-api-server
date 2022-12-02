@@ -1,8 +1,8 @@
-use std::{fmt, str::FromStr};
 use derive_more::{AsRef, Deref, From, FromStr, Into};
 use near_primitives::hash::CryptoHash;
 use paperclip::v2::{models::DataType, schema::TypedData};
 use serde::{Deserialize, Serialize};
+use std::{fmt, str::FromStr};
 
 #[derive(
     Eq,
@@ -23,11 +23,11 @@ use serde::{Deserialize, Serialize};
 pub struct ReceiptId(String);
 
 impl ReceiptId {
-    pub fn to_crypto_hash(self) -> Result<CryptoHash,String> {
+    pub fn to_crypto_hash(self) -> Result<CryptoHash, String> {
         let hash = CryptoHash::from_str(&self);
-       if let Err(error) = hash {
-         return Err(error.to_string())
-       }
+        if let Err(error) = hash {
+            return Err(error.to_string());
+        }
         Ok(hash.unwrap())
     }
 }

@@ -5,31 +5,14 @@ mod resources;
 mod schemas;
 
 pub(crate) fn register_services(app: &mut web::ServiceConfig) {
-    app.service(
-        web::resource("/transactions/{tx_hash}").route(web::get().to(resources::get_tx_by_tx_hash)),
+    app.service(web::resource("/transaction/").route(web::get().to(resources::get_transaction)))
+    .service(web::resource("/transactions/").route(web::get().to(resources::get_transactions)))
+    .service(
+        web::resource("/receipts/")
+            .route(web::get().to(resources::get_receipts)),
     )
     .service(
-        web::resource("/transactions/{receipt_id}")
-            .route(web::get().to(resources::get_tx_by_receipt_id)),
-    )
-    .service(
-        web::resource("/transactions/{account_id}")
-            .route(web::get().to(resources::get_txs_by_account_id)),
-    )
-    .service(
-        web::resource("/transactions/{contract_id}/{account_id}")
-            .route(web::get().to(resources::get_txs_by_account_id_on_contract_id)),
-    )
-    .service(
-        web::resource("/transactions/receipts/{tx_hash}")
-            .route(web::get().to(resources::get_tx_receipts_by_tx_hash)),
-    )
-    .service(
-        web::resource("/transactions/{contract_id}/{account_id}")
-            .route(web::get().to(resources::get_actions_by_account_id_on_contract_id)),
-    )
-    .service(
-        web::resource("/transactions/{account_id}")
-            .route(web::get().to(resources::get_actions_by_account_id)),
+        web::resource("receipts/actions/")
+        .route(web::get().to(resources::get_action_receipts)),
     );
 }
