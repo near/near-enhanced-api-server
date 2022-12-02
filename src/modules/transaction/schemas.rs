@@ -28,8 +28,9 @@ pub struct TransactionsRequest {
 )]
 pub struct ReceiptsRequest {
     #[validate(custom = "crate::errors::validate_crypto_hash")]
-    pub transaction_hash: Option<types::TransactionHash>,
+    pub transaction_hash: types::TransactionHash,
 }
+
 #[derive(
     Validate, Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema,
 )]

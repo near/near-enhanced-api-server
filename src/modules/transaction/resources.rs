@@ -14,7 +14,7 @@ pub async fn get_transaction(
     _pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     _rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     _: crate::types::pagoda_api_key::PagodaApiKey,
-    _params: web::Query<schemas::TransactionRequest>,
+    _request: actix_web_validator::Path<schemas::TransactionRequest>,
 ) -> crate::Result<Json<schemas::TransactionResponse>> {
     Ok(Json(schemas::TransactionResponse {
         transaction: schemas::Transaction {
@@ -33,11 +33,13 @@ pub async fn get_transaction(
 /// This endpoint returns the history of transactions made by an `account_id`
 /// Additonally, you can specify `contract_id` to retrieve transactions that a given `account_id` performed on a Near
 /// `contract_id`
+///
+/// This endpoint supports pagination
 pub async fn get_transactions(
     _pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     _rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     _: crate::types::pagoda_api_key::PagodaApiKey,
-    _params: web::Query<schemas::TransactionsRequest>,
+    _request: actix_web_validator::Path<schemas::TransactionsRequest>,
     _pagination_params: web::Query<types::query_params::PaginationParams>,
 ) -> crate::Result<Json<schemas::TransactionsResponse>> {
     let transactions: Vec<schemas::Transaction> = Vec::new();
@@ -53,7 +55,7 @@ pub async fn get_receipts(
     _pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     _rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     _: crate::types::pagoda_api_key::PagodaApiKey,
-    _params: web::Query<schemas::ReceiptsRequest>,
+    request: actix_web_validator::Path<schemas::ReceiptsRequest>,
     _pagination_params: web::Query<types::query_params::PaginationParams>,
 ) -> crate::Result<Json<schemas::ReceiptsResponse>> {
     let receipts: Vec<schemas::Receipt> = Vec::new();
@@ -72,7 +74,7 @@ pub async fn get_action_receipts(
     _pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     _rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     _: crate::types::pagoda_api_key::PagodaApiKey,
-    _params: web::Query<schemas::ActionReceiptsRequest>,
+    _request: actix_web_validator::Path<schemas::ActionReceiptsRequest>,
     _pagination_params: web::Query<types::query_params::PaginationParams>,
 ) -> crate::Result<Json<schemas::ActionReceiptsResponse>> {
     let action_receipts: Vec<schemas::ActionReceipt> = Vec::new();
