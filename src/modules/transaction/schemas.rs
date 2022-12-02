@@ -28,7 +28,7 @@ pub struct TransactionsRequest {
 )]
 pub struct ReceiptsRequest {
     #[validate(custom = "crate::errors::validate_crypto_hash")]
-    pub tx_hash: Option<types::TransactionHash>,
+    pub transaction_hash: Option<types::TransactionHash>,
 }
 #[derive(
     Validate, Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema,
@@ -67,10 +67,16 @@ pub struct ActionReceiptsResponse {
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 pub struct Transaction {
+    /// An account on which behalf transaction is signed
     pub signer_id: String,
+    /// A public key of the access key which was used to sign an account.
+    /// Access key holds permissions for calling certain kinds of actions.
     pub public_key: String,
+    /// Receiver account for this transaction
     pub receiver_id: String,
+    /// The hash of the block in the blockchain on top of which the given transaction is valid
     pub block_hash: String,
+    /// A list of actions to be applied
     pub actions: Vec<String>,
 }
 
@@ -83,7 +89,7 @@ pub struct Receipt {
     pub receiver_id: types::AccountId,
     /// An unique id for the receipt
     pub receipt_id: types::ReceiptId,
-    /// A receipt type
+    /// A receipt type(Action Or Data Receipt)
     pub receipt: ReceiptEnum,
 }
 
@@ -97,13 +103,23 @@ pub enum ReceiptEnum {
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 
 pub struct ActionReceipt {
+    /// A signer of the original transaction
     pub signer_id: types::AccountId,
     /// Todo change this to a crypto hash or Public Key type
+    /// An access key which was used to sign the original transaction
     pub signer_public_key: types::AccountId,
+    /// A gas_price which has been used to buy gas in the original transaction
     pub gas_price: types::U128,
+    /// If present, where to route the output data
     pub output_data_receivers: Vec<DataReceiver>,
     /// Todo Change type from string to crypto hash
+    /// A list of the input data dependencies for this Receipt to process.
+    /// If all `input_data_ids` for this receipt are delivered to the account
+    /// that means we have all the `ReceivedData` input which will be than converted to a
+    /// `PromiseResult::Successful(value)` or `PromiseResult::Failed`
+    /// depending on `ReceivedData` is `Some(_)` or `None`
     pub input_data_ids: Vec<String>,
+    /// A list of actions to process when all input_data_ids are filled
     pub actions: Vec<Action>,
 }
 
