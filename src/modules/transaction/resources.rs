@@ -17,25 +17,19 @@ pub async fn get_transaction(
 ) -> crate::Result<Json<schemas::TransactionResponse>> {
     Ok(Json(schemas::TransactionResponse {
         transaction: schemas::Transaction {
-            signer_id: "dhd".to_string(),
-            public_key: "dhd".to_string(),
-            receiver_id: "dhd".to_string(),
-            block_hash: "dhd".to_string(),
-            actions: Vec::new(
-                // Action::Transfer( 
-                //     TransferAction {
-                //         deposit: 
-                //     }
-                // )
-            ),
+            signer_id: "signer_id".to_string(),
+            public_key: "public_id".to_string(),
+            receiver_id: "receiver_id".to_string(),
+            block_hash: "block_hash".to_string(),
+            actions: Vec::new(),
         },
     }))
 }
 
 #[api_v2_operation(tags(Transaction))]
-/// Get transaction history for an account id
+/// Get user's transaction history
 ///
-/// This endpoint returns the history of transactions for a given `account_id`
+/// This endpoint returns the history of transactions made by an `account_id`
 /// Additonally, you can specify `contract_id` to retrieve transactions that a given `account_id` performed on a Near
 /// `contract_id`
 pub async fn get_transactions(
@@ -47,9 +41,7 @@ pub async fn get_transactions(
 ) -> crate::Result<Json<schemas::TransactionsResponse>> {
     let transactions: Vec<schemas::Transaction> = Vec::new();
 
-    Ok(Json(schemas::TransactionsResponse {
-        transactions,
-    }))
+    Ok(Json(schemas::TransactionsResponse { transactions }))
 }
 
 #[api_v2_operation(tags(Transaction))]
@@ -62,18 +54,16 @@ pub async fn get_receipts(
     _: crate::types::pagoda_api_key::PagodaApiKey,
     _request: actix_web_validator::Path<schemas::ReceiptsRequest>,
 ) -> crate::Result<Json<schemas::ReceiptsResponse>> {
-    let  receipts: Vec<schemas::Receipt> = Vec::new();
-    Ok(Json(schemas::ReceiptsResponse {
-        receipts
-    }))
+    let receipts: Vec<schemas::Receipt> = Vec::new();
+    Ok(Json(schemas::ReceiptsResponse { receipts }))
 }
 
 #[api_v2_operation(tags(Transaction))]
-/// Get action receipts by an Account Id 
+/// Get user's actions
 ///
 /// This endpoint will retrieve an ordered list of actions performed by an `account_id`
-/// 
- /// Additionally, you can specify `contract_id` to retrieve actions that a given `account_id` performed on a Near
+///
+/// Additionally, you can specify `contract_id` to retrieve actions that a given `account_id` performed on a Near
 /// `contract_id`
 
 pub async fn get_action_receipts(
@@ -82,9 +72,7 @@ pub async fn get_action_receipts(
     _: crate::types::pagoda_api_key::PagodaApiKey,
     _request: actix_web_validator::Path<schemas::ActionReceiptsRequest>,
 ) -> crate::Result<Json<schemas::ActionReceiptsResponse>> {
-    let  action_receipts: Vec<schemas::ActionReceipt> = Vec::new();
+    let action_receipts: Vec<schemas::ActionReceipt> = Vec::new();
 
-    Ok(Json(schemas::ActionReceiptsResponse {
-        action_receipts
-    }))
+    Ok(Json(schemas::ActionReceiptsResponse { action_receipts }))
 }

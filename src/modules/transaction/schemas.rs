@@ -18,7 +18,7 @@ pub struct TransactionRequest {
 )]
 pub struct TransactionsRequest {
     #[validate(custom = "crate::errors::validate_account_id")]
-    pub account_id: Option<types::AccountId>,
+    pub account_id: types::AccountId,
     #[validate(custom = "crate::errors::validate_account_id")]
     pub contract_id: Option<types::AccountId>,
 }
@@ -33,9 +33,9 @@ pub struct ReceiptsRequest {
 #[derive(
     Validate, Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema,
 )]
-pub struct ActionReceiptsRequest{
+pub struct ActionReceiptsRequest {
     #[validate(custom = "crate::errors::validate_account_id")]
-    pub account_id: Option<types::AccountId>,
+    pub account_id: types::AccountId,
     #[validate(custom = "crate::errors::validate_account_id")]
     pub contract_id: Option<types::AccountId>,
 }
@@ -55,24 +55,23 @@ pub struct TransactionsResponse {
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 
 pub struct ReceiptsResponse {
-    pub receipts: Vec<Receipt>
+    pub receipts: Vec<Receipt>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 pub struct ActionReceiptsResponse {
-    pub action_receipts: Vec<ActionReceipt>
+    pub action_receipts: Vec<ActionReceipt>,
 }
-
 
 // *** Types ***
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 pub struct Transaction {
-    pub signer_id: String,    
-    pub public_key: String,   
-    pub receiver_id: String, 
-    pub block_hash: String,  
-    pub actions: Vec<String>, 
+    pub signer_id: String,
+    pub public_key: String,
+    pub receiver_id: String,
+    pub block_hash: String,
+    pub actions: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
