@@ -9,6 +9,6 @@ pub(crate) fn register_services(app: &mut web::ServiceConfig) {
         .service(web::resource("/transactions").route(web::get().to(resources::get_transactions)))
         .service(web::resource("/receipts").route(web::get().to(resources::get_receipts)))
         .service(
-            web::resource("receipts/actions").route(web::get().to(resources::get_action_receipts)),
+            web::resource("/receipts/actions").route(web::get().to(resources::get_action_receipts)),
         );
 }
