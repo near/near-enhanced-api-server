@@ -100,6 +100,12 @@ pub struct Receipt {
     pub receipt_id: types::ReceiptId,
     /// A receipt type(Action Or Data Receipt)
     pub receipt: ReceiptEnum,
+    /// Status of the receipt. Success | Failure | Unknown
+    pub status: String,
+    /// Block timestamp when the receipt was finalized
+    pub block_timestamp: Option<u128>,
+    /// Transaction that created this receipt
+    pub originated_from_transaction_hash: Option<types::TransactionHash>
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
