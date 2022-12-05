@@ -79,6 +79,14 @@ pub struct Transaction {
     pub block_hash: String,
     /// A list of actions to be applied
     pub actions: Vec<String>,
+    /// Timestamp when the transaction was finalized
+    pub timestamp: String,
+    /// Transaction cost in Yocto Near
+    pub fee: u128, 
+    /// Amount of Near transferred 
+    pub amount: String,
+    /// Status of the Transaction. Finalized | Pending | Failed
+    pub status: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
