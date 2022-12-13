@@ -83,7 +83,7 @@ pub struct Transaction {
     /// Timestamp when the transaction was finalized
     pub timestamp: u128,
     /// Transaction cost in Yocto Near
-    pub total_gas_cost: u128, 
+    pub total_gas_cost: u128,
     /// Amount of Near transferred during this transaction
     pub amount: u128,
     /// Status of the Transaction. Finalized | Pending | Failed
@@ -96,7 +96,7 @@ pub struct Action {
     pub transaction_hash: String,
     /// The index of the action in the transaction
     pub index_in_transaction: String,
-    /// Type of action 
+    /// Type of action
     pub action_kind: ActionType,
     /// Arguments for the action
     pub args: String,
