@@ -1,6 +1,9 @@
+use std::str::FromStr;
+
 use crate::types;
 
-use super::schemas;
+use super::schemas::{self, CreateAccountAction};
+use borsh::schema;
 use paperclip::actix::{
     api_v2_operation,
     web::{self, Json},
@@ -14,15 +17,20 @@ pub async fn get_transaction(
     _pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     _rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     _: crate::types::pagoda_api_key::PagodaApiKey,
-    _request: actix_web_validator::Path<schemas::TransactionRequest>,
+    _params: web::Query<schemas::TransactionRequest>,
 ) -> crate::Result<Json<schemas::TransactionResponse>> {
     Ok(Json(schemas::TransactionResponse {
         transaction: schemas::Transaction {
-            signer_id: "signer_id".to_string(),
-            public_key: "public_id".to_string(),
-            receiver_id: "receiver_id".to_string(),
-            block_hash: "block_hash".to_string(),
+            transaction_hash: "E2gtnNchwDrLUL7prNSdfcUzwwR4egJV4qpncwHz1hwJ".to_string(),
+            signer_account_id: "roshaan.near".to_string(),
+            signer_public_key: "232232TxhPZosvJHsdfsfsdf2UMJHA1P9poRBw1JK23".to_string(),
+            receiver_account_id: "roshaan.near".to_string(),
+            block_hash: "56qTxhPZosvJHazph2NbaQdUMJHA1P9poREV3Bw1JKEV".to_string(),
             actions: Vec::new(),
+            timestamp: 1670017393533,
+            total_gas_cost: 0 as u128, 
+            amount: 0 as u128,
+            status: "success".to_string()
         },
     }))
 }
@@ -39,11 +47,24 @@ pub async fn get_transactions(
     _pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     _rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     _: crate::types::pagoda_api_key::PagodaApiKey,
-    _request: actix_web_validator::Path<schemas::TransactionsRequest>,
+    _params: web::Query<schemas::TransactionsRequest>,
     _pagination_params: web::Query<types::query_params::PaginationParams>,
 ) -> crate::Result<Json<schemas::TransactionsResponse>> {
-    let transactions: Vec<schemas::Transaction> = Vec::new();
-
+    let mut transactions: Vec<schemas::Transaction> = Vec::new();
+    let transaction =   schemas::Transaction {
+        transaction_hash: "E2gtnNchwDrLUL7prNSdfcUzwwR4egJV4qpncwHz1hwJ".to_string(),
+        signer_account_id: "roshaan.near".to_string(),
+        signer_public_key: "232232TxhPZosvJHsdfsfsdf2UMJHA1P9poRBw1JK23".to_string(),
+        receiver_account_id: "roshaan.near".to_string(),
+        block_hash: "56qTxhPZosvJHazph2NbaQdUMJHA1P9poREV3Bw1JKEV".to_string(),
+        actions: Vec::new(),
+        timestamp: 1670017393533,
+        total_gas_cost: 0 as u128, 
+        amount: 0 as u128,
+        status: "success".to_string()
+    };
+    transactions.push(transaction.clone());
+    transactions.push(transaction);
     Ok(Json(schemas::TransactionsResponse { transactions }))
 }
 
@@ -55,10 +76,29 @@ pub async fn get_receipts(
     _pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     _rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     _: crate::types::pagoda_api_key::PagodaApiKey,
-    request: actix_web_validator::Path<schemas::ReceiptsRequest>,
+    _params: web::Query<schemas::ReceiptsRequest>,
     _pagination_params: web::Query<types::query_params::PaginationParams>,
 ) -> crate::Result<Json<schemas::ReceiptsResponse>> {
-    let receipts: Vec<schemas::Receipt> = Vec::new();
+    let mut receipts: Vec<schemas::Receipt> = Vec::new();
+    let action = schemas::ActionReceipt {
+        signer_account_id: "roshaan.near".to_string(),
+        signer_public_key: "232232TxhPZosvJHsdfsfsdf2UMJHA1P9poRBw1JK23".to_string(),
+        gas_price: types::numeric::U128(0 as u128), 
+        actions: vec!(schemas::ActionType::CreateAccount(schemas::CreateAccountAction{}))
+    };
+    let receipt = schemas::Receipt {
+        receipt_id: "APFoQw6Hc2pJTZyYJw3tYLSdHjb8poacH7eYL5gK2W8n".to_string().to_string(),
+        originated_from_transaction_hash: Some("GcajpeVRUbhLdHN8UpDTUZV8YYBdcRtLsTwzwWZq6MDi".to_string()),
+        predecessor_account_id: "roshaan.near".to_string(),
+        receiver_account_id: "spot.spin-fi.near".to_string(),
+        actions: vec!(action),
+        receipt_kind: "action".to_string(),
+        status: "success".to_string(),
+        block_timestamp: Some(66862877), 
+        gas_burnt: Some(types::numeric::U128(223 as u128)),
+        tokens_burnt: Some(types::numeric::U128(0.00083  as u128)),
+    };
+    receipts.push(receipt);
     Ok(Json(schemas::ReceiptsResponse { receipts }))
 }
 
@@ -74,10 +114,28 @@ pub async fn get_action_receipts(
     _pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     _rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     _: crate::types::pagoda_api_key::PagodaApiKey,
-    _request: actix_web_validator::Path<schemas::ActionReceiptsRequest>,
+    _params: web::Query<schemas::ActionReceiptsRequest>,
     _pagination_params: web::Query<types::query_params::PaginationParams>,
 ) -> crate::Result<Json<schemas::ActionReceiptsResponse>> {
-    let action_receipts: Vec<schemas::ActionReceipt> = Vec::new();
-
+    let mut action_receipts: Vec<schemas::Receipt> = Vec::new();
+    let action = schemas::ActionReceipt {
+        signer_account_id: "roshaan.near".to_string(),
+        signer_public_key: "232232TxhPZosvJHsdfsfsdf2UMJHA1P9poRBw1JK23".to_string(),
+        gas_price: types::numeric::U128(0 as u128), 
+        actions: vec!(schemas::ActionType::CreateAccount(schemas::CreateAccountAction{}))
+    };
+    let receipt = schemas::Receipt {
+        receipt_id: "APFoQw6Hc2pJTZyYJw3tYLSdHjb8poacH7eYL5gK2W8n".to_string().to_string(),
+        originated_from_transaction_hash: Some("GcajpeVRUbhLdHN8UpDTUZV8YYBdcRtLsTwzwWZq6MDi".to_string()),
+        predecessor_account_id: "roshaan.near".to_string(),
+        receiver_account_id: "spot.spin-fi.near".to_string(),
+        actions: vec!(action),
+        receipt_kind: "action".to_string(),
+        status: "success".to_string(),
+        block_timestamp: Some(66862877), 
+        gas_burnt: Some(types::numeric::U128(223 as u128)),
+        tokens_burnt: Some(types::numeric::U128(0.00083  as u128)),
+    };
+    action_receipts.push(receipt);
     Ok(Json(schemas::ActionReceiptsResponse { action_receipts }))
 }

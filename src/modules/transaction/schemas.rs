@@ -61,94 +61,93 @@ pub struct ReceiptsResponse {
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 pub struct ActionReceiptsResponse {
-    pub action_receipts: Vec<ActionReceipt>,
+    pub action_receipts: Vec<Receipt>,
 }
 
 // *** Types ***
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 pub struct Transaction {
+    /// Transaction Hash of the the transction
+    pub transaction_hash: String,
     /// An account on which behalf transaction is signed
-    pub signer_id: String,
-    /// A public key of the access key which was used to sign an account.
-    /// Access key holds permissions for calling certain kinds of actions.
-    pub public_key: String,
+    pub signer_account_id: String,
+    /// An access key which was used to sign the original transaction
+    pub signer_public_key: String,
     /// Receiver account for this transaction
-    pub receiver_id: String,
-    /// The hash of the block in the blockchain on top of which the given transaction is valid
+    pub receiver_account_id: String,
+    /// The hash of the block this transaction was included in
     pub block_hash: String,
     /// A list of actions to be applied
-    pub actions: Vec<String>,
+    pub actions: Vec<Action>,
     /// Timestamp when the transaction was finalized
-    pub timestamp: String,
+    pub timestamp: u128,
     /// Transaction cost in Yocto Near
-    pub fee: u128, 
-    /// Amount of Near transferred 
-    pub amount: String,
+    pub total_gas_cost: u128, 
+    /// Amount of Near transferred during this transaction
+    pub amount: u128,
     /// Status of the Transaction. Finalized | Pending | Failed
     pub status: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
+pub struct Action {
+    /// Transaction Hash
+    pub transaction_hash: String,
+    /// The index of the action in the transaction
+    pub index_in_transaction: String,
+    /// Type of action 
+    pub action_kind: ActionType,
+    /// Arguments for the action
+    pub args: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 pub struct Receipt {
+    /// An unique id for the receipt
+    pub receipt_id: String,
+    /// Transaction that created this receipt
+    pub originated_from_transaction_hash: Option<String>,
     /// An issuer account_id of a particular receipt.
     /// `predecessor_id` could be either `Transaction` `signer_id` or intermediate contract's `account_id`.
-    pub predecessor_id: types::AccountId,
+    pub predecessor_account_id: String,
     /// `receiver_id` is a receipt destination.
-    pub receiver_id: types::AccountId,
-    /// An unique id for the receipt
-    pub receipt_id: types::ReceiptId,
-    /// A receipt type(Action Or Data Receipt)
-    pub receipt: ReceiptEnum,
+    pub receiver_account_id: String,
+    /// List of actions
+    pub actions: Vec<ActionReceipt>,
+    /// A receipt kind
+    pub receipt_kind: String,
     /// Status of the receipt. Success | Failure | Unknown
     pub status: String,
     /// Block timestamp when the receipt was finalized
     pub block_timestamp: Option<u128>,
-    /// Transaction that created this receipt
-    pub originated_from_transaction_hash: Option<types::TransactionHash>
+    /// total gas burnt applying this receipt
+    pub gas_burnt: Option<types::U128>,
+    /// Near tokens burnt while applying this receipt
+    pub tokens_burnt: Option<types::U128>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 pub enum ReceiptEnum {
     Action(ActionReceipt),
-    // Todo Define DataReceipt
-    // Data(DataReceipt),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 
 pub struct ActionReceipt {
     /// A signer of the original transaction
-    pub signer_id: types::AccountId,
-    /// Todo change this to a crypto hash or Public Key type
+    pub signer_account_id: String,
     /// An access key which was used to sign the original transaction
-    pub signer_public_key: types::AccountId,
+    pub signer_public_key: String,
     /// A gas_price which has been used to buy gas in the original transaction
     pub gas_price: types::U128,
-    /// If present, where to route the output data
-    pub output_data_receivers: Vec<DataReceiver>,
-    /// Todo Change type from string to crypto hash
-    /// A list of the input data dependencies for this Receipt to process.
-    /// If all `input_data_ids` for this receipt are delivered to the account
-    /// that means we have all the `ReceivedData` input which will be than converted to a
-    /// `PromiseResult::Successful(value)` or `PromiseResult::Failed`
-    /// depending on `ReceivedData` is `Some(_)` or `None`
-    pub input_data_ids: Vec<String>,
     /// A list of actions to process when all input_data_ids are filled
-    pub actions: Vec<Action>,
+    pub actions: Vec<ActionType>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 
-pub struct DataReceiver {
-    /// todo change type from string to crypto hash
-    pub data_id: String,
-    pub receiver_id: types::AccountId,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
-
-pub enum Action {
+pub enum ActionType {
     /// Todo Add more actions
     CreateAccount(CreateAccountAction),
 }
