@@ -1,9 +1,6 @@
-use std::str::FromStr;
-
 use crate::types;
 
-use super::schemas::{self, CreateAccountAction};
-use borsh::schema;
+use super::schemas;
 use paperclip::actix::{
     api_v2_operation,
     web::{self, Json},
@@ -28,8 +25,8 @@ pub async fn get_transaction(
             block_hash: "56qTxhPZosvJHazph2NbaQdUMJHA1P9poREV3Bw1JKEV".to_string(),
             actions: Vec::new(),
             timestamp: 1670017393533,
-            total_gas_cost: 0 as u128,
-            amount: 0 as u128,
+            total_gas_cost: 0_u128,
+            amount: 0_u128,
             status: "success".to_string(),
         },
     }))
@@ -59,8 +56,8 @@ pub async fn get_transactions(
         block_hash: "56qTxhPZosvJHazph2NbaQdUMJHA1P9poREV3Bw1JKEV".to_string(),
         actions: Vec::new(),
         timestamp: 1670017393533,
-        total_gas_cost: 0 as u128,
-        amount: 0 as u128,
+        total_gas_cost: 0_u128,
+        amount: 0_u128,
         status: "success".to_string(),
     };
     transactions.push(transaction.clone());
@@ -83,15 +80,13 @@ pub async fn get_receipts(
     let action = schemas::ActionReceipt {
         signer_account_id: "roshaan.near".to_string(),
         signer_public_key: "232232TxhPZosvJHsdfsfsdf2UMJHA1P9poRBw1JK23".to_string(),
-        gas_price: types::numeric::U128(0 as u128),
+        gas_price: types::numeric::U128(0_u128),
         actions: vec![schemas::ActionType::CreateAccount(
             schemas::CreateAccountAction {},
         )],
     };
     let receipt = schemas::Receipt {
-        receipt_id: "APFoQw6Hc2pJTZyYJw3tYLSdHjb8poacH7eYL5gK2W8n"
-            .to_string()
-            .to_string(),
+        receipt_id: "APFoQw6Hc2pJTZyYJw3tYLSdHjb8poacH7eYL5gK2W8n".to_string(),
         originated_from_transaction_hash: Some(
             "GcajpeVRUbhLdHN8UpDTUZV8YYBdcRtLsTwzwWZq6MDi".to_string(),
         ),
@@ -101,7 +96,7 @@ pub async fn get_receipts(
         receipt_kind: "action".to_string(),
         status: "success".to_string(),
         block_timestamp: Some(66862877),
-        gas_burnt: Some(types::numeric::U128(223 as u128)),
+        gas_burnt: Some(types::numeric::U128(223_u128)),
         tokens_burnt: Some(types::numeric::U128(0.00083 as u128)),
     };
     receipts.push(receipt);
@@ -127,15 +122,13 @@ pub async fn get_action_receipts(
     let action = schemas::ActionReceipt {
         signer_account_id: "roshaan.near".to_string(),
         signer_public_key: "232232TxhPZosvJHsdfsfsdf2UMJHA1P9poRBw1JK23".to_string(),
-        gas_price: types::numeric::U128(0 as u128),
+        gas_price: types::numeric::U128(0_u128),
         actions: vec![schemas::ActionType::CreateAccount(
             schemas::CreateAccountAction {},
         )],
     };
     let receipt = schemas::Receipt {
-        receipt_id: "APFoQw6Hc2pJTZyYJw3tYLSdHjb8poacH7eYL5gK2W8n"
-            .to_string()
-            .to_string(),
+        receipt_id: "APFoQw6Hc2pJTZyYJw3tYLSdHjb8poacH7eYL5gK2W8n".to_string(),
         originated_from_transaction_hash: Some(
             "GcajpeVRUbhLdHN8UpDTUZV8YYBdcRtLsTwzwWZq6MDi".to_string(),
         ),
@@ -145,7 +138,7 @@ pub async fn get_action_receipts(
         receipt_kind: "action".to_string(),
         status: "success".to_string(),
         block_timestamp: Some(66862877),
-        gas_burnt: Some(types::numeric::U128(223 as u128)),
+        gas_burnt: Some(types::numeric::U128(223_u128)),
         tokens_burnt: Some(types::numeric::U128(0.00083 as u128)),
     };
     action_receipts.push(receipt);

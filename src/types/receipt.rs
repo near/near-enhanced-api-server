@@ -23,8 +23,8 @@ use std::{fmt, str::FromStr};
 pub struct ReceiptId(String);
 
 impl ReceiptId {
-    pub fn to_crypto_hash(self) -> Result<CryptoHash, String> {
-        let hash = CryptoHash::from_str(&self);
+    pub fn to_crypto_hash(&self) -> Result<CryptoHash, String> {
+        let hash = CryptoHash::from_str(self);
         if let Err(error) = hash {
             return Err(error.to_string());
         }
