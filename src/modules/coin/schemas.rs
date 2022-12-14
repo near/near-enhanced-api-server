@@ -90,12 +90,20 @@ pub struct FtContractMetadataResponse {
 pub struct Coin {
     /// "nearprotocol" for NEAR, "nep141" for FT
     pub standard: String,
-    pub balance: types::U128,
+    /// For NEAR/FT, there is always 1 item in the list. For MT, there could be more
+    pub balances: Vec<BalanceItem>,
     /// null for NEAR, not null otherwise
     pub contract_account_id: Option<types::AccountId>,
     pub metadata: CoinMetadata,
     // TODO PHASE 1 (idea) I think it would be great to add here the info about last update moment. Timestamp, later also index
     // I'm already doing it at NftCount
+}
+
+/// This type describes coin balance information.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
+pub struct BalanceItem {
+    pub symbol: String,
+    pub amount: types::U128,
 }
 
 /// This type describes the history of coin movements for the given user.

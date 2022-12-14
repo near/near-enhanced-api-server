@@ -99,7 +99,10 @@ pub(crate) async fn get_coin_balances_by_contract(
     Ok(vec![coin::schemas::Coin {
         standard: "nep141".to_string(),
         contract_account_id: Some(contract_id.clone().into()),
-        balance: balance.into(),
+        balances: vec![coin::schemas::BalanceItem {
+            symbol: metadata.symbol.clone(),
+            amount: balance.into(),
+        }],
         metadata: coin::schemas::CoinMetadata {
             name: metadata.name,
             symbol: metadata.symbol,
@@ -130,7 +133,10 @@ impl From<coin::schemas::NearBalanceResponse> for coin::schemas::Coin {
     fn from(near_coin: coin::schemas::NearBalanceResponse) -> Self {
         coin::schemas::Coin {
             standard: "nearprotocol".to_string(),
-            balance: near_coin.balance,
+            balances: vec![coin::schemas::BalanceItem {
+                symbol: "NEAR".to_string(),
+                amount: near_coin.balance,
+            }],
             contract_account_id: None,
             metadata: near_coin.metadata,
         }
