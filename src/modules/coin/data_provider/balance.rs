@@ -44,7 +44,7 @@ pub(crate) async fn get_coin_balances(
     block: &db_helpers::Block,
     account_id: &near_primitives::types::AccountId,
     pagination: &types::query_params::Pagination,
-) -> crate::Result<Vec<coin::schemas::Coin>> {
+) -> crate::Result<Vec<coin::schemas::CoinBalancesByContract>> {
     let query = r"
         SELECT DISTINCT emitted_by_contract_account_id account_id
         FROM assets__fungible_token_events
@@ -64,7 +64,7 @@ pub(crate) async fn get_coin_balances(
     )
     .await?;
 
-    let mut balances: Vec<coin::schemas::Coin> = vec![];
+    let mut balances: Vec<coin::schemas::CoinBalancesByContract> = vec![];
     for contract in contracts {
         if let Ok(contract_id) = near_primitives::types::AccountId::from_str(&contract.account_id) {
             balances.append(
@@ -83,7 +83,7 @@ pub(crate) async fn get_coin_balances_by_contract(
     block: &db_helpers::Block,
     contract_id: &near_primitives::types::AccountId,
     account_id: &near_primitives::types::AccountId,
-) -> crate::Result<Vec<coin::schemas::Coin>> {
+) -> crate::Result<Vec<coin::schemas::CoinBalancesByContract>> {
     let (balance, metadata) = (
         get_ft_balance_by_contract(
             rpc_client,
@@ -96,19 +96,18 @@ pub(crate) async fn get_coin_balances_by_contract(
             .await?,
     );
 
-    Ok(vec![coin::schemas::Coin {
+    Ok(vec![coin::schemas::CoinBalancesByContract {
         standard: "nep141".to_string(),
         contract_account_id: Some(contract_id.clone().into()),
-        balances: vec![coin::schemas::BalanceItem {
-            symbol: metadata.symbol.clone(),
+        balances: vec![coin::schemas::Coin {
             amount: balance.into(),
+            metadata: coin::schemas::CoinMetadata {
+                name: metadata.name,
+                symbol: metadata.symbol,
+                icon: metadata.icon,
+                decimals: metadata.decimals,
+            },
         }],
-        metadata: coin::schemas::CoinMetadata {
-            name: metadata.name,
-            symbol: metadata.symbol,
-            icon: metadata.icon,
-            decimals: metadata.decimals,
-        },
     }])
 }
 
@@ -129,16 +128,15 @@ pub(crate) async fn get_ft_balance_by_contract(
     Ok(serde_json::from_slice::<types::U128>(&response.result)?.0)
 }
 
-impl From<coin::schemas::NearBalanceResponse> for coin::schemas::Coin {
+impl From<coin::schemas::NearBalanceResponse> for coin::schemas::CoinBalancesByContract {
     fn from(near_coin: coin::schemas::NearBalanceResponse) -> Self {
-        coin::schemas::Coin {
+        coin::schemas::CoinBalancesByContract {
             standard: "nearprotocol".to_string(),
-            balances: vec![coin::schemas::BalanceItem {
-                symbol: "NEAR".to_string(),
+            balances: vec![coin::schemas::Coin {
                 amount: near_coin.balance,
+                metadata: near_coin.metadata,
             }],
             contract_account_id: None,
-            metadata: near_coin.metadata,
         }
     }
 }

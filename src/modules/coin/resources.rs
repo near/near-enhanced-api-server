@@ -54,8 +54,8 @@ pub async fn get_coin_balances(
     let block = db_helpers::get_block_from_params(&pool, &block_params).await?;
     modules::check_account_exists(&rpc_client, &request.account_id.0, block.height).await?;
 
-    let mut balances: Vec<schemas::Coin> = vec![];
-    balances.push(
+    let mut coins: Vec<schemas::CoinBalancesByContract> = vec![];
+    coins.push(
         data_provider::get_near_balance(&pool, &block, &request.account_id.0)
             .await?
             .into(),
@@ -71,12 +71,12 @@ pub async fn get_coin_balances(
             &pagination,
         )
         .await?;
-        balances.append(ft_balances);
+        coins.append(ft_balances);
         pagination.limit -= ft_balances.length() as u32;
     }
 
     Ok(Json(schemas::CoinBalancesResponse {
-        balances,
+        coins,
         block_timestamp_nanos: types::U64::from(block.timestamp),
         block_height: types::U64::from(block.height),
     }))
@@ -111,7 +111,7 @@ pub async fn get_coin_balances_by_contract(
     let block = db_helpers::get_block_from_params(&pool, &block_params).await?;
     modules::check_account_exists(&rpc_client, &request.account_id.0, block.height).await?;
 
-    let balances = data_provider::get_coin_balances_by_contract(
+    let coins = data_provider::get_coin_balances_by_contract(
         &rpc_client,
         &block,
         &request.contract_account_id.0,
@@ -120,7 +120,7 @@ pub async fn get_coin_balances_by_contract(
     .await?;
 
     Ok(Json(schemas::CoinBalancesResponse {
-        balances,
+        coins,
         block_timestamp_nanos: types::U64::from(block.timestamp),
         block_height: types::U64::from(block.height),
     }))
