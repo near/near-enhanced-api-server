@@ -156,6 +156,27 @@ pub(crate) async fn get_last_block(pool: &sqlx::Pool<sqlx::Postgres>) -> crate::
     }
 }
 
+pub(crate) async fn get_previous_block(
+    pool: &sqlx::Pool<sqlx::Postgres>,
+    current_block_timestamp: u64,
+) -> crate::Result<Block> {
+    match select_retry_or_panic::<BlockView>(
+        pool,
+        r"SELECT block_height, block_timestamp
+           FROM blocks
+           WHERE block_timestamp < $1::numeric(20, 0)
+           ORDER BY block_timestamp DESC
+           LIMIT 1",
+        &[current_block_timestamp.to_string()],
+    )
+    .await?
+    .first()
+    {
+        None => Err(errors::ErrorKind::DBError("blocks table is empty".to_string()).into()),
+        Some(block) => Ok(Block::try_from(block)?),
+    }
+}
+
 pub(crate) async fn select_retry_or_panic<T: Send + Unpin + for<'r> sqlx::FromRow<'r, PgRow>>(
     pool: &sqlx::Pool<sqlx::Postgres>,
     query: &str,

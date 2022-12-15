@@ -1,113 +1,199 @@
 use crate::modules::ft;
 use crate::{db_helpers, errors, types};
-use num_traits::Signed;
+use num_traits::{Signed, ToPrimitive};
 use sqlx::types::BigDecimal;
 use std::str::FromStr;
 
-// TODO PHASE 2 pagination by artificial index added to assets__fungible_token_events
-// TODO PHASE 2 change RPC call to DB call by adding absolute amount values to assets__fungible_token_events
-// TODO PHASE 2 make the decision about separate FT/MT tables or one table. Pagination implementation depends on this
 pub(crate) async fn get_ft_history(
     pool: &sqlx::Pool<sqlx::Postgres>,
+    pool_balances: &sqlx::Pool<sqlx::Postgres>,
     rpc_client: &near_jsonrpc_client::JsonRpcClient,
     contract_id: &near_primitives::types::AccountId,
     account_id: &near_primitives::types::AccountId,
-    pagination: &types::query_params::HistoryPagination,
+    block: &db_helpers::Block,
+    pagination: &types::query_params::Pagination,
 ) -> crate::Result<Vec<ft::schemas::HistoryItem>> {
-    // this is temp solution before we make changes to the DB
-    let mut last_balance = BigDecimal::from_str(
-        &super::balance::get_ft_amount(
-            rpc_client,
-            contract_id.clone(),
-            account_id.clone(),
-            pagination.block_height,
-        )
-        .await?
-        .to_string(),
-    )
-    .map_err(|e| {
-        errors::ErrorKind::InternalError(format!("Failed to parse BigDecimal from u128: {}", e))
-    })?;
-
     let metadata = ft::schemas::Metadata::from(
-        super::metadata::get_ft_metadata(rpc_client, contract_id.clone(), pagination.block_height)
-            .await?,
+        super::metadata::get_ft_metadata(rpc_client, contract_id.clone(), block.height).await?,
     );
 
-    let account_id = account_id.to_string();
+    let after_event_index = if let Some(index) = pagination.after_event_index {
+        index
+    } else {
+        // +1 because we need to include given timestamp to result. Query has strict less operator
+        db_helpers::timestamp_to_event_index(block.timestamp + 1)
+    };
+
+    // We don't have absolute_value in the DB.
+    // We ask RPC for the first absolute_value, fill the in-between values with deltas, check by asking RPC for the last absolute_value and comparing the results.
+    // If it matches, everything is good. If not, we return the error.
+
+    // Problem: we can ask RPC only for the balance at the end of the block, while we may have the lines starting and ending in the middle of the block.
+    // That's why we need to take slightly more lines so that we can match it with the RPC, and then filter these lines.
+    // Potential issue here: the DB may contain only the part of the most fresh block (we may be in the middle of the writing process)
+    // It can be easily solved by ignoring the most fresh block, but it will increase the lag between the response and the current blockchain state.
+    // Since we anyway use transactional DB which guarantees that write process goes atomically, I don't want to do anything with that.
+    // But, if we meet such issues in production, we may consider cutting the latest block.
+    // TODO check the performance. We may add index on block_timestamp column, or we can hack and change block_timestamp to event_index
     let query = r"
-        SELECT
-            -- blocks.block_height,
-            blocks.block_timestamp,
-            assets__fungible_token_events.amount::numeric(45, 0),
-            assets__fungible_token_events.event_kind::text cause,
-            CASE WHEN execution_outcomes.status IN ('SUCCESS_VALUE', 'SUCCESS_RECEIPT_ID') THEN 'SUCCESS'
-                ELSE 'FAILURE'
-            END status,
-            assets__fungible_token_events.token_old_owner_account_id old_owner_id,
-            assets__fungible_token_events.token_new_owner_account_id new_owner_id
-        FROM assets__fungible_token_events
-            JOIN blocks ON assets__fungible_token_events.emitted_at_block_timestamp = blocks.block_timestamp
-            JOIN execution_outcomes ON assets__fungible_token_events.emitted_for_receipt_id = execution_outcomes.receipt_id
-        WHERE emitted_by_contract_account_id = $1
-            AND (token_old_owner_account_id = $2 OR token_new_owner_account_id = $2)
-            AND emitted_at_block_timestamp <= $3::numeric(20, 0)
-        ORDER BY emitted_at_block_timestamp desc
-        LIMIT $4::numeric(20, 0)
-    ";
-    let history_info = db_helpers::select_retry_or_panic::<super::models::FtHistoryInfo>(
-        pool,
+         WITH original_query as (
+             SELECT
+                 event_index,
+                 involved_account_id,
+                 delta_amount,
+                 cause,
+                 status,
+                 block_timestamp,
+                 block_height
+             FROM coin_events
+             WHERE contract_account_id = $1
+                 AND affected_account_id = $2
+                 AND event_index < $3::numeric(38, 0)
+                 AND event_index >= 16698527195153032600000000000000000 -- todo drop this when we finish collecting the data
+             ORDER BY event_index desc
+             LIMIT $4::numeric(20, 0)
+         ), timestamps as (
+             SELECT
+                 min(block_timestamp) min_block_timestamp,
+                 max(block_timestamp) max_block_timestamp
+             FROM original_query
+         )
+         SELECT
+             event_index,
+             involved_account_id,
+             delta_amount delta_balance,
+             cause,
+             status,
+             block_timestamp block_timestamp_nanos,
+             block_height
+         FROM coin_events, timestamps
+         WHERE contract_account_id = $1
+             AND affected_account_id = $2
+             AND block_timestamp >= min_block_timestamp
+             AND block_timestamp <= max_block_timestamp
+         ORDER BY event_index desc
+     ";
+
+    let history = db_helpers::select_retry_or_panic::<ft::data_provider::models::FtHistoryInfo>(
+        pool_balances,
         query,
         &[
             contract_id.to_string(),
-            account_id.clone(),
-            pagination.block_timestamp.to_string(),
+            account_id.to_string(),
+            after_event_index.to_string(),
             pagination.limit.to_string(),
         ],
     )
     .await?;
 
-    let mut result: Vec<ft::schemas::HistoryItem> = vec![];
-    for db_info in history_info {
-        let mut delta = db_info.amount;
-        let balance = last_balance.clone();
-        // TODO PHASE 2 maybe we want to change assets__fungible_token_events also to affected/involved?
-        let involved_account_id = if account_id == db_info.old_owner_id {
-            delta = -delta;
-            types::account_id::extract_account_id(&db_info.new_owner_id)?
-        } else if account_id == db_info.new_owner_id {
-            types::account_id::extract_account_id(&db_info.old_owner_id)?
-        } else {
-            return Err(
+    let mut current_balance = if let Some(first_item) = history.first() {
+        let amount = super::balance::get_ft_amount(
+            rpc_client,
+            contract_id.clone(),
+            account_id.clone(),
+            first_item.block_height.to_u64().ok_or_else(|| {
                 errors::ErrorKind::InternalError(
-                    format!("The account {} should be sender or receiver ({}, {}). If you see this, please create the issue",
-                            account_id, db_info.old_owner_id, db_info.new_owner_id)).into(),
-            );
-        };
+                    "Found negative block_height in coin_events table".to_string(),
+                )
+            })?,
+        )
+        .await?;
+        BigDecimal::from_str(&amount.to_string()).map_err(|e| {
+            errors::ErrorKind::InternalError(format!("Failed to parse BigDecimal from u128: {}", e))
+        })?
+    } else {
+        return Ok(vec![]);
+    };
+
+    let mut result: Vec<ft::schemas::HistoryItem> = vec![];
+    for db_info in history {
+        let balance = current_balance.clone();
 
         if db_info.status == "SUCCESS" {
-            // TODO PHASE 2 this strange error will go away after we add absolute amounts to the DB
-            if (last_balance.clone() - delta.clone()).is_negative() {
+            current_balance -= db_info.delta_balance.clone();
+            if current_balance.is_negative() {
+                tracing::warn!(
+                    target: crate::LOGGER_MSG,
+                    "get_ft_history: found inconsistent events for contract {}, account {}, block {:#?}, pagination {:#?}",
+                    contract_id,
+                    account_id,
+                    block,
+                    pagination,
+                );
                 return Err(errors::ErrorKind::InternalError(format!(
-                    "Balance could not be negative: account {}, contract {}",
+                    "History is not supported for account {}. Contract {} provides inconsistent events which lead to negative balance",
                     account_id, contract_id
                 ))
-                .into());
+                    .into());
             }
-            last_balance -= delta.clone();
         }
 
-        result.push(ft::schemas::HistoryItem {
-            cause: db_info.cause.clone(),
-            involved_account_id: involved_account_id.map(|id| id.into()),
-            delta_balance: delta.to_string(),
-            balance: types::numeric::to_u128(&balance)?.into(),
-            metadata: metadata.clone(),
-            block_timestamp_nanos: types::numeric::to_u64(&db_info.block_timestamp)?.into(),
-            // block_height: types::numeric::to_u64(&db_info.block_height)?.into(),
-            status: db_info.status,
-        });
+        let involved_account_id = match db_info.involved_account_id {
+            Some(id) => Some(types::AccountId::from_str(&id)?),
+            None => None,
+        };
+        let event_index = types::numeric::to_u128(&db_info.event_index)?;
+
+        // We collect slightly more lines that we were asked for, because we can make RPC calls only at the end of the block
+        // First clause filters latest redundant lines, second clause filters earliest redundant lines
+        if pagination
+            .after_event_index
+            .map_or_else(|| true, |index| index > event_index)
+            && result.len() < pagination.limit as usize
+        {
+            result.push(ft::schemas::HistoryItem {
+                event_index: event_index.into(),
+                cause: db_info.cause.clone(),
+                involved_account_id,
+                delta_balance: db_info.delta_balance.to_string(),
+                balance: types::numeric::to_u128(&balance)?.into(),
+                block_timestamp_nanos: types::numeric::to_u64(&db_info.block_timestamp_nanos)?
+                    .into(),
+                block_height: types::numeric::to_u64(&db_info.block_height)?.into(),
+                status: db_info.status,
+                metadata: metadata.clone(),
+            });
+        }
     }
+
+    let prev_block = if let Some(item) = result.last() {
+        db_helpers::get_previous_block(pool, item.block_timestamp_nanos.0).await?
+    } else {
+        return Ok(result);
+    };
+    let earliest_balance = match super::balance::get_ft_amount(
+        rpc_client,
+        contract_id.clone(),
+        account_id.clone(),
+        prev_block.height,
+    )
+    .await
+    {
+        Ok(x) => x,
+        Err(e) => {
+            if e.message.contains("does not exist at block_height") {
+                0
+            } else {
+                return Err(e);
+            }
+        }
+    };
+    if types::numeric::to_u128(&current_balance)? != earliest_balance {
+        tracing::warn!(
+            target: crate::LOGGER_MSG,
+            "get_ft_history: found inconsistent events for contract {}, account {}, block {:#?}, pagination {:#?}",
+            contract_id,
+            account_id,
+            block,
+            pagination,
+        );
+        return Err(errors::ErrorKind::InternalError(format!(
+            "History is not supported for account {}. Contract {} provides inconsistent events",
+            account_id, contract_id
+        ))
+        .into());
+    }
+
     Ok(result)
 }
 
@@ -118,40 +204,265 @@ mod tests {
     use std::str::FromStr;
 
     #[tokio::test]
-    async fn test_coin_history() {
+    async fn test_ft_history() {
         let pool = init_db().await;
+        let pool_balances = init_balances_db().await;
         let rpc_client = init_rpc();
         let block = get_block();
-        let contract = near_primitives::types::AccountId::from_str("usn").unwrap();
-        let account = near_primitives::types::AccountId::from_str("pushxo.near").unwrap();
-        let pagination = types::query_params::HistoryPagination {
-            block_height: block.height,
-            block_timestamp: block.timestamp,
-            limit: 10,
+        let contract = near_primitives::types::AccountId::from_str(
+            "aaaaaa20d9e0e2461697782ef11675f668207961.factory.bridge.near",
+        )
+        .unwrap();
+        let account = near_primitives::types::AccountId::from_str("aurora").unwrap();
+        let pagination = types::query_params::Pagination {
+            limit: 5,
+            after_event_index: None,
         };
 
-        let balance = get_ft_history(&pool, &rpc_client, &contract, &account, &pagination).await;
+        let balance = get_ft_history(
+            &pool,
+            &pool_balances,
+            &rpc_client,
+            &contract,
+            &account,
+            &block,
+            &pagination,
+        )
+        .await;
         insta::assert_debug_snapshot!(balance);
     }
 
     #[tokio::test]
-    async fn test_coin_history_with_failed_receipts() {
+    async fn test_ft_history_next_page() {
         let pool = init_db().await;
+        let pool_balances = init_balances_db().await;
         let rpc_client = init_rpc();
-        let block = db_helpers::Block {
-            timestamp: 1651062637353692535,
-            height: 64408633,
+        let contract = near_primitives::types::AccountId::from_str(
+            "aaaaaa20d9e0e2461697782ef11675f668207961.factory.bridge.near",
+        )
+        .unwrap();
+        let account = near_primitives::types::AccountId::from_str("aurora").unwrap();
+        let pagination = types::query_params::Pagination {
+            limit: 5,
+            after_event_index: Some(16708552830626965310000000004000001),
         };
-        let contract =
-            near_primitives::types::AccountId::from_str("sweat_token_testing.near").unwrap();
-        let account = near_primitives::types::AccountId::from_str("intmainreturn0.near").unwrap();
-        let pagination = types::query_params::HistoryPagination {
-            block_height: block.height,
-            block_timestamp: block.timestamp,
-            limit: 10,
+        let block = db_helpers::checked_get_block_from_pagination(&pool, &pagination)
+            .await
+            .unwrap();
+
+        let history = get_ft_history(
+            &pool,
+            &pool_balances,
+            &rpc_client,
+            &contract,
+            &account,
+            &block,
+            &pagination,
+        )
+        .await;
+        insta::assert_debug_snapshot!(history);
+    }
+
+    #[tokio::test]
+    async fn test_ft_history_next_page_in_the_middle_of_the_block() {
+        let pool = init_db().await;
+        let pool_balances = init_balances_db().await;
+        let rpc_client = init_rpc();
+        let contract = near_primitives::types::AccountId::from_str(
+            "aaaaaa20d9e0e2461697782ef11675f668207961.factory.bridge.near",
+        )
+        .unwrap();
+        let account = near_primitives::types::AccountId::from_str("aurora").unwrap();
+        let pagination = types::query_params::Pagination {
+            limit: 5,
+            after_event_index: Some(16704039164216566310000000004000001),
+        };
+        let block = db_helpers::checked_get_block_from_pagination(&pool, &pagination)
+            .await
+            .unwrap();
+
+        let history1 = get_ft_history(
+            &pool,
+            &pool_balances,
+            &rpc_client,
+            &contract,
+            &account,
+            &block,
+            &pagination,
+        )
+        .await
+        .unwrap();
+
+        let pagination = types::query_params::Pagination {
+            limit: 5,
+            after_event_index: Some(history1.last().unwrap().event_index.0),
+        };
+        let block = db_helpers::checked_get_block_from_pagination(&pool, &pagination)
+            .await
+            .unwrap();
+        let history2 = get_ft_history(
+            &pool,
+            &pool_balances,
+            &rpc_client,
+            &contract,
+            &account,
+            &block,
+            &pagination,
+        )
+        .await
+        .unwrap();
+
+        assert!(
+            history1.last().unwrap().event_index > history2.first().unwrap().event_index,
+            "Next page should not include event from previous page"
+        );
+        assert_eq!(
+            history1.last().unwrap().block_height,
+            history2.first().unwrap().block_height,
+            "Block split in the middle expected"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_ft_history_with_failed_receipts() {
+        let pool = init_db().await;
+        let pool_balances = init_balances_db().await;
+        let rpc_client = init_rpc();
+        let block = get_block();
+        let contract = near_primitives::types::AccountId::from_str(
+            "52a047ee205701895ee06a375492490ec9c597ce.factory.bridge.near",
+        )
+        .unwrap();
+        let account = near_primitives::types::AccountId::from_str("v2.ref-finance.near").unwrap();
+        let pagination = types::query_params::Pagination {
+            limit: 5,
+            after_event_index: None,
         };
 
-        let balance = get_ft_history(&pool, &rpc_client, &contract, &account, &pagination).await;
+        let balance = get_ft_history(
+            &pool,
+            &pool_balances,
+            &rpc_client,
+            &contract,
+            &account,
+            &block,
+            &pagination,
+        )
+        .await;
         insta::assert_debug_snapshot!(balance);
     }
+
+    #[tokio::test]
+    async fn test_ft_history_account_never_existed() {
+        let pool = init_db().await;
+        let pool_balances = init_balances_db().await;
+        let rpc_client = init_rpc();
+        let block = get_block();
+        let contract = near_primitives::types::AccountId::from_str("wrap.near").unwrap();
+        let account =
+            near_primitives::types::AccountId::from_str("two-idiots-and-a-half.near").unwrap();
+        let pagination = types::query_params::Pagination {
+            limit: 10,
+            after_event_index: None,
+        };
+
+        let history = get_ft_history(
+            &pool,
+            &pool_balances,
+            &rpc_client,
+            &contract,
+            &account,
+            &block,
+            &pagination,
+        )
+        .await
+        .unwrap();
+        assert!(history.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_ft_history_account_deleted() {
+        let pool = init_db().await;
+        let pool_balances = init_balances_db().await;
+        let rpc_client = init_rpc();
+        let block = get_block();
+        let contract = near_primitives::types::AccountId::from_str("wrap.near").unwrap();
+        let account =
+            near_primitives::types::AccountId::from_str("two-idiots-and-a-half.near").unwrap();
+        let pagination = types::query_params::Pagination {
+            limit: 10,
+            after_event_index: None,
+        };
+
+        let history = get_ft_history(
+            &pool,
+            &pool_balances,
+            &rpc_client,
+            &contract,
+            &account,
+            &block,
+            &pagination,
+        )
+        .await
+        .unwrap();
+        assert!(history.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_ft_history_contract_does_not_exist() {
+        let pool = init_db().await;
+        let pool_balances = init_balances_db().await;
+        let rpc_client = init_rpc();
+        let block = get_block();
+        let contract =
+            near_primitives::types::AccountId::from_str("two-idiots-and-a-half.near").unwrap();
+        let account = near_primitives::types::AccountId::from_str("olga.near").unwrap();
+        let pagination = types::query_params::Pagination {
+            limit: 10,
+            after_event_index: None,
+        };
+
+        let balance = get_ft_history(
+            &pool,
+            &pool_balances,
+            &rpc_client,
+            &contract,
+            &account,
+            &block,
+            &pagination,
+        )
+        .await;
+        insta::assert_debug_snapshot!(balance);
+    }
+
+    // TODO write this test again when we finish collecting the data
+    // I can't catch such cases on partially filled DB
+    // #[tokio::test]
+    // async fn test_ft_history_contract_is_inconsistent() {
+    //     let pool = init_db().await;
+    //     let pool_balances = init_balances_db().await;
+    //     let rpc_client = init_rpc();
+    //
+    //     let contract = near_primitives::types::AccountId::from_str("tezeract.near").unwrap();
+    //     let account = near_primitives::types::AccountId::from_str("puffball.near").unwrap();
+    //     let pagination = types::query_params::Pagination {
+    //         limit: 5,
+    //         after_event_index: Some(16629459979548196140000003001000001),
+    //     };
+    //     let block = db_helpers::checked_get_block_from_pagination(&pool, &pagination)
+    //         .await
+    //         .unwrap();
+    //
+    //     let balance = get_ft_history(
+    //         &pool,
+    //         &pool_balances,
+    //         &rpc_client,
+    //         &contract,
+    //         &account,
+    //         &block,
+    //         &pagination,
+    //     )
+    //     .await;
+    //     insta::assert_debug_snapshot!(balance);
+    // }
 }

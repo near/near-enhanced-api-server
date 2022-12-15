@@ -83,8 +83,7 @@ pub struct FtContractMetadataResponse {
 /// This type describes the history of the operations (NEAR, FT) for the given user.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 pub struct HistoryItem {
-    // TODO PHASE 2 add index here
-    // pub index: types::U128,
+    pub event_index: types::U128,
     pub involved_account_id: Option<types::AccountId>,
     pub delta_balance: String,
     pub balance: types::U128,
@@ -92,8 +91,7 @@ pub struct HistoryItem {
     pub status: String,
     pub metadata: Metadata,
     pub block_timestamp_nanos: types::U64,
-    // TODO PHASE 2 add this when we have all the data in the same DB. Now we can't join with blocks
-    // pub block_height: types::U64,
+    pub block_height: types::U64,
 }
 
 /// This type describes general Metadata info, collecting the most important fields from different standards in the one format.

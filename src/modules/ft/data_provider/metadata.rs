@@ -1,6 +1,7 @@
 use crate::modules::ft;
 use crate::rpc_helpers;
 
+// todo switch from rpc to db
 pub(crate) async fn get_ft_metadata(
     rpc_client: &near_jsonrpc_client::JsonRpcClient,
     contract_id: near_primitives::types::AccountId,
