@@ -2,45 +2,22 @@ use paperclip::actix::{
     api_v2_operation,
     web::{self, Json},
 };
-use validator::HasLen;
 
 use super::{data_provider, schemas};
 use crate::{db_helpers, errors, modules, types};
 
-#[api_v2_operation(tags(Coins))]
-/// Get user's NEAR balance
+#[api_v2_operation(tags(FT))]
+/// Get user's FT balances
 ///
-/// This endpoint returns the NEAR balance of the given `account_id`
-/// at the given `timestamp`/`block_height`.
-pub async fn get_near_balance(
-    pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
-    rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
-    _: crate::types::pagoda_api_key::PagodaApiKey,
-    request: actix_web_validator::Path<schemas::BalanceRequest>,
-    block_params: web::Query<types::query_params::BlockParams>,
-) -> crate::Result<Json<schemas::NearBalanceResponse>> {
-    types::query_params::check_block_params(&block_params)?;
-    let block = db_helpers::get_block_from_params(&pool, &block_params).await?;
-    modules::check_account_exists(&rpc_client, &request.account_id.0, block.height).await?;
-
-    Ok(Json(
-        data_provider::get_near_balance(&pool, &block, &request.account_id.0).await?,
-    ))
-}
-
-#[api_v2_operation(tags(Coins))]
-/// Get user's coin balances
-///
-/// This endpoint returns all the countable coin balances (including NEAR, fungible tokens, and _multi-tokens_)
+/// This endpoint returns FT balances
 /// of the given `account_id`, at the given `timestamp`/`block_height`.
 ///
 /// **Limitations**
-/// * For now, we only support the balance for NEAR and FT contracts that implement the Events NEP standard.
+/// * For now, we only support the balance for FT contracts that implement the Events NEP standard.
 ///   We are working on a solution to support other FT contracts, including `wrap.near` and bridged tokens.
-/// * We are in the process of supporting Multi Token balances.
 /// * We currently provide the most recent 100 items.
 ///   Full-featured pagination will be provided in an upcoming update.
-pub async fn get_coin_balances(
+pub async fn get_ft_balances(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     _: crate::types::pagoda_api_key::PagodaApiKey,
@@ -48,62 +25,47 @@ pub async fn get_coin_balances(
     block_params: web::Query<types::query_params::BlockParams>,
     // TODO PHASE 2 pagination by index (recently updated go first)
     pagination_params: web::Query<types::query_params::PaginationParams>,
-) -> crate::Result<Json<schemas::CoinBalancesResponse>> {
+) -> crate::Result<Json<schemas::FtBalancesResponse>> {
     types::query_params::check_limit(pagination_params.limit)?;
-    let mut pagination = types::query_params::Pagination::from(pagination_params.0);
+    let pagination = types::query_params::Pagination::from(pagination_params.0);
     let block = db_helpers::get_block_from_params(&pool, &block_params).await?;
     modules::check_account_exists(&rpc_client, &request.account_id.0, block.height).await?;
 
-    let mut balances: Vec<schemas::Coin> = vec![];
-    balances.push(
-        data_provider::get_near_balance(&pool, &block, &request.account_id.0)
-            .await?
-            .into(),
-    );
-    pagination.limit -= 1;
+    let balances = data_provider::get_ft_balances(
+        &pool,
+        &rpc_client,
+        &block,
+        &request.account_id.0,
+        &pagination,
+    )
+    .await?;
 
-    if pagination.limit > 0 {
-        let ft_balances = &mut data_provider::get_coin_balances(
-            &pool,
-            &rpc_client,
-            &block,
-            &request.account_id.0,
-            &pagination,
-        )
-        .await?;
-        balances.append(ft_balances);
-        pagination.limit -= ft_balances.length() as u32;
-    }
-
-    Ok(Json(schemas::CoinBalancesResponse {
+    Ok(Json(schemas::FtBalancesResponse {
         balances,
         block_timestamp_nanos: types::U64::from(block.timestamp),
         block_height: types::U64::from(block.height),
     }))
 }
 
-#[api_v2_operation(tags(Coins))]
-/// Get user's coin balances by contract
+#[api_v2_operation(tags(FT))]
+/// Get user's FT balance by contract
 ///
-/// This endpoint returns all the countable coin balances of the given `account_id`,
-/// for the given contract and `timestamp`/`block_height`.
-/// For FT contracts, the response has only 1 item in the list.
-/// For MT contracts, there could be several balances (MT support is still under development).
+/// This endpoint returns FT balance of the given `account_id`,
+/// for the given `contract_account_id` and `timestamp`/`block_height`.
 ///
 /// **Limitations**
 /// * For now, we support only the balance for FT contracts that implement the Events NEP standard.
 ///   We are working on a solution to support other FT contracts, including `wrap.near` and bridged tokens.
-/// * We are in the process of supporting Multi Token balances.
-pub async fn get_coin_balances_by_contract(
+pub async fn get_ft_balance_by_contract(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     _: crate::types::pagoda_api_key::PagodaApiKey,
     request: actix_web_validator::Path<schemas::BalanceByContractRequest>,
     block_params: web::Query<types::query_params::BlockParams>,
-) -> crate::Result<Json<schemas::CoinBalancesResponse>> {
+) -> crate::Result<Json<schemas::FtBalanceByContractResponse>> {
     if request.contract_account_id.to_string() == "near" {
         return Err(errors::ErrorKind::InvalidInput(
-            "For native balance, please use NEAR (uppercase)".to_string(),
+            "For native balance, please use the other endpoint".to_string(),
         )
         .into());
     }
@@ -111,7 +73,7 @@ pub async fn get_coin_balances_by_contract(
     let block = db_helpers::get_block_from_params(&pool, &block_params).await?;
     modules::check_account_exists(&rpc_client, &request.account_id.0, block.height).await?;
 
-    let balances = data_provider::get_coin_balances_by_contract(
+    let balance = data_provider::get_ft_balance_by_contract(
         &rpc_client,
         &block,
         &request.contract_account_id.0,
@@ -119,60 +81,25 @@ pub async fn get_coin_balances_by_contract(
     )
     .await?;
 
-    Ok(Json(schemas::CoinBalancesResponse {
-        balances,
+    Ok(Json(schemas::FtBalanceByContractResponse {
+        balance,
         block_timestamp_nanos: types::U64::from(block.timestamp),
         block_height: types::U64::from(block.height),
     }))
 }
 
-#[api_v2_operation(tags(Coins))]
-/// Get user's NEAR history
+#[api_v2_operation(tags(FT))]
+/// Get user's FT history by contract
 ///
-/// This endpoint returns the history of operations with NEAR coins
-/// for the given `account_id`, `timestamp`/`block_height`.
-///
-/// **Limitations**
-/// * We currently provide the most recent 100 items.
-///   Full-featured pagination will be provided in an upcoming update.
-pub async fn get_near_history(
-    pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
-    pool_balances: web::Data<db_helpers::DBWrapper>,
-    rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
-    _: crate::types::pagoda_api_key::PagodaApiKey,
-    request: actix_web_validator::Path<schemas::BalanceRequest>,
-    pagination_params: web::Query<types::query_params::HistoryPaginationParams>,
-) -> crate::Result<Json<schemas::HistoryResponse>> {
-    let block = db_helpers::get_last_block(&pool).await?;
-    modules::check_account_exists(&rpc_client, &request.account_id.0, block.height).await?;
-    let pagination =
-        modules::check_and_get_history_pagination_params(&pool, pagination_params.0).await?;
-
-    Ok(Json(schemas::HistoryResponse {
-        history: data_provider::get_near_history(
-            &pool_balances.pool,
-            &request.account_id,
-            &pagination,
-        )
-        .await?,
-        block_timestamp_nanos: types::U64::from(block.timestamp),
-        block_height: types::U64::from(block.height),
-    }))
-}
-
-#[api_v2_operation(tags(Coins))]
-/// Get user's coin history by contract
-///
-/// This endpoint returns the history of coin operations (FT, other standards)
+/// This endpoint returns the history of FT operations
 /// for the given `account_id`, `contract_id`, `timestamp`/`block_height`.
 ///
 /// **Limitations**
 /// * For now, we support only FT contracts that implement the Events NEP standard.
 ///   We are working on a solution to support other FT contracts, including `wrap.near` and bridged tokens.
-/// * We are in the process of supporting Multi Token history.
 /// * We currently provide the most recent 100 items.
 ///   Full-featured pagination will be provided in an upcoming update.
-pub async fn get_coin_history(
+pub async fn get_ft_history(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     _: crate::types::pagoda_api_key::PagodaApiKey,
@@ -181,7 +108,7 @@ pub async fn get_coin_history(
 ) -> crate::Result<Json<schemas::HistoryResponse>> {
     if request.contract_account_id.to_string() == "near" {
         return Err(errors::ErrorKind::InvalidInput(
-            "For native history, please use NEAR (uppercase)".to_string(),
+            "For native history, please use the other endpoint".to_string(),
         )
         .into());
     }
@@ -191,7 +118,7 @@ pub async fn get_coin_history(
         .await?;
 
     Ok(Json(schemas::HistoryResponse {
-        history: data_provider::get_coin_history(
+        history: data_provider::get_ft_history(
             &pool,
             &rpc_client,
             &request.contract_account_id.0,
@@ -204,15 +131,15 @@ pub async fn get_coin_history(
     }))
 }
 
-#[api_v2_operation(tags(Coins))]
-/// Get FT contract metadata
+#[api_v2_operation(tags(FT))]
+/// Get FT metadata
 ///
 /// This endpoint returns the metadata for a given FT contract and `timestamp`/`block_height`.
 ///
 /// **Limitations**
 /// * For now, we support only FT contracts that implement the Events NEP standard.
 ///   We are working on a solution to support other FT contracts, including `wrap.near` and bridged tokens.
-pub async fn get_ft_contract_metadata(
+pub async fn get_ft_metadata(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     _: crate::types::pagoda_api_key::PagodaApiKey,
@@ -223,7 +150,7 @@ pub async fn get_ft_contract_metadata(
     let block = db_helpers::get_block_from_params(&pool, &block_params).await?;
 
     Ok(Json(schemas::FtContractMetadataResponse {
-        metadata: data_provider::get_ft_contract_metadata(
+        metadata: data_provider::get_ft_metadata(
             &rpc_client,
             request.contract_account_id.0.clone(),
             block.height,
