@@ -53,7 +53,7 @@ impl TryFrom<super::models::NearHistoryInfo> for native::schemas::HistoryItem {
             };
         Ok(Self {
             involved_account_id,
-            delta_balance: types::numeric::to_i128(&info.delta_balance)?.into(),
+            delta_balance: info.delta_balance.to_string(),
             balance: types::numeric::to_u128(&info.balance)?.into(),
             cause: info.cause,
             status: info.status,

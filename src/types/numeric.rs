@@ -11,12 +11,6 @@ pub(crate) fn to_u128(x: &BigDecimal) -> crate::Result<u128> {
     })
 }
 
-pub(crate) fn to_i128(x: &BigDecimal) -> crate::Result<i128> {
-    x.to_string().parse().map_err(|e| {
-        errors::ErrorKind::InternalError(format!("Failed to parse i128 {}: {}", x, e)).into()
-    })
-}
-
 pub(crate) fn to_u64(x: &BigDecimal) -> crate::Result<u64> {
     x.to_u64().ok_or_else(|| {
         errors::ErrorKind::InternalError(format!("Failed to parse u64 {}", x)).into()
@@ -77,4 +71,3 @@ macro_rules! impl_str_type {
 
 impl_str_type!(U128, u128);
 impl_str_type!(U64, u64);
-impl_str_type!(I128, i128);

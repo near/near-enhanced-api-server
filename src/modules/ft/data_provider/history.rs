@@ -1,5 +1,8 @@
 use crate::modules::ft;
 use crate::{db_helpers, errors, types};
+use num_traits::Signed;
+use sqlx::types::BigDecimal;
+use std::str::FromStr;
 
 // TODO PHASE 2 pagination by artificial index added to assets__fungible_token_events
 // TODO PHASE 2 change RPC call to DB call by adding absolute amount values to assets__fungible_token_events
@@ -12,13 +15,20 @@ pub(crate) async fn get_ft_history(
     pagination: &types::query_params::HistoryPagination,
 ) -> crate::Result<Vec<ft::schemas::HistoryItem>> {
     // this is temp solution before we make changes to the DB
-    let mut last_balance = super::balance::get_ft_amount(
-        rpc_client,
-        contract_id.clone(),
-        account_id.clone(),
-        pagination.block_height,
+    let mut last_balance = BigDecimal::from_str(
+        &super::balance::get_ft_amount(
+            rpc_client,
+            contract_id.clone(),
+            account_id.clone(),
+            pagination.block_height,
+        )
+        .await?
+        .to_string(),
     )
-    .await?;
+    .map_err(|e| {
+        errors::ErrorKind::InternalError(format!("Failed to parse BigDecimal from u128: {}", e))
+    })?;
+
     let metadata = ft::schemas::Metadata::from(
         super::metadata::get_ft_metadata(rpc_client, contract_id.clone(), pagination.block_height)
             .await?,
@@ -59,8 +69,8 @@ pub(crate) async fn get_ft_history(
 
     let mut result: Vec<ft::schemas::HistoryItem> = vec![];
     for db_info in history_info {
-        let mut delta: i128 = types::numeric::to_i128(&db_info.amount)?;
-        let balance = last_balance;
+        let mut delta = db_info.amount;
+        let balance = last_balance.clone();
         // TODO PHASE 2 maybe we want to change assets__fungible_token_events also to affected/involved?
         let involved_account_id = if account_id == db_info.old_owner_id {
             delta = -delta;
@@ -77,21 +87,21 @@ pub(crate) async fn get_ft_history(
 
         if db_info.status == "SUCCESS" {
             // TODO PHASE 2 this strange error will go away after we add absolute amounts to the DB
-            if (last_balance as i128) - delta < 0 {
+            if (last_balance.clone() - delta.clone()).is_negative() {
                 return Err(errors::ErrorKind::InternalError(format!(
                     "Balance could not be negative: account {}, contract {}",
                     account_id, contract_id
                 ))
                 .into());
             }
-            last_balance = ((last_balance as i128) - delta) as u128;
+            last_balance -= delta.clone();
         }
 
         result.push(ft::schemas::HistoryItem {
             cause: db_info.cause.clone(),
             involved_account_id: involved_account_id.map(|id| id.into()),
-            delta_balance: delta.into(),
-            balance: balance.into(),
+            delta_balance: delta.to_string(),
+            balance: types::numeric::to_u128(&balance)?.into(),
             metadata: metadata.clone(),
             block_timestamp_nanos: types::numeric::to_u64(&db_info.block_timestamp)?.into(),
             // block_height: types::numeric::to_u64(&db_info.block_height)?.into(),

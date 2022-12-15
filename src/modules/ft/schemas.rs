@@ -86,7 +86,7 @@ pub struct HistoryItem {
     // TODO PHASE 2 add index here
     // pub index: types::U128,
     pub involved_account_id: Option<types::AccountId>,
-    pub delta_balance: types::I128,
+    pub delta_balance: String,
     pub balance: types::U128,
     pub cause: String,
     pub status: String,
