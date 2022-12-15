@@ -23,8 +23,6 @@ Major thing: it fits into `i128` (10^38).
 
 ## New requirements for assets__fungible_token_events table:
 1. Change old/new account_id to affected/involved account_id.
-2. Add absolute value column. Required for balance request.
-3. Rename it to something_with_coins, add coin_id column (later we will also store MT there).
 
 ## New requirements for account_changes and balances table:
 1. Change the table so that we have the same enumeration column. Required for native_history (pagination)  

@@ -1,50 +1,15 @@
-use crate::modules::coin;
-use crate::{db_helpers, errors, rpc_helpers, types};
+use crate::modules::ft;
+use crate::{db_helpers, rpc_helpers, types};
 use std::str::FromStr;
 
-pub(crate) async fn get_near_balance(
-    pool: &sqlx::Pool<sqlx::Postgres>,
-    block: &db_helpers::Block,
-    account_id: &near_primitives::types::AccountId,
-) -> crate::Result<coin::schemas::NearBalanceResponse> {
-    let balances =
-        db_helpers::select_retry_or_panic::<super::models::AccountChangesBalance>(
-            pool,
-            r"
-                WITH t AS (
-                    SELECT affected_account_nonstaked_balance + affected_account_staked_balance balance
-                    FROM account_changes
-                    WHERE affected_account_id = $1 AND changed_in_block_timestamp <= $2::numeric(20, 0)
-                    ORDER BY changed_in_block_timestamp DESC
-                )
-                SELECT * FROM t LIMIT 1
-            ",
-            &[account_id.to_string(), block.timestamp.to_string()],
-        ).await?;
-
-    match balances.first() {
-        Some(balance) => Ok(coin::schemas::NearBalanceResponse {
-            balance: types::numeric::to_u128(&balance.balance)?.into(),
-            metadata: super::metadata::get_near_metadata(),
-            block_timestamp_nanos: block.timestamp.into(),
-            block_height: block.height.into(),
-        }),
-        None => Err(errors::ErrorKind::DBError(format!(
-            "Could not find the data in account_changes table for account_id {}",
-            account_id
-        ))
-        .into()),
-    }
-}
-
 // TODO PHASE 2 pagination (recently updated go first), by artificial index added to assets__fungible_token_events
-pub(crate) async fn get_coin_balances(
+pub(crate) async fn get_ft_balances(
     pool: &sqlx::Pool<sqlx::Postgres>,
     rpc_client: &near_jsonrpc_client::JsonRpcClient,
     block: &db_helpers::Block,
     account_id: &near_primitives::types::AccountId,
     pagination: &types::query_params::Pagination,
-) -> crate::Result<Vec<coin::schemas::Coin>> {
+) -> crate::Result<Vec<ft::schemas::FtBalance>> {
     let query = r"
         SELECT DISTINCT emitted_by_contract_account_id account_id
         FROM assets__fungible_token_events
@@ -64,12 +29,11 @@ pub(crate) async fn get_coin_balances(
     )
     .await?;
 
-    let mut balances: Vec<coin::schemas::Coin> = vec![];
+    let mut balances: Vec<ft::schemas::FtBalance> = vec![];
     for contract in contracts {
         if let Ok(contract_id) = near_primitives::types::AccountId::from_str(&contract.account_id) {
-            balances.append(
-                &mut get_coin_balances_by_contract(rpc_client, block, &contract_id, account_id)
-                    .await?,
+            balances.push(
+                get_ft_balance_by_contract(rpc_client, block, &contract_id, account_id).await?,
             );
         }
     }
@@ -78,38 +42,36 @@ pub(crate) async fn get_coin_balances(
 
 // TODO PHASE 2 change RPC call to DB call by adding absolute amount values to assets__fungible_token_events
 // TODO PHASE 2 add metadata tables to the DB, with periodic autoupdate
-pub(crate) async fn get_coin_balances_by_contract(
+pub(crate) async fn get_ft_balance_by_contract(
     rpc_client: &near_jsonrpc_client::JsonRpcClient,
     block: &db_helpers::Block,
     contract_id: &near_primitives::types::AccountId,
     account_id: &near_primitives::types::AccountId,
-) -> crate::Result<Vec<coin::schemas::Coin>> {
-    let (balance, metadata) = (
-        get_ft_balance_by_contract(
+) -> crate::Result<ft::schemas::FtBalance> {
+    let (amount, metadata) = (
+        get_ft_amount(
             rpc_client,
             contract_id.clone(),
             account_id.clone(),
             block.height,
         )
         .await?,
-        super::metadata::get_ft_contract_metadata(rpc_client, contract_id.clone(), block.height)
-            .await?,
+        super::metadata::get_ft_metadata(rpc_client, contract_id.clone(), block.height).await?,
     );
 
-    Ok(vec![coin::schemas::Coin {
-        standard: "nep141".to_string(),
-        contract_account_id: Some(contract_id.clone().into()),
-        balance: balance.into(),
-        metadata: coin::schemas::CoinMetadata {
+    Ok(ft::schemas::FtBalance {
+        amount: amount.into(),
+        contract_account_id: contract_id.clone().into(),
+        metadata: ft::schemas::Metadata {
             name: metadata.name,
             symbol: metadata.symbol,
             icon: metadata.icon,
             decimals: metadata.decimals,
         },
-    }])
+    })
 }
 
-pub(crate) async fn get_ft_balance_by_contract(
+pub(crate) async fn get_ft_amount(
     rpc_client: &near_jsonrpc_client::JsonRpcClient,
     contract_id: near_primitives::types::AccountId,
     account_id: near_primitives::types::AccountId,
@@ -126,31 +88,11 @@ pub(crate) async fn get_ft_balance_by_contract(
     Ok(serde_json::from_slice::<types::U128>(&response.result)?.0)
 }
 
-impl From<coin::schemas::NearBalanceResponse> for coin::schemas::Coin {
-    fn from(near_coin: coin::schemas::NearBalanceResponse) -> Self {
-        coin::schemas::Coin {
-            standard: "nearprotocol".to_string(),
-            balance: near_coin.balance,
-            contract_account_id: None,
-            metadata: near_coin.metadata,
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::modules::tests::*;
     use std::str::FromStr;
-
-    #[tokio::test]
-    async fn test_near_balance() {
-        let pool = init_db().await;
-        let block = get_block();
-        let account = near_primitives::types::AccountId::from_str("tomato.near").unwrap();
-        let balance = get_near_balance(&pool, &block, &account).await;
-        insta::assert_debug_snapshot!(balance);
-    }
 
     #[tokio::test]
     async fn test_coin_balances() {
@@ -159,7 +101,7 @@ mod tests {
         let block = get_block();
         let account = near_primitives::types::AccountId::from_str("patagonita.near").unwrap();
         let pagination = types::query_params::Pagination { limit: 10 };
-        let balance = get_coin_balances(&pool, &rpc_client, &block, &account, &pagination).await;
+        let balance = get_ft_balances(&pool, &rpc_client, &block, &account, &pagination).await;
         insta::assert_debug_snapshot!(balance);
     }
 
@@ -170,7 +112,7 @@ mod tests {
         let block = get_block();
         let account = near_primitives::types::AccountId::from_str("olga.near").unwrap();
         let pagination = types::query_params::Pagination { limit: 10 };
-        let balance = get_coin_balances(&pool, &rpc_client, &block, &account, &pagination)
+        let balance = get_ft_balances(&pool, &rpc_client, &block, &account, &pagination)
             .await
             .unwrap();
         assert!(balance.is_empty());
@@ -183,7 +125,7 @@ mod tests {
         let contract = near_primitives::types::AccountId::from_str("nexp.near").unwrap();
         let account = near_primitives::types::AccountId::from_str("patagonita.near").unwrap();
 
-        let balance = get_coin_balances_by_contract(&rpc_client, &block, &contract, &account).await;
+        let balance = get_ft_balance_by_contract(&rpc_client, &block, &contract, &account).await;
         insta::assert_debug_snapshot!(balance);
     }
 
@@ -194,7 +136,7 @@ mod tests {
         let contract = near_primitives::types::AccountId::from_str("olga.near").unwrap();
         let account = near_primitives::types::AccountId::from_str("patagonita.near").unwrap();
 
-        let balance = get_coin_balances_by_contract(&rpc_client, &block, &contract, &account).await;
+        let balance = get_ft_balance_by_contract(&rpc_client, &block, &contract, &account).await;
         insta::assert_debug_snapshot!(balance);
     }
 
@@ -205,7 +147,7 @@ mod tests {
         let contract = near_primitives::types::AccountId::from_str("comic.paras.near").unwrap();
         let account = near_primitives::types::AccountId::from_str("patagonita.near").unwrap();
 
-        let balance = get_coin_balances_by_contract(&rpc_client, &block, &contract, &account).await;
+        let balance = get_ft_balance_by_contract(&rpc_client, &block, &contract, &account).await;
         insta::assert_debug_snapshot!(balance);
     }
 }
