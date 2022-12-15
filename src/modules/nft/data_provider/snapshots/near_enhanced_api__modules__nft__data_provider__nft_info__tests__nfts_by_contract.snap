@@ -17,12 +17,6 @@ Ok(
                 ),
                 media_hash: None,
                 copies: None,
-                issued_at: Some(
-                    "1646583360766903841",
-                ),
-                expires_at: None,
-                starts_at: None,
-                updated_at: None,
                 extra: None,
                 reference: Some(
                     "1394.json",
@@ -43,12 +37,6 @@ Ok(
                 ),
                 media_hash: None,
                 copies: None,
-                issued_at: Some(
-                    "1646578767534418718",
-                ),
-                expires_at: None,
-                starts_at: None,
-                updated_at: None,
                 extra: None,
                 reference: Some(
                     "345.json",
@@ -69,12 +57,6 @@ Ok(
                 ),
                 media_hash: None,
                 copies: None,
-                issued_at: Some(
-                    "1646577690952187728",
-                ),
-                expires_at: None,
-                starts_at: None,
-                updated_at: None,
                 extra: None,
                 reference: Some(
                     "100.json",
@@ -95,12 +77,6 @@ Ok(
                 ),
                 media_hash: None,
                 copies: None,
-                issued_at: Some(
-                    "1646583705141719710",
-                ),
-                expires_at: None,
-                starts_at: None,
-                updated_at: None,
                 extra: None,
                 reference: Some(
                     "1475.json",

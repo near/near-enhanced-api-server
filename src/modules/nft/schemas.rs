@@ -93,7 +93,7 @@ pub struct HistoryItem {
     pub old_account_id: Option<types::AccountId>,
     pub new_account_id: Option<types::AccountId>,
     // TODO PHASE 2 add index here
-    // pub index: types::U128,
+    // pub event_index: types::U128,
     pub status: String,
     pub block_timestamp_nanos: types::U64,
     pub block_height: types::U64,
