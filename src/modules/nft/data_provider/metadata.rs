@@ -1,7 +1,5 @@
 use crate::modules::nft;
-use crate::{errors, rpc_helpers, types};
-use borsh::{BorshDeserialize, BorshSerialize};
-use serde::{Deserialize, Serialize};
+use crate::{errors, rpc_helpers};
 
 pub(crate) async fn get_nft_contract_metadata(
     rpc_client: &near_jsonrpc_client::JsonRpcClient,
@@ -33,7 +31,7 @@ pub(crate) async fn get_nft_contract_metadata(
         }
     };
 
-    nft::schemas::NftContractMetadata::try_from(serde_json::from_slice::<NFTContractMetadata>(
+    Ok(serde_json::from_slice::<nft::schemas::NftContractMetadata>(
         &response.result,
     )?)
 }
@@ -50,35 +48,6 @@ pub(crate) fn get_default_nft_contract_metadata() -> nft::schemas::NftContractMe
         base_uri: None,
         reference: None,
         reference_hash: None,
-    }
-}
-
-// Taken from https://github.com/near/near-sdk-rs/blob/master/near-contract-standards/src/non_fungible_token/metadata.rs
-/// Metadata for the NFT contract itself.
-#[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct NFTContractMetadata {
-    pub spec: String,              // required, essentially a version like "nft-1.0.0"
-    pub name: String,              // required, ex. "Mosaics"
-    pub symbol: String,            // required, ex. "MOSIAC"
-    pub icon: Option<String>,      // Data URL
-    pub base_uri: Option<String>, // Centralized gateway known to have reliable access to decentralized data_provider assets referenced by `reference` or `media` URLs
-    pub reference: Option<String>, // URL to a JSON file with more info
-    pub reference_hash: Option<types::vector::Base64VecU8>, // Base64-encoded sha256 hash of JSON from reference field. Required if `reference` is included.
-}
-
-impl TryFrom<NFTContractMetadata> for nft::schemas::NftContractMetadata {
-    type Error = errors::Error;
-
-    fn try_from(metadata: NFTContractMetadata) -> crate::Result<Self> {
-        Ok(Self {
-            spec: metadata.spec,
-            name: metadata.name,
-            symbol: metadata.symbol,
-            icon: metadata.icon,
-            base_uri: metadata.base_uri,
-            reference: metadata.reference,
-            reference_hash: types::vector::base64_to_string(&metadata.reference_hash)?,
-        })
     }
 }
 
