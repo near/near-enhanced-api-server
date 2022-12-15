@@ -105,6 +105,7 @@ pub(crate) async fn get_ft_history(
 mod tests {
     use super::*;
     use crate::modules::tests::*;
+    use std::str::FromStr;
 
     #[tokio::test]
     async fn test_coin_history() {

@@ -1,8 +1,5 @@
-use borsh::{BorshDeserialize, BorshSerialize};
-use serde::{Deserialize, Serialize};
-
 use crate::modules::ft;
-use crate::{rpc_helpers, types};
+use crate::rpc_helpers;
 
 pub(crate) async fn get_ft_metadata(
     rpc_client: &near_jsonrpc_client::JsonRpcClient,
@@ -18,28 +15,9 @@ pub(crate) async fn get_ft_metadata(
     let response =
         rpc_helpers::wrapped_call(rpc_client, request, block_height, &contract_id).await?;
 
-    let metadata = serde_json::from_slice::<FtMetadata>(&response.result)?;
-    Ok(ft::schemas::FtContractMetadata {
-        spec: metadata.spec,
-        name: metadata.name,
-        symbol: metadata.symbol,
-        icon: metadata.icon,
-        decimals: metadata.decimals,
-        reference: metadata.reference,
-        reference_hash: types::vector::base64_to_string(&metadata.reference_hash)?,
-    })
-}
-
-// Taken from https://github.com/near/near-sdk-rs/blob/master/near-contract-standards/src/fungible_token/metadata.rs
-#[derive(BorshDeserialize, BorshSerialize, Clone, Deserialize, Serialize)]
-pub struct FtMetadata {
-    pub spec: String,
-    pub name: String,
-    pub symbol: String,
-    pub icon: Option<String>,
-    pub reference: Option<String>,
-    pub reference_hash: Option<types::vector::Base64VecU8>,
-    pub decimals: u8,
+    Ok(serde_json::from_slice::<ft::schemas::FtContractMetadata>(
+        &response.result,
+    )?)
 }
 
 impl From<ft::schemas::FtContractMetadata> for ft::schemas::Metadata {
@@ -84,6 +62,20 @@ mod tests {
         let rpc_client = init_rpc();
         let block = get_block();
         let contract = near_primitives::types::AccountId::from_str("comic.paras.near").unwrap();
+
+        let metadata = get_ft_metadata(&rpc_client, contract, block.height).await;
+        insta::assert_debug_snapshot!(metadata);
+    }
+
+    #[tokio::test]
+    async fn test_ft_bridged_contract_metadata() {
+        //https://github.com/near/near-enhanced-api-server/issues/43
+        let rpc_client = init_rpc();
+        let block = get_block();
+        let contract = near_primitives::types::AccountId::from_str(
+            "0316eb71485b0ab14103307bf65a021042c6d380.factory.bridge.near",
+        )
+        .unwrap();
 
         let metadata = get_ft_metadata(&rpc_client, contract, block.height).await;
         insta::assert_debug_snapshot!(metadata);

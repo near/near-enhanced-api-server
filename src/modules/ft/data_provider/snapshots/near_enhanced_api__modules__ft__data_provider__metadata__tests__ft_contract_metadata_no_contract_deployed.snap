@@ -1,5 +1,5 @@
 ---
-source: src/modules/coin/data_provider/metadata.rs
+source: src/modules/ft/data_provider/metadata.rs
 expression: metadata
 ---
 Err(
