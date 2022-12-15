@@ -1,6 +1,7 @@
 use crate::modules::native;
 use crate::{db_helpers, errors, types};
 
+// todo change to near_balance_events when we finish collecting the data
 pub(crate) async fn get_near_balance(
     pool: &sqlx::Pool<sqlx::Postgres>,
     block: &db_helpers::Block,

@@ -1,0 +1,150 @@
+---
+source: src/modules/native/data_provider/history.rs
+expression: history
+---
+Ok(
+    [
+        HistoryItem {
+            event_index: U128(
+                16708676812970925230000000020000003,
+            ),
+            involved_account_id: None,
+            delta_balance: "3416558411342917854228",
+            balance: U128(
+                314271210592437026169064280,
+            ),
+            cause: "RECEIPT",
+            status: "SUCCESS",
+            metadata: Metadata {
+                name: "NEAR blockchain native token",
+                symbol: "NEAR",
+                icon: Some(
+                    "https://raw.githubusercontent.com/near/near-wallet/7ef3c824404282b76b36da2dff4f3e593e7f928d/packages/frontend/src/images/near.svg",
+                ),
+                decimals: 24,
+            },
+            block_timestamp_nanos: U64(
+                1670867681297092523,
+            ),
+            block_height: U64(
+                80499990,
+            ),
+        },
+        HistoryItem {
+            event_index: U128(
+                16708676800272181160000000000000006,
+            ),
+            involved_account_id: Some(
+                AccountId(
+                    "app.nearcrowd.near",
+                ),
+            ),
+            delta_balance: "0",
+            balance: U128(
+                314267794034025683251210052,
+            ),
+            cause: "RECEIPT",
+            status: "SUCCESS",
+            metadata: Metadata {
+                name: "NEAR blockchain native token",
+                symbol: "NEAR",
+                icon: Some(
+                    "https://raw.githubusercontent.com/near/near-wallet/7ef3c824404282b76b36da2dff4f3e593e7f928d/packages/frontend/src/images/near.svg",
+                ),
+                decimals: 24,
+            },
+            block_timestamp_nanos: U64(
+                1670867680027218116,
+            ),
+            block_height: U64(
+                80499989,
+            ),
+        },
+        HistoryItem {
+            event_index: U128(
+                16708676788664650200000000020000000,
+            ),
+            involved_account_id: Some(
+                AccountId(
+                    "app.nearcrowd.near",
+                ),
+            ),
+            delta_balance: "-4231050276247717854228",
+            balance: U128(
+                314267794034025683251210052,
+            ),
+            cause: "TRANSACTION",
+            status: "SUCCESS",
+            metadata: Metadata {
+                name: "NEAR blockchain native token",
+                symbol: "NEAR",
+                icon: Some(
+                    "https://raw.githubusercontent.com/near/near-wallet/7ef3c824404282b76b36da2dff4f3e593e7f928d/packages/frontend/src/images/near.svg",
+                ),
+                decimals: 24,
+            },
+            block_timestamp_nanos: U64(
+                1670867678866465020,
+            ),
+            block_height: U64(
+                80499988,
+            ),
+        },
+        HistoryItem {
+            event_index: U128(
+                16708676469974561090000000020000002,
+            ),
+            involved_account_id: None,
+            delta_balance: "3530771377005415286776",
+            balance: U128(
+                314272025084301930969064280,
+            ),
+            cause: "RECEIPT",
+            status: "SUCCESS",
+            metadata: Metadata {
+                name: "NEAR blockchain native token",
+                symbol: "NEAR",
+                icon: Some(
+                    "https://raw.githubusercontent.com/near/near-wallet/7ef3c824404282b76b36da2dff4f3e593e7f928d/packages/frontend/src/images/near.svg",
+                ),
+                decimals: 24,
+            },
+            block_timestamp_nanos: U64(
+                1670867646997456109,
+            ),
+            block_height: U64(
+                80499959,
+            ),
+        },
+        HistoryItem {
+            event_index: U128(
+                16708676458550339330000000000000003,
+            ),
+            involved_account_id: Some(
+                AccountId(
+                    "app.nearcrowd.near",
+                ),
+            ),
+            delta_balance: "0",
+            balance: U128(
+                314268494312924925553777504,
+            ),
+            cause: "RECEIPT",
+            status: "SUCCESS",
+            metadata: Metadata {
+                name: "NEAR blockchain native token",
+                symbol: "NEAR",
+                icon: Some(
+                    "https://raw.githubusercontent.com/near/near-wallet/7ef3c824404282b76b36da2dff4f3e593e7f928d/packages/frontend/src/images/near.svg",
+                ),
+                decimals: 24,
+            },
+            block_timestamp_nanos: U64(
+                1670867645855033933,
+            ),
+            block_height: U64(
+                80499958,
+            ),
+        },
+    ],
+)
