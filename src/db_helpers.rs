@@ -28,6 +28,7 @@ pub(crate) struct AccountId {
     pub account_id: String,
 }
 
+#[derive(Debug)]
 pub(crate) struct Block {
     pub timestamp: u64,
     pub height: u64,
@@ -44,16 +45,57 @@ impl TryFrom<&BlockView> for Block {
     }
 }
 
-pub(crate) async fn get_block_from_params(
+pub(crate) fn timestamp_to_event_index(timestamp: u64) -> u128 {
+    timestamp as u128 * 100_000_000 * 100_000_000
+}
+
+pub(crate) fn event_index_to_timestamp(event_index: u128) -> u64 {
+    (event_index / (100_000_000 * 100_000_000)) as u64
+}
+
+pub(crate) async fn checked_get_block_from_pagination(
+    pool: &sqlx::Pool<sqlx::Postgres>,
+    pagination: &types::query_params::Pagination,
+) -> crate::Result<Block> {
+    if let Some(event_index) = pagination.after_event_index {
+        checked_get_block(
+            pool,
+            &types::query_params::BlockParams {
+                block_timestamp_nanos: Some(event_index_to_timestamp(event_index).into()),
+                block_height: None,
+            },
+        )
+        .await
+    } else {
+        checked_get_block(
+            pool,
+            &types::query_params::BlockParams {
+                block_timestamp_nanos: None,
+                block_height: None,
+            },
+        )
+        .await
+    }
+}
+
+pub(crate) async fn checked_get_block(
     pool: &sqlx::Pool<sqlx::Postgres>,
     params: &types::query_params::BlockParams,
 ) -> crate::Result<Block> {
+    if params.block_height.is_some() && params.block_timestamp_nanos.is_some() {
+        return Err(errors::ErrorKind::InvalidInput(
+            "Both block_height and block_timestamp_nanos found. Please provide only one of values"
+                .to_string(),
+        )
+        .into());
+    }
+
     if let Some(block_height) = params.block_height {
         match select_retry_or_panic::<BlockView>(
             pool,
             "SELECT block_height, block_timestamp FROM blocks WHERE block_height = $1::numeric(20, 0)",
             &[block_height.0.to_string()],
-                    )
+        )
             .await?
             .first() {
             None => Err(errors::ErrorKind::DBError(format!("block_height {} is not found", block_height.0)).into()),
