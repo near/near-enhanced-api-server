@@ -53,13 +53,13 @@ pub(crate) fn event_index_to_timestamp(event_index: u128) -> u64 {
     (event_index / (100_000_000 * 100_000_000)) as u64
 }
 
-pub(crate) async fn checked_get_block_from_pagination(
-    pool: &sqlx::Pool<sqlx::Postgres>,
+pub(crate) async fn get_block_from_pagination(
+    pool_explorer: &sqlx::Pool<sqlx::Postgres>,
     pagination: &types::query_params::Pagination,
 ) -> crate::Result<Block> {
     if let Some(event_index) = pagination.after_event_index {
         checked_get_block(
-            pool,
+            pool_explorer,
             &types::query_params::BlockParams {
                 block_timestamp_nanos: Some(event_index_to_timestamp(event_index).into()),
                 block_height: None,
@@ -68,7 +68,7 @@ pub(crate) async fn checked_get_block_from_pagination(
         .await
     } else {
         checked_get_block(
-            pool,
+            pool_explorer,
             &types::query_params::BlockParams {
                 block_timestamp_nanos: None,
                 block_height: None,
@@ -78,11 +78,12 @@ pub(crate) async fn checked_get_block_from_pagination(
     }
 }
 
+/// Validates block_params received from the user, sets the default value if none was provided
 pub(crate) async fn checked_get_block(
-    pool: &sqlx::Pool<sqlx::Postgres>,
-    params: &types::query_params::BlockParams,
+    pool_explorer: &sqlx::Pool<sqlx::Postgres>,
+    block_params: &types::query_params::BlockParams,
 ) -> crate::Result<Block> {
-    if params.block_height.is_some() && params.block_timestamp_nanos.is_some() {
+    if block_params.block_height.is_some() && block_params.block_timestamp_nanos.is_some() {
         return Err(errors::ErrorKind::InvalidInput(
             "Both block_height and block_timestamp_nanos found. Please provide only one of values"
                 .to_string(),
@@ -90,20 +91,27 @@ pub(crate) async fn checked_get_block(
         .into());
     }
 
-    if let Some(block_height) = params.block_height {
+    if let Some(block_height) = block_params.block_height {
         match select_retry_or_panic::<BlockView>(
-            pool,
-            "SELECT block_height, block_timestamp FROM blocks WHERE block_height = $1::numeric(20, 0)",
+            pool_explorer,
+            r"SELECT block_height, block_timestamp
+              FROM blocks
+              WHERE block_height = $1::numeric(20, 0)",
             &[block_height.0.to_string()],
         )
-            .await?
-            .first() {
-            None => Err(errors::ErrorKind::DBError(format!("block_height {} is not found", block_height.0)).into()),
-            Some(block) => Ok(Block::try_from(block)?)
+        .await?
+        .first()
+        {
+            None => Err(errors::ErrorKind::InvalidInput(format!(
+                "block_height {} is not found",
+                block_height.0
+            ))
+            .into()),
+            Some(block) => Ok(Block::try_from(block)?),
         }
-    } else if let Some(block_timestamp) = params.block_timestamp_nanos {
+    } else if let Some(block_timestamp) = block_params.block_timestamp_nanos {
         match select_retry_or_panic::<BlockView>(
-            pool,
+            pool_explorer,
             r"SELECT block_height, block_timestamp
               FROM blocks
               WHERE block_timestamp <= $1::numeric(20, 0)
@@ -114,17 +122,17 @@ pub(crate) async fn checked_get_block(
         .await?
         .first()
         {
-            None => get_first_block(pool).await,
             Some(block) => Ok(Block::try_from(block)?),
+            None => get_first_block(pool_explorer).await,
         }
     } else {
-        get_last_block(pool).await
+        get_last_block(pool_explorer).await
     }
 }
 
-async fn get_first_block(pool: &sqlx::Pool<sqlx::Postgres>) -> crate::Result<Block> {
+async fn get_first_block(pool_explorer: &sqlx::Pool<sqlx::Postgres>) -> crate::Result<Block> {
     match select_retry_or_panic::<BlockView>(
-        pool,
+        pool_explorer,
         r"SELECT block_height, block_timestamp
           FROM blocks
           ORDER BY block_timestamp
@@ -139,9 +147,11 @@ async fn get_first_block(pool: &sqlx::Pool<sqlx::Postgres>) -> crate::Result<Blo
     }
 }
 
-pub(crate) async fn get_last_block(pool: &sqlx::Pool<sqlx::Postgres>) -> crate::Result<Block> {
+pub(crate) async fn get_last_block(
+    pool_explorer: &sqlx::Pool<sqlx::Postgres>,
+) -> crate::Result<Block> {
     match select_retry_or_panic::<BlockView>(
-        pool,
+        pool_explorer,
         r"SELECT block_height, block_timestamp
           FROM blocks
           ORDER BY block_timestamp DESC
@@ -157,11 +167,11 @@ pub(crate) async fn get_last_block(pool: &sqlx::Pool<sqlx::Postgres>) -> crate::
 }
 
 pub(crate) async fn get_previous_block(
-    pool: &sqlx::Pool<sqlx::Postgres>,
+    pool_explorer: &sqlx::Pool<sqlx::Postgres>,
     current_block_timestamp: u64,
 ) -> crate::Result<Block> {
     match select_retry_or_panic::<BlockView>(
-        pool,
+        pool_explorer,
         r"SELECT block_height, block_timestamp
            FROM blocks
            WHERE block_timestamp < $1::numeric(20, 0)
@@ -178,7 +188,7 @@ pub(crate) async fn get_previous_block(
 }
 
 pub(crate) async fn select_retry_or_panic<T: Send + Unpin + for<'r> sqlx::FromRow<'r, PgRow>>(
-    pool: &sqlx::Pool<sqlx::Postgres>,
+    pool_explorer: &sqlx::Pool<sqlx::Postgres>,
     query: &str,
     substitution_items: &[String],
 ) -> Result<Vec<T>, errors::ErrorKind> {
@@ -207,7 +217,7 @@ pub(crate) async fn select_retry_or_panic<T: Send + Unpin + for<'r> sqlx::FromRo
         }
 
         match sqlx::query_as_with::<_, T, _>(query, args)
-            .fetch_all(pool)
+            .fetch_all(pool_explorer)
             .await
         {
             Ok(res) => return Ok(res),

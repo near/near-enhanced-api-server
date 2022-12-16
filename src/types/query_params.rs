@@ -29,6 +29,7 @@ pub(crate) struct Pagination {
     pub after_event_index: Option<u128>,
 }
 
+/// Validates limit_param received from the user, sets the default value if none was provided
 pub(crate) fn checked_get_limit(limit_param: Option<u32>) -> crate::Result<u32> {
     Ok(if let Some(limit) = limit_param {
         if limit > MAX_PAGE_LIMIT || limit == 0 {

@@ -18,7 +18,7 @@ use crate::{db_helpers, errors, modules, types};
 /// * We currently provide up to 100 items.
 ///   Full-featured pagination will be provided soon.
 pub async fn get_ft_balances(
-    pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
+    pool_explorer: web::Data<sqlx::Pool<sqlx::Postgres>>,
     pool_balances: web::Data<db_helpers::DBWrapper>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     _: crate::types::pagoda_api_key::PagodaApiKey,
@@ -28,7 +28,7 @@ pub async fn get_ft_balances(
     limit_params: web::Query<types::query_params::LimitParams>,
 ) -> crate::Result<Json<schemas::FtBalancesResponse>> {
     let limit = types::query_params::checked_get_limit(limit_params.limit)?;
-    let block = db_helpers::checked_get_block(&pool, &block_params).await?;
+    let block = db_helpers::checked_get_block(&pool_explorer, &block_params).await?;
     modules::check_account_exists(&rpc_client, &request.account_id.0, block.height).await?;
 
     let balances = data_provider::get_ft_balances(
@@ -53,7 +53,7 @@ pub async fn get_ft_balances(
 /// This endpoint returns FT balance of the given `account_id`,
 /// for the given `contract_account_id` and `block_timestamp_nanos`/`block_height`.
 pub async fn get_ft_balance_by_contract(
-    pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
+    pool_explorer: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     _: crate::types::pagoda_api_key::PagodaApiKey,
     request: actix_web_validator::Path<schemas::BalanceByContractRequest>,
@@ -65,7 +65,7 @@ pub async fn get_ft_balance_by_contract(
         )
         .into());
     }
-    let block = db_helpers::checked_get_block(&pool, &block_params).await?;
+    let block = db_helpers::checked_get_block(&pool_explorer, &block_params).await?;
     modules::check_account_exists(&rpc_client, &request.account_id.0, block.height).await?;
 
     let balance = data_provider::get_ft_balance_by_contract(
@@ -93,7 +93,7 @@ pub async fn get_ft_balance_by_contract(
 /// We currently provide the history only for the last few months.
 /// The history started from genesis will be served soon.
 pub async fn get_ft_history(
-    pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
+    pool_explorer: web::Data<sqlx::Pool<sqlx::Postgres>>,
     pool_balances: web::Data<db_helpers::DBWrapper>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     _: crate::types::pagoda_api_key::PagodaApiKey,
@@ -108,12 +108,12 @@ pub async fn get_ft_history(
         .into());
     }
     let pagination = modules::checked_get_pagination_params(&pagination_params).await?;
-    let block = db_helpers::checked_get_block_from_pagination(&pool, &pagination).await?;
+    let block = db_helpers::get_block_from_pagination(&pool_explorer, &pagination).await?;
     // we don't need to check whether account exists. If not, we can just return the empty history
 
     Ok(Json(schemas::HistoryResponse {
         history: data_provider::get_ft_history(
-            &pool,
+            &pool_explorer,
             &pool_balances.pool,
             &rpc_client,
             &request.contract_account_id.0,
@@ -132,13 +132,13 @@ pub async fn get_ft_history(
 ///
 /// This endpoint returns the metadata for the given `contract_account_id`, `block_timestamp_nanos`/`block_height`.
 pub async fn get_ft_metadata(
-    pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
+    pool_explorer: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     _: crate::types::pagoda_api_key::PagodaApiKey,
     request: actix_web_validator::Path<schemas::ContractMetadataRequest>,
     block_params: web::Query<types::query_params::BlockParams>,
 ) -> crate::Result<Json<schemas::FtContractMetadataResponse>> {
-    let block = db_helpers::checked_get_block(&pool, &block_params).await?;
+    let block = db_helpers::checked_get_block(&pool_explorer, &block_params).await?;
 
     Ok(Json(schemas::FtContractMetadataResponse {
         metadata: data_provider::get_ft_metadata(

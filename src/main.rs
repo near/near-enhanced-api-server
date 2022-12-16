@@ -14,6 +14,8 @@ mod types;
 
 pub(crate) const LOGGER_MSG: &str = "near_enhanced_api";
 
+pub(crate) const MIN_EVENT_INDEX: u128 = (10_u128).pow(34);
+
 pub(crate) type Result<T> = std::result::Result<T, errors::Error>;
 
 fn get_cors(cors_allowed_origins: &[String]) -> Cors {
@@ -96,19 +98,19 @@ async fn main() -> std::io::Result<()> {
         .parse()
         .expect("Failed to parse DATABASE_MAX_CONNECTIONS value as u32");
 
-    let db_url = &std::env::var("DATABASE_URL")
-        .expect("failed to get database url from DATABASE_URL env variable");
-    let pool = sqlx::postgres::PgPoolOptions::new()
+    let explorer_db_url = &std::env::var("EXPLORER_DATABASE_URL")
+        .expect("failed to get database url from EXPLORER_DATABASE_URL env variable");
+    let pool_explorer = sqlx::postgres::PgPoolOptions::new()
         .max_connections(db_max_connections)
-        .connect(db_url)
+        .connect(explorer_db_url)
         .await
         .expect("failed to connect to the database");
 
-    let db_url_balances = &std::env::var("DATABASE_URL_BALANCES")
-        .expect("failed to get database url from DATABASE_URL_BALANCES env variable");
+    let balances_db_url = &std::env::var("BALANCES_DATABASE_URL")
+        .expect("failed to get database url from BALANCES_DATABASE_URL env variable");
     let pool_balances = sqlx::postgres::PgPoolOptions::new()
         .max_connections(db_max_connections)
-        .connect(db_url_balances)
+        .connect(balances_db_url)
         .await
         .expect("failed to connect to the balances database");
 
@@ -174,7 +176,7 @@ We would love to hear from you on the data APIs you need, please leave feedback 
             .app_data(path_config)
             .wrap(actix_web::middleware::Logger::default())
             .wrap(prometheus.clone())
-            .app_data(web::Data::new(pool.clone()))
+            .app_data(web::Data::new(pool_explorer.clone()))
             .app_data(web::Data::new(db_helpers::DBWrapper {
                 pool: pool_balances.clone(),
             }))

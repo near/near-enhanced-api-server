@@ -12,17 +12,17 @@ use crate::{db_helpers, modules, types};
 /// This endpoint returns the NEAR balance of the given `account_id`
 /// at the given `block_timestamp_nanos`/`block_height`.
 pub async fn get_near_balance(
-    pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
+    pool_explorer: web::Data<sqlx::Pool<sqlx::Postgres>>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     _: crate::types::pagoda_api_key::PagodaApiKey,
     request: actix_web_validator::Path<schemas::BalanceRequest>,
     block_params: web::Query<types::query_params::BlockParams>,
 ) -> crate::Result<Json<schemas::NearBalanceResponse>> {
-    let block = db_helpers::checked_get_block(&pool, &block_params).await?;
+    let block = db_helpers::checked_get_block(&pool_explorer, &block_params).await?;
     modules::check_account_exists(&rpc_client, &request.account_id.0, block.height).await?;
 
     Ok(Json(
-        data_provider::get_near_balance(&pool, &block, &request.account_id.0).await?,
+        data_provider::get_near_balance(&pool_explorer, &block, &request.account_id.0).await?,
     ))
 }
 
@@ -37,14 +37,14 @@ pub async fn get_near_balance(
 /// We currently provide the history only for the last few months.
 /// The history started from genesis will be served soon.
 pub async fn get_near_history(
-    pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
+    pool_explorer: web::Data<sqlx::Pool<sqlx::Postgres>>,
     pool_balances: web::Data<db_helpers::DBWrapper>,
     _: crate::types::pagoda_api_key::PagodaApiKey,
     request: actix_web_validator::Path<schemas::BalanceRequest>,
     pagination_params: web::Query<types::query_params::PaginationParams>,
 ) -> crate::Result<Json<schemas::HistoryResponse>> {
     let pagination = modules::checked_get_pagination_params(&pagination_params).await?;
-    let block = db_helpers::checked_get_block_from_pagination(&pool, &pagination).await?;
+    let block = db_helpers::get_block_from_pagination(&pool_explorer, &pagination).await?;
     // we don't need to check whether account exists. If not, we can just return the empty history
 
     Ok(Json(schemas::HistoryResponse {

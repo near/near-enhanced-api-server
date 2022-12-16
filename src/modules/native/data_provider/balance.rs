@@ -3,13 +3,13 @@ use crate::{db_helpers, errors, types};
 
 // todo change to near_balance_events when we finish collecting the data
 pub(crate) async fn get_near_balance(
-    pool: &sqlx::Pool<sqlx::Postgres>,
+    pool_explorer: &sqlx::Pool<sqlx::Postgres>,
     block: &db_helpers::Block,
     account_id: &near_primitives::types::AccountId,
 ) -> crate::Result<native::schemas::NearBalanceResponse> {
     let balances =
         db_helpers::select_retry_or_panic::<super::models::AccountChangesBalance>(
-            pool,
+            pool_explorer,
             r"
                 WITH t AS (
                     SELECT affected_account_nonstaked_balance + affected_account_staked_balance balance
@@ -47,10 +47,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_near_balance() {
-        let pool = init_db().await;
+        let pool_explorer = init_explorer_db().await;
         let block = get_block();
         let account = near_primitives::types::AccountId::from_str("tomato.near").unwrap();
-        let balance = get_near_balance(&pool, &block, &account).await;
+        let balance = get_near_balance(&pool_explorer, &block, &account).await;
         insta::assert_debug_snapshot!(balance);
     }
 }

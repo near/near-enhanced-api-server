@@ -3,7 +3,7 @@ use crate::{db_helpers, errors, types};
 
 // TODO PHASE 2 pagination by artificial index added to assets__non_fungible_token_events
 pub(crate) async fn get_nft_history(
-    pool: &sqlx::Pool<sqlx::Postgres>,
+    pool_explorer: &sqlx::Pool<sqlx::Postgres>,
     contract_id: &near_primitives::types::AccountId,
     token_id: &str,
     block: &db_helpers::Block,
@@ -29,7 +29,7 @@ pub(crate) async fn get_nft_history(
         LIMIT $4::numeric(20, 0)
     ";
     let history_items = db_helpers::select_retry_or_panic::<super::models::NftHistoryInfo>(
-        pool,
+        pool_explorer,
         query,
         &[
             token_id.to_string(),
@@ -72,34 +72,34 @@ mod tests {
 
     #[tokio::test]
     async fn test_nft_history() {
-        let pool = init_db().await;
+        let pool_explorer = init_explorer_db().await;
         let block = get_block();
         let contract = near_primitives::types::AccountId::from_str("x.paras.near").unwrap();
         let token = "293708:1";
 
-        let history = get_nft_history(&pool, &contract, token, &block, 10).await;
+        let history = get_nft_history(&pool_explorer, &contract, token, &block, 10).await;
         insta::assert_debug_snapshot!(history);
     }
 
     #[tokio::test]
     async fn test_nft_history_with_failed_receipts() {
-        let pool = init_db().await;
+        let pool_explorer = init_explorer_db().await;
         let block = get_block();
         let contract = near_primitives::types::AccountId::from_str("thebullishbulls.near").unwrap();
         let token = "1349";
 
-        let history = get_nft_history(&pool, &contract, token, &block, 10).await;
+        let history = get_nft_history(&pool_explorer, &contract, token, &block, 10).await;
         insta::assert_debug_snapshot!(history);
     }
 
     #[tokio::test]
     async fn test_nft_history_nft_does_not_exist() {
-        let pool = init_db().await;
+        let pool_explorer = init_explorer_db().await;
         let block = get_block();
         let contract = near_primitives::types::AccountId::from_str("x.paras.near").unwrap();
         let token = "no_such_token";
 
-        let history = get_nft_history(&pool, &contract, token, &block, 10)
+        let history = get_nft_history(&pool_explorer, &contract, token, &block, 10)
             .await
             .unwrap();
         assert!(history.is_empty());

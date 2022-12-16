@@ -5,7 +5,7 @@ use sqlx::types::BigDecimal;
 use std::str::FromStr;
 
 pub(crate) async fn get_ft_history(
-    pool: &sqlx::Pool<sqlx::Postgres>,
+    pool_explorer: &sqlx::Pool<sqlx::Postgres>,
     pool_balances: &sqlx::Pool<sqlx::Postgres>,
     rpc_client: &near_jsonrpc_client::JsonRpcClient,
     contract_id: &near_primitives::types::AccountId,
@@ -157,7 +157,7 @@ pub(crate) async fn get_ft_history(
     }
 
     let prev_block = if let Some(item) = result.last() {
-        db_helpers::get_previous_block(pool, item.block_timestamp_nanos.0).await?
+        db_helpers::get_previous_block(pool_explorer, item.block_timestamp_nanos.0).await?
     } else {
         return Ok(result);
     };
@@ -205,7 +205,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_ft_history() {
-        let pool = init_db().await;
+        let pool_explorer = init_explorer_db().await;
         let pool_balances = init_balances_db().await;
         let rpc_client = init_rpc();
         let block = get_block();
@@ -220,7 +220,7 @@ mod tests {
         };
 
         let balance = get_ft_history(
-            &pool,
+            &pool_explorer,
             &pool_balances,
             &rpc_client,
             &contract,
@@ -234,7 +234,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_ft_history_next_page() {
-        let pool = init_db().await;
+        let pool_explorer = init_explorer_db().await;
         let pool_balances = init_balances_db().await;
         let rpc_client = init_rpc();
         let contract = near_primitives::types::AccountId::from_str(
@@ -246,12 +246,12 @@ mod tests {
             limit: 5,
             after_event_index: Some(16708552830626965310000000004000001),
         };
-        let block = db_helpers::checked_get_block_from_pagination(&pool, &pagination)
+        let block = db_helpers::get_block_from_pagination(&pool_explorer, &pagination)
             .await
             .unwrap();
 
         let history = get_ft_history(
-            &pool,
+            &pool_explorer,
             &pool_balances,
             &rpc_client,
             &contract,
@@ -265,7 +265,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_ft_history_next_page_in_the_middle_of_the_block() {
-        let pool = init_db().await;
+        let pool_explorer = init_explorer_db().await;
         let pool_balances = init_balances_db().await;
         let rpc_client = init_rpc();
         let contract = near_primitives::types::AccountId::from_str(
@@ -277,12 +277,12 @@ mod tests {
             limit: 5,
             after_event_index: Some(16704039164216566310000000004000001),
         };
-        let block = db_helpers::checked_get_block_from_pagination(&pool, &pagination)
+        let block = db_helpers::get_block_from_pagination(&pool_explorer, &pagination)
             .await
             .unwrap();
 
         let history1 = get_ft_history(
-            &pool,
+            &pool_explorer,
             &pool_balances,
             &rpc_client,
             &contract,
@@ -297,11 +297,11 @@ mod tests {
             limit: 5,
             after_event_index: Some(history1.last().unwrap().event_index.0),
         };
-        let block = db_helpers::checked_get_block_from_pagination(&pool, &pagination)
+        let block = db_helpers::get_block_from_pagination(&pool_explorer, &pagination)
             .await
             .unwrap();
         let history2 = get_ft_history(
-            &pool,
+            &pool_explorer,
             &pool_balances,
             &rpc_client,
             &contract,
@@ -325,7 +325,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_ft_history_with_failed_receipts() {
-        let pool = init_db().await;
+        let pool_explorer = init_explorer_db().await;
         let pool_balances = init_balances_db().await;
         let rpc_client = init_rpc();
         let block = get_block();
@@ -340,7 +340,7 @@ mod tests {
         };
 
         let balance = get_ft_history(
-            &pool,
+            &pool_explorer,
             &pool_balances,
             &rpc_client,
             &contract,
@@ -354,7 +354,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_ft_history_account_never_existed() {
-        let pool = init_db().await;
+        let pool_explorer = init_explorer_db().await;
         let pool_balances = init_balances_db().await;
         let rpc_client = init_rpc();
         let block = get_block();
@@ -367,7 +367,7 @@ mod tests {
         };
 
         let history = get_ft_history(
-            &pool,
+            &pool_explorer,
             &pool_balances,
             &rpc_client,
             &contract,
@@ -382,7 +382,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_ft_history_account_deleted() {
-        let pool = init_db().await;
+        let pool_explorer = init_explorer_db().await;
         let pool_balances = init_balances_db().await;
         let rpc_client = init_rpc();
         let block = get_block();
@@ -395,7 +395,7 @@ mod tests {
         };
 
         let history = get_ft_history(
-            &pool,
+            &pool_explorer,
             &pool_balances,
             &rpc_client,
             &contract,
@@ -410,7 +410,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_ft_history_contract_does_not_exist() {
-        let pool = init_db().await;
+        let pool_explorer = init_explorer_db().await;
         let pool_balances = init_balances_db().await;
         let rpc_client = init_rpc();
         let block = get_block();
@@ -423,7 +423,7 @@ mod tests {
         };
 
         let balance = get_ft_history(
-            &pool,
+            &pool_explorer,
             &pool_balances,
             &rpc_client,
             &contract,
@@ -439,7 +439,7 @@ mod tests {
     // I can't catch such cases on partially filled DB
     // #[tokio::test]
     // async fn test_ft_history_contract_is_inconsistent() {
-    //     let pool = init_db().await;
+    //     let pool_explorer = init_db().await;
     //     let pool_balances = init_balances_db().await;
     //     let rpc_client = init_rpc();
     //
@@ -449,12 +449,12 @@ mod tests {
     //         limit: 5,
     //         after_event_index: Some(16629459979548196140000003001000001),
     //     };
-    //     let block = db_helpers::checked_get_block_from_pagination(&pool, &pagination)
+    //     let block = db_helpers::checked_get_block_from_pagination(&pool_explorer, &pagination)
     //         .await
     //         .unwrap();
     //
     //     let balance = get_ft_history(
-    //         &pool,
+    //         &pool_explorer,
     //         &pool_balances,
     //         &rpc_client,
     //         &contract,

@@ -51,6 +51,7 @@ pub(crate) async fn check_account_exists(
     .into())
 }
 
+/// Validates pagination_params received from the user
 pub(crate) async fn checked_get_pagination_params(
     pagination_params: &types::query_params::PaginationParams,
 ) -> crate::Result<types::query_params::Pagination> {
@@ -59,7 +60,7 @@ pub(crate) async fn checked_get_pagination_params(
         after_event_index: match pagination_params.after_event_index {
             None => None,
             Some(index) => {
-                if index.0 < (10_u128).pow(34) {
+                if index.0 < crate::MIN_EVENT_INDEX {
                     return Err(errors::ErrorKind::InvalidInput(format!(
                         "after_event_index {} is too low. Please copy event_index value from the last item in your previous response",
                         index.0
@@ -76,21 +77,21 @@ pub(crate) async fn checked_get_pagination_params(
 mod tests {
     use crate::db_helpers;
 
-    pub(crate) async fn init_db() -> sqlx::Pool<sqlx::Postgres> {
+    pub(crate) async fn init_explorer_db() -> sqlx::Pool<sqlx::Postgres> {
         dotenv::dotenv().ok();
-        let db_url = &std::env::var("DATABASE_URL").expect("failed to get database url");
+        let db_url = &std::env::var("EXPLORER_DATABASE_URL").expect("failed to get database url");
 
         sqlx::PgPool::connect(db_url)
             .await
-            .expect("failed to connect to the database from DATABASE_URL env variable")
+            .expect("failed to connect to the database from EXPLORER_DATABASE_URL env variable")
     }
 
     pub(crate) async fn init_balances_db() -> sqlx::Pool<sqlx::Postgres> {
         dotenv::dotenv().ok();
         let db_url_balances =
-            &std::env::var("DATABASE_URL_BALANCES").expect("failed to get database url");
+            &std::env::var("BALANCES_DATABASE_URL").expect("failed to get database url");
         sqlx::PgPool::connect(db_url_balances).await.expect(
-            "failed to connect to the balances database from DATABASE_URL_BALANCES env variable",
+            "failed to connect to the balances database from BALANCES_DATABASE_URL env variable",
         )
     }
 

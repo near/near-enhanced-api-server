@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 // TODO PHASE 2 pagination by artificial index added to assets__non_fungible_token_events
 pub(crate) async fn get_nfts_count(
-    pool: &sqlx::Pool<sqlx::Postgres>,
+    pool_explorer: &sqlx::Pool<sqlx::Postgres>,
     rpc_client: &near_jsonrpc_client::JsonRpcClient,
     block: &db_helpers::Block,
     account_id: &near_primitives::types::AccountId,
@@ -56,7 +56,7 @@ pub(crate) async fn get_nfts_count(
     ";
 
     let info_by_contract = db_helpers::select_retry_or_panic::<super::models::NftCount>(
-        pool,
+        pool_explorer,
         query,
         &[
             account_id.to_string(),
@@ -185,23 +185,23 @@ mod tests {
 
     #[tokio::test]
     async fn test_nfts_count() {
-        let pool = init_db().await;
+        let pool_explorer = init_explorer_db().await;
         let rpc_client = init_rpc();
         let block = get_block();
         let account = near_primitives::types::AccountId::from_str("blondjesus.near").unwrap();
 
-        let nft_count = get_nfts_count(&pool, &rpc_client, &block, &account, 10).await;
+        let nft_count = get_nfts_count(&pool_explorer, &rpc_client, &block, &account, 10).await;
         insta::assert_debug_snapshot!(nft_count);
     }
 
     #[tokio::test]
     async fn test_nfts_count_empty() {
-        let pool = init_db().await;
+        let pool_explorer = init_explorer_db().await;
         let rpc_client = init_rpc();
         let block = get_block();
         let account = near_primitives::types::AccountId::from_str("cucumber.near").unwrap();
 
-        let nft_count = get_nfts_count(&pool, &rpc_client, &block, &account, 10)
+        let nft_count = get_nfts_count(&pool_explorer, &rpc_client, &block, &account, 10)
             .await
             .unwrap();
         assert!(nft_count.is_empty());
@@ -209,7 +209,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_nfts_count_with_contracts_with_no_metadata() {
-        let pool = init_db().await;
+        let pool_explorer = init_explorer_db().await;
         let rpc_client = init_rpc();
         let block = db_helpers::Block {
             timestamp: 1655571176644255779,
@@ -217,18 +217,18 @@ mod tests {
         };
         let account = near_primitives::types::AccountId::from_str("vlad.near").unwrap();
 
-        let nft_count = get_nfts_count(&pool, &rpc_client, &block, &account, 10).await;
+        let nft_count = get_nfts_count(&pool_explorer, &rpc_client, &block, &account, 10).await;
         insta::assert_debug_snapshot!(nft_count);
     }
 
     #[tokio::test]
     async fn test_nfts_count_with_no_failed_receipts_in_result() {
-        let pool = init_db().await;
+        let pool_explorer = init_explorer_db().await;
         let rpc_client = init_rpc();
         let block = get_block();
         let account = near_primitives::types::AccountId::from_str("kbneoburner3.near").unwrap();
 
-        let nft_count = get_nfts_count(&pool, &rpc_client, &block, &account, 10).await;
+        let nft_count = get_nfts_count(&pool_explorer, &rpc_client, &block, &account, 10).await;
         insta::assert_debug_snapshot!(nft_count);
     }
 

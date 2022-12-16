@@ -96,7 +96,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_near_history_next_page() {
-        let pool = init_db().await;
+        let pool_explorer = init_explorer_db().await;
         let pool_balances = init_balances_db().await;
         let account = near_primitives::types::AccountId::from_str("cvirkun.near").unwrap();
         let index = 16708676458550339330000000000000003;
@@ -104,7 +104,7 @@ mod tests {
             limit: 3,
             after_event_index: Some(index),
         };
-        let block = db_helpers::checked_get_block_from_pagination(&pool, &pagination)
+        let block = db_helpers::get_block_from_pagination(&pool_explorer, &pagination)
             .await
             .unwrap();
 
@@ -118,14 +118,14 @@ mod tests {
 
     #[tokio::test]
     async fn test_near_history_with_failed_receipts() {
-        let pool = init_db().await;
+        let pool_explorer = init_explorer_db().await;
         let pool_balances = init_balances_db().await;
         let account = near_primitives::types::AccountId::from_str("aurora").unwrap();
         let pagination = types::query_params::Pagination {
             limit: 5,
             after_event_index: Some(16708676800272181160000000010000005),
         };
-        let block = db_helpers::checked_get_block_from_pagination(&pool, &pagination)
+        let block = db_helpers::get_block_from_pagination(&pool_explorer, &pagination)
             .await
             .unwrap();
 

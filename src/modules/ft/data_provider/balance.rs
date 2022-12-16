@@ -23,6 +23,7 @@ pub(crate) async fn get_ft_balances(
         &[account_id.to_string()],
     )
     .await?;
+    // todo drop this when querying by chunks is implemented for the query above
     tracing::info!(
         target: crate::LOGGER_MSG,
         "get_ft_balances: account {} has {} potential FT balances",
