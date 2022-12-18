@@ -7,26 +7,7 @@ use validator::Validate;
 #[derive(
     Validate, Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema,
 )]
-pub struct TransactionRequest {
-    #[validate(custom = "crate::errors::validate_crypto_hash")]
-    pub transaction_hash: Option<types::TransactionHash>,
-    pub receipt_id: Option<types::ReceiptId>,
-}
-
-#[derive(
-    Validate, Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema,
-)]
-pub struct TransactionsRequest {
-    #[validate(custom = "crate::errors::validate_account_id")]
-    pub account_id: types::AccountId,
-    #[validate(custom = "crate::errors::validate_account_id")]
-    pub contract_id: Option<types::AccountId>,
-}
-
-#[derive(
-    Validate, Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema,
-)]
-pub struct ReceiptsRequest {
+pub struct TransactionByTxHash {
     #[validate(custom = "crate::errors::validate_crypto_hash")]
     pub transaction_hash: types::TransactionHash,
 }
@@ -34,11 +15,52 @@ pub struct ReceiptsRequest {
 #[derive(
     Validate, Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema,
 )]
-pub struct ActionReceiptsRequest {
+pub struct TransactionByReceiptId {
+    #[validate(custom = "crate::errors::validate_crypto_hash")]
+    pub receipt_id: types::ReceiptId,
+}
+
+#[derive(
+    Validate, Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema,
+)]
+pub struct TransactionsByAccountId {
+    #[validate(custom = "crate::errors::validate_account_id")]
+    pub account_id: types::AccountId,
+}
+#[derive(
+    Validate, Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema,
+)]
+pub struct TransactionsByAccountIdOnContract {
     #[validate(custom = "crate::errors::validate_account_id")]
     pub account_id: types::AccountId,
     #[validate(custom = "crate::errors::validate_account_id")]
-    pub contract_id: Option<types::AccountId>,
+    pub contract_id: types::AccountId,
+}
+
+#[derive(
+    Validate, Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema,
+)]
+pub struct ReceiptsByTxHash {
+    #[validate(custom = "crate::errors::validate_crypto_hash")]
+    pub transaction_hash: types::TransactionHash,
+}
+
+#[derive(
+    Validate, Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema,
+)]
+pub struct ActionReceiptsByAccountId {
+    #[validate(custom = "crate::errors::validate_account_id")]
+    pub account_id: types::AccountId,
+}
+
+#[derive(
+    Validate, Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema,
+)]
+pub struct ActionReceiptsByAccountIdOnContract {
+    #[validate(custom = "crate::errors::validate_account_id")]
+    pub account_id: types::AccountId,
+    #[validate(custom = "crate::errors::validate_account_id")]
+    pub contract_id: types::AccountId,
 }
 
 // *** Responses ***
