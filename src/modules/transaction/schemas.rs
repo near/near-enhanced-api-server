@@ -2,10 +2,7 @@ use crate::types;
 use paperclip::actix::Apiv2Schema;
 use validator::Validate;
 
-use near_primitives::{
-    serialize::{base64_format, u128_dec_format},
-    views,
-};
+use near_primitives::views;
 // *** Requests ***
 
 #[derive(
@@ -99,7 +96,8 @@ pub struct Transaction {
     /// An account on which behalf transaction is signed
     pub signer_account_id: types::AccountId,
     /// An access key which was used to sign the original transaction
-    pub signer_public_key: types::PublicKey,
+    /// TODO Change type to types::PublicKey
+    pub signer_public_key: String,
     /// Receiver account for this transaction
     pub receiver_account_id: types::AccountId,
     /// The hash of the block this transaction was included in
@@ -135,13 +133,21 @@ pub struct Activity {
     /// `signer_account_id` is the original signer who authorized this transaction
     pub signer_account_id: types::AccountId,
     /// `signer_public_key` is public key the `signer_account_id` used to sign this transaction
-    pub signer_public_key: types::PublicKey,
+    pub signer_public_key: String,
     /// List of operations the signer authorized
     pub operations: Vec<Operation>,
     /// Status of the receipt. Success | Failure | SuccessValue | SuccessReceipt
     pub status: ActivityStatus,
     // Logs produced while executing receipts
-    pub logs: Vec<String>,
+    pub logs: Vec<Event>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
+pub struct Event {
+    pub event: String,
+    pub standard: String,
+    pub version: String,
+    pub data: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
@@ -149,115 +155,105 @@ pub enum ActivityStatus {
     Pending,
     Failure(String),
     SuccessValue,
-    SuccessReceipt, // SuccessActivity
+    SuccessReceipt,
 }
 
-// impl Activity {
-//  // Converts self.logs to Vec<Events> (might be empty)
-//  fn events(&self) -> Vec<Event> {
-//      todo!()
-//  }
-// }
+impl TryFrom<&views::ReceiptView> for Activity {
+    type Error = &'static str;
 
-// impl TryFrom<&views::ReceiptView> for Activity {
-//  type Error = &'static str;
-
-//  fn try_from(receipt: &views::ReceiptView) -> Result<Self, Self::Error> {
-//      if let views::ReceiptEnumView::Action {
-//          signer_id,
-//          signer_public_key,
-//          actions,
-//          ..
-//      } = &receipt.receipt
-//      {
-//          Ok(Self {
-//              receipt_id: types::CryptoHash(receipt.receipt_id),
-//              predecessor_id: types::AccountId(receipt.predecessor_id.clone()),
-//              receiver_id: types::AccountId(receipt.receiver_id.clone()),
-//              signer_id: types::AccountId(signer_id.clone()),
-//              signer_public_key: types::PublicKey(signer_public_key.clone()),
-//              operations: actions.iter().map(Into::into).collect(),
-//              status: ActivityStatus::Pending,
-//              logs: vec!("".to_string()),
-//          })
-//      } else {
-//          Err("Only `ReceiptEnumView::Action` can be converted into Action")
-//      }
-//  }
-// }
+    fn try_from(receipt: &views::ReceiptView) -> Result<Self, Self::Error> {
+        if let views::ReceiptEnumView::Action {
+            signer_id,
+            signer_public_key,
+            actions,
+            ..
+        } = &receipt.receipt
+        {
+            Ok(Self {
+                receipt_id: types::CryptoHash(receipt.receipt_id),
+                predecessor_account_id: types::AccountId(receipt.predecessor_id.clone()),
+                receiver_account_id: types::AccountId(receipt.receiver_id.clone()),
+                signer_account_id: types::AccountId(signer_id.clone()),
+                signer_public_key: signer_public_key.to_string(),
+                operations: actions.iter().map(Into::into).collect(),
+                status: ActivityStatus::Pending,
+                logs: vec![],
+            })
+        } else {
+            Err("Only `ReceiptEnumView::Action` can be converted into Action")
+        }
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
 pub enum Operation {
     CreateAccount,
     DeployContract {
-        #[serde(with = "base64_format")]
-        code: Vec<u8>,
+        code: String,
     },
     FunctionCall {
         method_name: String,
-        #[serde(with = "base64_format")]
-        args: Vec<u8>,
+        args: String,
         gas: types::U64,
-        #[serde(with = "u128_dec_format")]
-        deposit: u128,
+        deposit: types::U128,
     },
     Transfer {
-        #[serde(with = "u128_dec_format")]
-        deposit: u128,
+        deposit: types::U128,
     },
     Stake {
-        #[serde(with = "u128_dec_format")]
-        stake: u128,
-        public_key: near_crypto::PublicKey,
+        stake: types::U128,
+        public_key: String,
     },
     AddKey {
-        public_key: near_crypto::PublicKey,
+        public_key: String,
         access_key: views::AccessKeyView,
     },
     DeleteKey {
-        public_key: types::U128,
+        public_key: String,
     },
     DeleteAccount {
         beneficiary_id: types::AccountId,
     },
 }
 
-// impl From<&views::ActionView> for Operation {
-//  fn from(action: &views::ActionView) -> Self {
-//      match action {
-//          &views::ActionView::CreateAccount => Self::CreateAccount,
-//          views::ActionView::DeployContract { code } => {
-//              Self::DeployContract { code: code.clone() }
-//          }
-//          views::ActionView::FunctionCall {
-//              method_name,
-//              args,
-//              gas,
-//              deposit,
-//          } => Self::FunctionCall {
-//              method_name: method_name.to_string(),
-//              args: args.clone(),
-//              gas: types::numeric::U64(*gas),
-//              deposit: *deposit,
-//          },
-//          views::ActionView::Transfer { deposit } => Self::Transfer { deposit: *deposit },
-//          views::ActionView::Stake { stake, public_key } => Self::Stake {
-//              stake: *stake,
-//              public_key: public_key.clone(),
-//          },
-//          views::ActionView::AddKey {
-//              public_key,
-//              access_key,
-//          } => Self::AddKey {
-//              public_key: public_key.clone(),
-//              access_key: access_key.clone(),
-//          },
-//          views::ActionView::DeleteKey { public_key } => Self::DeleteKey {
-//              public_key: public_key.clone(),
-//          },
-//          views::ActionView::DeleteAccount { beneficiary_id } => Self::DeleteAccount {
-//              beneficiary_id: types::account_id::AccountId(beneficiary_id.clone()),
-//          },
-//      }
-//  }
-// }
+impl From<&views::ActionView> for Operation {
+    fn from(action: &views::ActionView) -> Self {
+        match action {
+            &views::ActionView::CreateAccount => Self::CreateAccount,
+            views::ActionView::DeployContract { code } => {
+                Self::DeployContract { code: code.clone() }
+            }
+            views::ActionView::FunctionCall {
+                method_name,
+                args,
+                gas,
+                deposit,
+            } => Self::FunctionCall {
+                method_name: method_name.to_string(),
+                args: args.clone(),
+                gas: types::numeric::U64(*gas),
+                deposit: types::numeric::U128(*deposit),
+            },
+            views::ActionView::Transfer { deposit } => Self::Transfer {
+                deposit: types::numeric::U128(*deposit),
+            },
+            views::ActionView::Stake { stake, public_key } => Self::Stake {
+                stake: types::numeric::U128(*stake),
+                public_key: public_key.to_string(),
+            },
+            views::ActionView::AddKey {
+                public_key,
+                access_key,
+            } => Self::AddKey {
+                public_key: public_key.clone().to_string(),
+                access_key: access_key.clone(),
+            },
+            views::ActionView::DeleteKey { public_key } => Self::DeleteKey {
+                public_key: public_key.clone().to_string(),
+            },
+            views::ActionView::DeleteAccount { beneficiary_id } => Self::DeleteAccount {
+                beneficiary_id: types::account_id::AccountId(beneficiary_id.clone()),
+            },
+        }
+    }
+}

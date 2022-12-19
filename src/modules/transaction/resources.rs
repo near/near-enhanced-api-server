@@ -27,7 +27,8 @@ pub async fn get_transaction_by_tx_hash(
             signer_public_key: types::PublicKey::from_str(
                 "232232TxhPZosvJHsdfsfsdf2UMJHA1P9poRBw1JK232",
             )
-            .unwrap(),
+            .unwrap()
+            .to_string(),
             receiver_account_id: types::AccountId::from_str("roshaan.near").unwrap(),
             block_hash: types::CryptoHash::from_str("56qTxhPZosvJHazph2NbaQdUMJHA1P9poREV3Bw1JKEV")
                 .unwrap(),
@@ -60,7 +61,8 @@ pub async fn get_transaction_by_receipt(
             signer_public_key: types::PublicKey::from_str(
                 "232232TxhPZosvJHsdfsfsdf2UMJHA1P9poRBw1JK232",
             )
-            .unwrap(),
+            .unwrap()
+            .to_string(),
             receiver_account_id: types::AccountId::from_str("roshaan.near").unwrap(),
             block_hash: types::CryptoHash::from_str("56qTxhPZosvJHazph2NbaQdUMJHA1P9poREV3Bw1JKEV")
                 .unwrap(),
@@ -98,7 +100,8 @@ pub async fn get_transactions_by_account(
         signer_public_key: types::PublicKey::from_str(
             "232232TxhPZosvJHsdfsfsdf2UMJHA1P9poRBw1JK232",
         )
-        .unwrap(),
+        .unwrap()
+        .to_string(),
         receiver_account_id: types::AccountId::from_str("roshaan.near").unwrap(),
         block_hash: types::CryptoHash::from_str("56qTxhPZosvJHazph2NbaQdUMJHA1P9poREV3Bw1JKEV")
             .unwrap(),
@@ -136,7 +139,8 @@ pub async fn get_transactions_by_account_on_contract(
         signer_public_key: types::PublicKey::from_str(
             "232232TxhPZosvJHsdfsfsdf2UMJHA1P9poRBw1JK232",
         )
-        .unwrap(),
+        .unwrap()
+        .to_string(),
         receiver_account_id: types::AccountId::from_str("roshaan.near").unwrap(),
         block_hash: types::CryptoHash::from_str("56qTxhPZosvJHazph2NbaQdUMJHA1P9poREV3Bw1JKEV")
             .unwrap(),
@@ -163,12 +167,14 @@ pub async fn get_receipts_by_tx_hash(
     _pagination_params: web::Query<types::query_params::PaginationParams>,
 ) -> crate::Result<Json<schemas::ReceiptsResponse>> {
     let activities = vec![schemas::Activity {
-        receipt_id: types::CryptoHash::from_str("roshaan.near").unwrap(),
+        receipt_id: types::CryptoHash::from_str("E2gtnNchwDrLUL7prNSdfcUzwwR4egJV4qpncwHz1hwJ")
+            .unwrap(),
         signer_account_id: types::AccountId::from_str("roshaan.near").unwrap(),
         signer_public_key: types::PublicKey::from_str(
             "232232TxhPZosvJHsdfsfsdf2UMJHA1P9poRBw1JK232",
         )
-        .unwrap(),
+        .unwrap()
+        .to_string(),
         operations: vec![],
         predecessor_account_id: types::AccountId::from_str("roshaan.near").unwrap(),
         receiver_account_id: types::AccountId::from_str("spot.spin-fi.near").unwrap(),
@@ -191,12 +197,14 @@ pub async fn get_action_receipts_by_account(
     _pagination_params: web::Query<types::query_params::PaginationParams>,
 ) -> crate::Result<Json<schemas::ActionReceiptsResponse>> {
     let action_activities = vec![schemas::Activity {
-        receipt_id: types::CryptoHash::from_str("roshaan.near").unwrap(),
+        receipt_id: types::CryptoHash::from_str("E2gtnNchwDrLUL7prNSdfcUzwwR4egJV4qpncwHz1hwJ")
+            .unwrap(),
         signer_account_id: types::AccountId::from_str("roshaan.near").unwrap(),
         signer_public_key: types::PublicKey::from_str(
             "232232TxhPZosvJHsdfsfsdf2UMJHA1P9poRBw1JK232",
         )
-        .unwrap(),
+        .unwrap()
+        .to_string(),
         operations: vec![],
         predecessor_account_id: types::AccountId::from_str("roshaan.near").unwrap(),
         receiver_account_id: types::AccountId::from_str("spot.spin-fi.near").unwrap(),
@@ -222,12 +230,14 @@ pub async fn get_action_receipts_by_account_on_contract(
     _pagination_params: web::Query<types::query_params::PaginationParams>,
 ) -> crate::Result<Json<schemas::ActionReceiptsResponse>> {
     let action_activities = vec![schemas::Activity {
-        receipt_id: types::CryptoHash::from_str("roshaan.near").unwrap(),
+        receipt_id: types::CryptoHash::from_str("E2gtnNchwDrLUL7prNSdfcUzwwR4egJV4qpncwHz1hwJ")
+            .unwrap(),
         signer_account_id: types::AccountId::from_str("roshaan.near").unwrap(),
         signer_public_key: types::PublicKey::from_str(
             "232232TxhPZosvJHsdfsfsdf2UMJHA1P9poRBw1JK232",
         )
-        .unwrap(),
+        .unwrap()
+        .to_string(),
         operations: vec![],
         predecessor_account_id: types::AccountId::from_str("roshaan.near").unwrap(),
         receiver_account_id: types::AccountId::from_str("spot.spin-fi.near").unwrap(),
