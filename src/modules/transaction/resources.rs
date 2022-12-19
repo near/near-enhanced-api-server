@@ -40,7 +40,7 @@ pub async fn get_transaction_by_receipt(
     _pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     _rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     _: crate::types::pagoda_api_key::PagodaApiKey,
-    _request: actix_web_validator::Path<schemas::TransactionByTxHash>,
+    _request: actix_web_validator::Path<schemas::TransactionByReceiptId>,
 ) -> crate::Result<Json<schemas::TransactionResponse>> {
     Ok(Json(schemas::TransactionResponse {
         transaction: schemas::Transaction {

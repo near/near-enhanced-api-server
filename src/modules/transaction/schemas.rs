@@ -9,7 +9,7 @@ use validator::Validate;
 )]
 pub struct TransactionByTxHash {
     #[validate(custom = "crate::errors::validate_crypto_hash")]
-    pub transaction_hash: types::TransactionHash,
+    pub transaction_hash: String,
 }
 
 #[derive(
@@ -17,7 +17,7 @@ pub struct TransactionByTxHash {
 )]
 pub struct TransactionByReceiptId {
     #[validate(custom = "crate::errors::validate_crypto_hash")]
-    pub receipt_id: types::ReceiptId,
+    pub receipt_id: String,
 }
 
 #[derive(
@@ -42,7 +42,7 @@ pub struct TransactionsByAccountIdOnContract {
 )]
 pub struct ReceiptsByTxHash {
     #[validate(custom = "crate::errors::validate_crypto_hash")]
-    pub transaction_hash: types::TransactionHash,
+    pub transaction_hash: String,
 }
 
 #[derive(
