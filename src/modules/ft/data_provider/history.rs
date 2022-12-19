@@ -5,8 +5,8 @@ use sqlx::types::BigDecimal;
 use std::str::FromStr;
 
 pub(crate) async fn get_ft_history(
-    pool_explorer: &sqlx::Pool<sqlx::Postgres>,
-    pool_balances: &sqlx::Pool<sqlx::Postgres>,
+    db_helpers::ExplorerPool(pool_explorer): &db_helpers::ExplorerPool,
+    db_helpers::BalancesPool(pool_balances): &db_helpers::BalancesPool,
     rpc_client: &near_jsonrpc_client::JsonRpcClient,
     contract_id: &near_primitives::types::AccountId,
     account_id: &near_primitives::types::AccountId,
@@ -49,7 +49,7 @@ pub(crate) async fn get_ft_history(
              WHERE contract_account_id = $1
                  AND affected_account_id = $2
                  AND event_index < $3::numeric(38, 0)
-                 AND event_index >= 16698527195153032600000000000000000 -- todo drop this when we finish collecting the data
+                 AND event_index >= 16619903149406361800000000000000000 -- todo drop this when we finish collecting the data
              ORDER BY event_index desc
              LIMIT $4::numeric(20, 0)
          ), timestamps as (

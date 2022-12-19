@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 // TODO PHASE 2 pagination by artificial index added to assets__non_fungible_token_events
 pub(crate) async fn get_nfts_count(
-    pool_explorer: &sqlx::Pool<sqlx::Postgres>,
+    db_helpers::ExplorerPool(pool_explorer): &db_helpers::ExplorerPool,
     rpc_client: &near_jsonrpc_client::JsonRpcClient,
     block: &db_helpers::Block,
     account_id: &near_primitives::types::AccountId,

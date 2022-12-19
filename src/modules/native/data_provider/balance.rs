@@ -3,7 +3,7 @@ use crate::{db_helpers, errors, types};
 
 // todo change to near_balance_events when we finish collecting the data
 pub(crate) async fn get_near_balance(
-    pool_explorer: &sqlx::Pool<sqlx::Postgres>,
+    db_helpers::ExplorerPool(pool_explorer): &db_helpers::ExplorerPool,
     block: &db_helpers::Block,
     account_id: &near_primitives::types::AccountId,
 ) -> crate::Result<native::schemas::NearBalanceResponse> {

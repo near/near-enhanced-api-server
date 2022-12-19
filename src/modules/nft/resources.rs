@@ -20,7 +20,7 @@ use super::schemas;
 /// * We currently provide the most recent 100 items.
 ///   Full-featured pagination will be provided in later phases.
 pub async fn get_nft_collection_overview(
-    pool_explorer: web::Data<sqlx::Pool<sqlx::Postgres>>,
+    pool_explorer: web::Data<db_helpers::ExplorerPool>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     _: crate::types::pagoda_api_key::PagodaApiKey,
     request: actix_web_validator::Path<schemas::NftCountsRequest>,
@@ -56,7 +56,7 @@ pub async fn get_nft_collection_overview(
 /// * We currently provide the most recent 100 items.
 ///   Full-featured pagination will be provided in later phases.
 pub async fn get_nft_collection_by_contract(
-    pool_explorer: web::Data<sqlx::Pool<sqlx::Postgres>>,
+    pool_explorer: web::Data<db_helpers::ExplorerPool>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     _: crate::types::pagoda_api_key::PagodaApiKey,
     request: actix_web_validator::Path<schemas::NftCollectionRequest>,
@@ -93,7 +93,7 @@ pub async fn get_nft_collection_by_contract(
 /// This endpoint returns detailed information on the NFT
 /// for the given `token_id`, NFT `contract_account_id`, `block_timestamp_nanos`/`block_height`.
 pub async fn get_nft(
-    pool_explorer: web::Data<sqlx::Pool<sqlx::Postgres>>,
+    pool_explorer: web::Data<db_helpers::ExplorerPool>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     _: crate::types::pagoda_api_key::PagodaApiKey,
     request: actix_web_validator::Path<schemas::NftRequest>,
@@ -131,7 +131,7 @@ pub async fn get_nft(
 /// * We currently provide the most recent 100 items.
 ///   Full-featured pagination will be provided in later phases.
 pub async fn get_nft_history(
-    pool_explorer: web::Data<sqlx::Pool<sqlx::Postgres>>,
+    pool_explorer: web::Data<db_helpers::ExplorerPool>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     _: crate::types::pagoda_api_key::PagodaApiKey,
     request: actix_web_validator::Path<schemas::NftRequest>,
@@ -167,7 +167,7 @@ pub async fn get_nft_history(
 /// This endpoint returns the metadata for a given NFT contract and `block_timestamp_nanos`/`block_height`.
 /// **Note:** This is contract-wide metadata. Each NFT also has its own metadata.
 pub async fn get_nft_contract_metadata(
-    pool_explorer: web::Data<sqlx::Pool<sqlx::Postgres>>,
+    pool_explorer: web::Data<db_helpers::ExplorerPool>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     _: crate::types::pagoda_api_key::PagodaApiKey,
     request: actix_web_validator::Path<schemas::MetadataRequest>,

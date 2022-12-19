@@ -176,10 +176,8 @@ We would love to hear from you on the data APIs you need, please leave feedback 
             .app_data(path_config)
             .wrap(actix_web::middleware::Logger::default())
             .wrap(prometheus.clone())
-            .app_data(web::Data::new(pool_explorer.clone()))
-            .app_data(web::Data::new(db_helpers::DBWrapper {
-                pool: pool_balances.clone(),
-            }))
+            .app_data(web::Data::new(db_helpers::ExplorerPool(pool_explorer.clone())))
+            .app_data(web::Data::new(db_helpers::BalancesPool(pool_balances.clone())))
             .app_data(web::Data::new(rpc_client.clone()))
             .wrap(get_cors(&cors_allowed_origins))
             .route("/", actix_web::web::get().to(playground_ui))

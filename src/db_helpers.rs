@@ -12,10 +12,8 @@ const DB_RETRY_COUNT: usize = 2;
 const INTERVAL: std::time::Duration = std::time::Duration::from_millis(100);
 const MAX_DELAY_TIME: std::time::Duration = std::time::Duration::from_secs(120);
 
-// temp solution to pass 2 different connection pools
-pub struct DBWrapper {
-    pub pool: sqlx::Pool<sqlx::Postgres>,
-}
+pub struct ExplorerPool(pub sqlx::Pool<sqlx::Postgres>);
+pub struct BalancesPool(pub sqlx::Pool<sqlx::Postgres>);
 
 #[derive(sqlx::FromRow)]
 struct BlockView {
@@ -54,33 +52,24 @@ pub(crate) fn event_index_to_timestamp(event_index: u128) -> u64 {
 }
 
 pub(crate) async fn get_block_from_pagination(
-    pool_explorer: &sqlx::Pool<sqlx::Postgres>,
+    pool_explorer: &ExplorerPool,
     pagination: &types::query_params::Pagination,
 ) -> crate::Result<Block> {
-    if let Some(event_index) = pagination.after_event_index {
-        checked_get_block(
-            pool_explorer,
-            &types::query_params::BlockParams {
-                block_timestamp_nanos: Some(event_index_to_timestamp(event_index).into()),
-                block_height: None,
-            },
-        )
-        .await
-    } else {
-        checked_get_block(
-            pool_explorer,
-            &types::query_params::BlockParams {
-                block_timestamp_nanos: None,
-                block_height: None,
-            },
-        )
-        .await
-    }
+    checked_get_block(
+        pool_explorer,
+        &types::query_params::BlockParams {
+            block_timestamp_nanos: pagination
+                .after_event_index
+                .map(|event_index| event_index_to_timestamp(event_index).into()),
+            block_height: None,
+        },
+    )
+    .await
 }
 
 /// Validates block_params received from the user, sets the default value if none was provided
 pub(crate) async fn checked_get_block(
-    pool_explorer: &sqlx::Pool<sqlx::Postgres>,
+    pool_explorer: &ExplorerPool,
     block_params: &types::query_params::BlockParams,
 ) -> crate::Result<Block> {
     if block_params.block_height.is_some() && block_params.block_timestamp_nanos.is_some() {
@@ -93,7 +82,7 @@ pub(crate) async fn checked_get_block(
 
     if let Some(block_height) = block_params.block_height {
         match select_retry_or_panic::<BlockView>(
-            pool_explorer,
+            &pool_explorer.0,
             r"SELECT block_height, block_timestamp
               FROM blocks
               WHERE block_height = $1::numeric(20, 0)",
@@ -111,7 +100,7 @@ pub(crate) async fn checked_get_block(
         }
     } else if let Some(block_timestamp) = block_params.block_timestamp_nanos {
         match select_retry_or_panic::<BlockView>(
-            pool_explorer,
+            &pool_explorer.0,
             r"SELECT block_height, block_timestamp
               FROM blocks
               WHERE block_timestamp <= $1::numeric(20, 0)
@@ -130,7 +119,7 @@ pub(crate) async fn checked_get_block(
     }
 }
 
-async fn get_first_block(pool_explorer: &sqlx::Pool<sqlx::Postgres>) -> crate::Result<Block> {
+async fn get_first_block(ExplorerPool(pool_explorer): &ExplorerPool) -> crate::Result<Block> {
     match select_retry_or_panic::<BlockView>(
         pool_explorer,
         r"SELECT block_height, block_timestamp
@@ -148,7 +137,7 @@ async fn get_first_block(pool_explorer: &sqlx::Pool<sqlx::Postgres>) -> crate::R
 }
 
 pub(crate) async fn get_last_block(
-    pool_explorer: &sqlx::Pool<sqlx::Postgres>,
+    ExplorerPool(pool_explorer): &ExplorerPool,
 ) -> crate::Result<Block> {
     match select_retry_or_panic::<BlockView>(
         pool_explorer,
@@ -188,7 +177,7 @@ pub(crate) async fn get_previous_block(
 }
 
 pub(crate) async fn select_retry_or_panic<T: Send + Unpin + for<'r> sqlx::FromRow<'r, PgRow>>(
-    pool_explorer: &sqlx::Pool<sqlx::Postgres>,
+    pool: &sqlx::Pool<sqlx::Postgres>,
     query: &str,
     substitution_items: &[String],
 ) -> Result<Vec<T>, errors::ErrorKind> {
@@ -217,7 +206,7 @@ pub(crate) async fn select_retry_or_panic<T: Send + Unpin + for<'r> sqlx::FromRo
         }
 
         match sqlx::query_as_with::<_, T, _>(query, args)
-            .fetch_all(pool_explorer)
+            .fetch_all(pool)
             .await
         {
             Ok(res) => return Ok(res),

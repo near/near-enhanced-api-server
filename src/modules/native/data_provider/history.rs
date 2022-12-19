@@ -4,7 +4,7 @@ use crate::modules::native;
 use crate::{db_helpers, errors, types};
 
 pub(crate) async fn get_near_history(
-    balances_pool: &sqlx::Pool<sqlx::Postgres>,
+    db_helpers::BalancesPool(pool_balances): &db_helpers::BalancesPool,
     account_id: &near_primitives::types::AccountId,
     block: &db_helpers::Block,
     pagination: &types::query_params::Pagination,
@@ -28,13 +28,13 @@ pub(crate) async fn get_near_history(
             block_height
         FROM near_balance_events
         WHERE affected_account_id = $1 AND event_index < $2::numeric(38, 0)
-           AND event_index >= 16698527195153032600000000000000000 -- todo drop this when we finish collecting the data
+           AND event_index >= 16619903149406361800000000000000000 -- todo drop this when we finish collecting the data
         ORDER BY event_index DESC
         LIMIT $3::numeric(20, 0)
     ";
 
     let history_info = db_helpers::select_retry_or_panic::<super::models::NearHistoryInfo>(
-        balances_pool,
+        pool_balances,
         query,
         &[
             account_id.to_string(),

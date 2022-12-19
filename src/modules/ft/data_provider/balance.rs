@@ -3,7 +3,7 @@ use crate::{db_helpers, rpc_helpers, types};
 use std::str::FromStr;
 
 pub(crate) async fn get_ft_balances(
-    pool_balances: &sqlx::Pool<sqlx::Postgres>,
+    db_helpers::BalancesPool(pool_balances): &db_helpers::BalancesPool,
     rpc_client: &near_jsonrpc_client::JsonRpcClient,
     account_id: &near_primitives::types::AccountId,
     block: &db_helpers::Block,

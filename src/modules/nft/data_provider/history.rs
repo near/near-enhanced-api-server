@@ -3,7 +3,7 @@ use crate::{db_helpers, errors, types};
 
 // TODO PHASE 2 pagination by artificial index added to assets__non_fungible_token_events
 pub(crate) async fn get_nft_history(
-    pool_explorer: &sqlx::Pool<sqlx::Postgres>,
+    db_helpers::ExplorerPool(pool_explorer): &db_helpers::ExplorerPool,
     contract_id: &near_primitives::types::AccountId,
     token_id: &str,
     block: &db_helpers::Block,

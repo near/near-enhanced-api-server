@@ -77,22 +77,24 @@ pub(crate) async fn checked_get_pagination_params(
 mod tests {
     use crate::db_helpers;
 
-    pub(crate) async fn init_explorer_db() -> sqlx::Pool<sqlx::Postgres> {
+    pub(crate) async fn init_explorer_db() -> db_helpers::ExplorerPool {
         dotenv::dotenv().ok();
         let db_url = &std::env::var("EXPLORER_DATABASE_URL").expect("failed to get database url");
 
-        sqlx::PgPool::connect(db_url)
-            .await
-            .expect("failed to connect to the database from EXPLORER_DATABASE_URL env variable")
+        db_helpers::ExplorerPool(
+            sqlx::PgPool::connect(db_url).await.expect(
+                "failed to connect to the database from EXPLORER_DATABASE_URL env variable",
+            ),
+        )
     }
 
-    pub(crate) async fn init_balances_db() -> sqlx::Pool<sqlx::Postgres> {
+    pub(crate) async fn init_balances_db() -> db_helpers::BalancesPool {
         dotenv::dotenv().ok();
         let db_url_balances =
             &std::env::var("BALANCES_DATABASE_URL").expect("failed to get database url");
-        sqlx::PgPool::connect(db_url_balances).await.expect(
+        db_helpers::BalancesPool(sqlx::PgPool::connect(db_url_balances).await.expect(
             "failed to connect to the balances database from BALANCES_DATABASE_URL env variable",
-        )
+        ))
     }
 
     pub(crate) fn init_rpc() -> near_jsonrpc_client::JsonRpcClient {

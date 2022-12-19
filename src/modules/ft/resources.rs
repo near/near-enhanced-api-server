@@ -18,8 +18,8 @@ use crate::{db_helpers, errors, modules, types};
 /// * We currently provide up to 100 items.
 ///   Full-featured pagination will be provided soon.
 pub async fn get_ft_balances(
-    pool_explorer: web::Data<sqlx::Pool<sqlx::Postgres>>,
-    pool_balances: web::Data<db_helpers::DBWrapper>,
+    pool_explorer: web::Data<db_helpers::ExplorerPool>,
+    pool_balances: web::Data<db_helpers::BalancesPool>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     _: crate::types::pagoda_api_key::PagodaApiKey,
     request: actix_web_validator::Path<schemas::BalanceRequest>,
@@ -32,7 +32,7 @@ pub async fn get_ft_balances(
     modules::check_account_exists(&rpc_client, &request.account_id.0, block.height).await?;
 
     let balances = data_provider::get_ft_balances(
-        &pool_balances.pool,
+        &pool_balances,
         &rpc_client,
         &request.account_id.0,
         &block,
@@ -53,7 +53,7 @@ pub async fn get_ft_balances(
 /// This endpoint returns FT balance of the given `account_id`,
 /// for the given `contract_account_id` and `block_timestamp_nanos`/`block_height`.
 pub async fn get_ft_balance_by_contract(
-    pool_explorer: web::Data<sqlx::Pool<sqlx::Postgres>>,
+    pool_explorer: web::Data<db_helpers::ExplorerPool>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     _: crate::types::pagoda_api_key::PagodaApiKey,
     request: actix_web_validator::Path<schemas::BalanceByContractRequest>,
@@ -93,8 +93,8 @@ pub async fn get_ft_balance_by_contract(
 /// We currently provide the history only for the last few months.
 /// The history started from genesis will be served soon.
 pub async fn get_ft_history(
-    pool_explorer: web::Data<sqlx::Pool<sqlx::Postgres>>,
-    pool_balances: web::Data<db_helpers::DBWrapper>,
+    pool_explorer: web::Data<db_helpers::ExplorerPool>,
+    pool_balances: web::Data<db_helpers::BalancesPool>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     _: crate::types::pagoda_api_key::PagodaApiKey,
     request: actix_web_validator::Path<schemas::HistoryRequest>,
@@ -114,7 +114,7 @@ pub async fn get_ft_history(
     Ok(Json(schemas::HistoryResponse {
         history: data_provider::get_ft_history(
             &pool_explorer,
-            &pool_balances.pool,
+            &pool_balances,
             &rpc_client,
             &request.contract_account_id.0,
             &request.account_id.0,
@@ -132,7 +132,7 @@ pub async fn get_ft_history(
 ///
 /// This endpoint returns the metadata for the given `contract_account_id`, `block_timestamp_nanos`/`block_height`.
 pub async fn get_ft_metadata(
-    pool_explorer: web::Data<sqlx::Pool<sqlx::Postgres>>,
+    pool_explorer: web::Data<db_helpers::ExplorerPool>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     _: crate::types::pagoda_api_key::PagodaApiKey,
     request: actix_web_validator::Path<schemas::ContractMetadataRequest>,

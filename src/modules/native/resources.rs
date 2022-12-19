@@ -12,7 +12,7 @@ use crate::{db_helpers, modules, types};
 /// This endpoint returns the NEAR balance of the given `account_id`
 /// at the given `block_timestamp_nanos`/`block_height`.
 pub async fn get_near_balance(
-    pool_explorer: web::Data<sqlx::Pool<sqlx::Postgres>>,
+    pool_explorer: web::Data<db_helpers::ExplorerPool>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     _: crate::types::pagoda_api_key::PagodaApiKey,
     request: actix_web_validator::Path<schemas::BalanceRequest>,
@@ -37,8 +37,8 @@ pub async fn get_near_balance(
 /// We currently provide the history only for the last few months.
 /// The history started from genesis will be served soon.
 pub async fn get_near_history(
-    pool_explorer: web::Data<sqlx::Pool<sqlx::Postgres>>,
-    pool_balances: web::Data<db_helpers::DBWrapper>,
+    pool_explorer: web::Data<db_helpers::ExplorerPool>,
+    pool_balances: web::Data<db_helpers::BalancesPool>,
     _: crate::types::pagoda_api_key::PagodaApiKey,
     request: actix_web_validator::Path<schemas::BalanceRequest>,
     pagination_params: web::Query<types::query_params::PaginationParams>,
@@ -49,7 +49,7 @@ pub async fn get_near_history(
 
     Ok(Json(schemas::HistoryResponse {
         history: data_provider::get_near_history(
-            &pool_balances.pool,
+            &pool_balances,
             &request.account_id,
             &block,
             &pagination,
