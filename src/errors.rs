@@ -5,8 +5,6 @@ use paperclip::actix::{api_v2_errors, Apiv2Schema};
 use near_jsonrpc_client::errors::JsonRpcError;
 use near_jsonrpc_primitives::types::query::RpcQueryError;
 
-// use crate::types::cryptohash;
-
 #[derive(Debug, strum::EnumIter)]
 pub enum ErrorKind {
     DBError(String),
@@ -111,11 +109,7 @@ impl From<near_primitives::account::id::ParseAccountError> for ErrorKind {
 
 impl From<Box<dyn std::error::Error + Send + Sync>> for ErrorKind {
     fn from(error: Box<dyn std::error::Error + Send + Sync>) -> Self {
-        // Todo: Output specific error for transaction hash or Receipt id
-        Self::InvalidInput(format!(
-            "Could not parse Transaction Hash Or ReceidID: {:#?}",
-            error
-        ))
+        Self::InvalidInput(format!("Could not parse CryptoHash: {:#?}", error))
     }
 }
 
@@ -126,8 +120,6 @@ pub(crate) fn validate_account_id(account_id: &str) -> Result<(), validator::Val
     }
 }
 
-/// TODO -> This method gets used for validating api request's fields(both transaction hash and receipt id).
-///  If I change this type to be &str, then I
 pub(crate) fn validate_crypto_hash(crypto_hash: &str) -> Result<(), validator::ValidationError> {
     match near_primitives::hash::CryptoHash::from_str(crypto_hash) {
         Ok(_) => Ok(()),

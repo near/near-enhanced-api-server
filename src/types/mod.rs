@@ -7,5 +7,5 @@ pub mod query_params;
 
 pub(crate) use account_id::AccountId;
 pub(crate) use cryptohash::{CryptoHash, ReceiptId, TransactionHash};
-pub(crate) use public_key::PublicKey;
 pub(crate) use numeric::{U128, U64};
+pub(crate) use public_key::PublicKey;
