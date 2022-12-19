@@ -183,7 +183,8 @@ We would love to hear from you on the data APIs you need, please leave feedback 
             .route("/", actix_web::web::get().to(playground_ui))
             .wrap_api_with_spec(spec);
 
-        app = app.configure(modules::coin::register_services);
+        app = app.configure(modules::native::register_services);
+        app = app.configure(modules::ft::register_services);
         app = app.configure(modules::nft::register_services);
         app = app.configure(modules::transaction::register_services);
         app.with_json_spec_at(format!("{base_path}/spec/v2.json").as_str())

@@ -5,7 +5,7 @@ Still under heavy development.
 
 ### Phase 1 goals: [development goes here now]
 - Provide NEAR balances information, recent history
-- Provide FT balances information, recent FT coin history for the contracts implementing Events NEP
+- Provide FT balances information, recent FT history for the contracts implementing Events NEP
 - Provide NFT information and recent history for the contracts implementing Events NEP
 - Provide corresponding Metadata for FT, NFT contracts, NFT items
 - [aspirational] Collect usage statistics which could help us to prioritize next steps
@@ -22,7 +22,7 @@ See also our thoughts about the proposed [DB design](DB_DESIGN.md) which will he
 - Add reconciliation logic
 - [aspirational] Show data from failed receipts in the history
 - [aspirational] Support MT contracts 
-- [aspirational] Support of querying the balance/history info by symbol (e.g. `GET "/accounts/{account_id}/coins/USN"`) 
+- [aspirational] Support of querying the balance/history info by symbol (e.g. `GET "/accounts/{account_id}/FT/USN"`) 
 
 ### Future plans. Phase 3+ goals:
 - Make wrappers around existing RPC endpoints for the general blockchain info (blocks, chunks, transactions, etc.)
