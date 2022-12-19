@@ -22,8 +22,8 @@ use serde::{Deserialize, Serialize};
 #[serde(transparent)]
 pub struct CryptoHash(pub(crate) near_primitives::hash::CryptoHash);
 
-// pub type TransactionHash = CryptoHash;
-// pub type ReceiptId = CryptoHash;
+pub type TransactionHash = CryptoHash;
+pub type ReceiptId = CryptoHash;
 
 impl fmt::Debug for CryptoHash {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

@@ -33,6 +33,7 @@ validator = { version = "0.14", features = ["derive"] }
 near-primitives = "0.14.0"
 near-jsonrpc-client = "0.4.0-beta.0"
 near-jsonrpc-primitives = "0.14.0"
+near-crypto = "0.15.0"
 
 [dev-dependencies]
 insta = "1"
