@@ -1,0 +1,158 @@
+---
+source: src/modules/ft/data_provider/history.rs
+expression: balance
+---
+Ok(
+    [
+        HistoryItem {
+            event_index: U128(
+                16708522854251436860000000004000000,
+            ),
+            involved_account_id: Some(
+                AccountId(
+                    "923fe55d4ad57ee72dbe3077386eedd0d66a7fd3056c6d09efb75bbb8cc5b86b",
+                ),
+            ),
+            delta_balance: "-2777499795300925976113",
+            balance: U128(
+                2565924517944049317064152,
+            ),
+            cause: "TRANSFER",
+            status: "SUCCESS",
+            metadata: Metadata {
+                name: "Pulse",
+                symbol: "PULSE",
+                icon: Some(
+                    "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBkPSJNNi41NTAzNSAxOS4xMjM5TDkuMTcxNjYgMTQuOTQ5MkM5LjMyNzMxIDE0LjcwMTMgOS41OTk0OCAxNC41NTA4IDkuODkyMiAxNC41NTA4SDE4LjQxNEMxOS41NDEyIDE0LjU1MDggMjAuNTYxNCAxMy44ODM2IDIxLjAxMzMgMTIuODUwOUMyMS4zNjQ3IDEyLjA0NzYgMjAuNzc2MSAxMS4xNDc3IDE5Ljg5OTMgMTEuMTQ3N0gxMS45NzQyTDExLjU0ODggMTEuMjU0TDEzLjY0NjEgNy40NDA3OEMxMy43OTU2IDcuMTY4OTEgMTQuMDgxMyA3IDE0LjM5MTUgN0gyMi4wNzU0QzI1LjA1NDMgNyAyNy4xMTA3IDkuOTgyNzkgMjYuMDUxMyAxMi43NjdMMjUuODYzMSAxMy4yNjEzQzI0LjU0NDQgMTYuNzI2OSAyMS4yMjE4IDE5LjAxNzYgMTcuNTEzOCAxOS4wMTc2SDYuOTc1NzVMNi41NTAzNSAxOS4xMjM5Wk04LjM2ODg0IDE5Ljk3NDdDNy4wNTA0MiAxOS45NzQ3IDUuODM2NTUgMjAuNjkyNSA1LjIwMTE4IDIxLjg0NzdDNC42MTIyMyAyMi45MTg1IDUuMzg2OTQgMjQuMjI4NyA2LjYwOTAzIDI0LjIyODdIMTAuODA0NEwxMy40NjMxIDE5Ljg2ODRMMTMuMTQ0MSAxOS45NzQ3SDguMzY4ODRaIiBmaWxsPSJ1cmwoI3BhaW50MF9saW5lYXJfMjBfMykiLz4KPGRlZnM+CjxsaW5lYXJHcmFkaWVudCBpZD0icGFpbnQwX2xpbmVhcl8yMF8zIiB4MT0iMTguMDI2NiIgeTE9IjUuNTI5MjYiIHgyPSIyLjI2ODYxIiB5Mj0iMzAuMTExNyIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPgo8c3RvcCBzdG9wLWNvbG9yPSIjREQ1OUZGIi8+CjxzdG9wIG9mZnNldD0iMC40NzM5NTgiIHN0b3AtY29sb3I9IiM1MDY5RkYiLz4KPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMDAyNUZGIi8+CjwvbGluZWFyR3JhZGllbnQ+CjwvZGVmcz4KPC9zdmc+Cg==",
+                ),
+                decimals: 18,
+            },
+            block_timestamp_nanos: U64(
+                1670852285425143686,
+            ),
+            block_height: U64(
+                80486949,
+            ),
+        },
+        HistoryItem {
+            event_index: U128(
+                16708329657780019380000000004000000,
+            ),
+            involved_account_id: Some(
+                AccountId(
+                    "hongtuoi87.near",
+                ),
+            ),
+            delta_balance: "-50525820210639229826",
+            balance: U128(
+                2568702017739350243040265,
+            ),
+            cause: "TRANSFER",
+            status: "SUCCESS",
+            metadata: Metadata {
+                name: "Pulse",
+                symbol: "PULSE",
+                icon: Some(
+                    "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBkPSJNNi41NTAzNSAxOS4xMjM5TDkuMTcxNjYgMTQuOTQ5MkM5LjMyNzMxIDE0LjcwMTMgOS41OTk0OCAxNC41NTA4IDkuODkyMiAxNC41NTA4SDE4LjQxNEMxOS41NDEyIDE0LjU1MDggMjAuNTYxNCAxMy44ODM2IDIxLjAxMzMgMTIuODUwOUMyMS4zNjQ3IDEyLjA0NzYgMjAuNzc2MSAxMS4xNDc3IDE5Ljg5OTMgMTEuMTQ3N0gxMS45NzQyTDExLjU0ODggMTEuMjU0TDEzLjY0NjEgNy40NDA3OEMxMy43OTU2IDcuMTY4OTEgMTQuMDgxMyA3IDE0LjM5MTUgN0gyMi4wNzU0QzI1LjA1NDMgNyAyNy4xMTA3IDkuOTgyNzkgMjYuMDUxMyAxMi43NjdMMjUuODYzMSAxMy4yNjEzQzI0LjU0NDQgMTYuNzI2OSAyMS4yMjE4IDE5LjAxNzYgMTcuNTEzOCAxOS4wMTc2SDYuOTc1NzVMNi41NTAzNSAxOS4xMjM5Wk04LjM2ODg0IDE5Ljk3NDdDNy4wNTA0MiAxOS45NzQ3IDUuODM2NTUgMjAuNjkyNSA1LjIwMTE4IDIxLjg0NzdDNC42MTIyMyAyMi45MTg1IDUuMzg2OTQgMjQuMjI4NyA2LjYwOTAzIDI0LjIyODdIMTAuODA0NEwxMy40NjMxIDE5Ljg2ODRMMTMuMTQ0MSAxOS45NzQ3SDguMzY4ODRaIiBmaWxsPSJ1cmwoI3BhaW50MF9saW5lYXJfMjBfMykiLz4KPGRlZnM+CjxsaW5lYXJHcmFkaWVudCBpZD0icGFpbnQwX2xpbmVhcl8yMF8zIiB4MT0iMTguMDI2NiIgeTE9IjUuNTI5MjYiIHgyPSIyLjI2ODYxIiB5Mj0iMzAuMTExNyIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPgo8c3RvcCBzdG9wLWNvbG9yPSIjREQ1OUZGIi8+CjxzdG9wIG9mZnNldD0iMC40NzM5NTgiIHN0b3AtY29sb3I9IiM1MDY5RkYiLz4KPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMDAyNUZGIi8+CjwvbGluZWFyR3JhZGllbnQ+CjwvZGVmcz4KPC9zdmc+Cg==",
+                ),
+                decimals: 18,
+            },
+            block_timestamp_nanos: U64(
+                1670832965778001938,
+            ),
+            block_height: U64(
+                80470583,
+            ),
+        },
+        HistoryItem {
+            event_index: U128(
+                16707558806582957380000000004000001,
+            ),
+            involved_account_id: Some(
+                AccountId(
+                    "fund_allocation.near",
+                ),
+            ),
+            delta_balance: "20874492395697464117",
+            balance: U128(
+                2568752543559560882270091,
+            ),
+            cause: "TRANSFER",
+            status: "FAILURE",
+            metadata: Metadata {
+                name: "Pulse",
+                symbol: "PULSE",
+                icon: Some(
+                    "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBkPSJNNi41NTAzNSAxOS4xMjM5TDkuMTcxNjYgMTQuOTQ5MkM5LjMyNzMxIDE0LjcwMTMgOS41OTk0OCAxNC41NTA4IDkuODkyMiAxNC41NTA4SDE4LjQxNEMxOS41NDEyIDE0LjU1MDggMjAuNTYxNCAxMy44ODM2IDIxLjAxMzMgMTIuODUwOUMyMS4zNjQ3IDEyLjA0NzYgMjAuNzc2MSAxMS4xNDc3IDE5Ljg5OTMgMTEuMTQ3N0gxMS45NzQyTDExLjU0ODggMTEuMjU0TDEzLjY0NjEgNy40NDA3OEMxMy43OTU2IDcuMTY4OTEgMTQuMDgxMyA3IDE0LjM5MTUgN0gyMi4wNzU0QzI1LjA1NDMgNyAyNy4xMTA3IDkuOTgyNzkgMjYuMDUxMyAxMi43NjdMMjUuODYzMSAxMy4yNjEzQzI0LjU0NDQgMTYuNzI2OSAyMS4yMjE4IDE5LjAxNzYgMTcuNTEzOCAxOS4wMTc2SDYuOTc1NzVMNi41NTAzNSAxOS4xMjM5Wk04LjM2ODg0IDE5Ljk3NDdDNy4wNTA0MiAxOS45NzQ3IDUuODM2NTUgMjAuNjkyNSA1LjIwMTE4IDIxLjg0NzdDNC42MTIyMyAyMi45MTg1IDUuMzg2OTQgMjQuMjI4NyA2LjYwOTAzIDI0LjIyODdIMTAuODA0NEwxMy40NjMxIDE5Ljg2ODRMMTMuMTQ0MSAxOS45NzQ3SDguMzY4ODRaIiBmaWxsPSJ1cmwoI3BhaW50MF9saW5lYXJfMjBfMykiLz4KPGRlZnM+CjxsaW5lYXJHcmFkaWVudCBpZD0icGFpbnQwX2xpbmVhcl8yMF8zIiB4MT0iMTguMDI2NiIgeTE9IjUuNTI5MjYiIHgyPSIyLjI2ODYxIiB5Mj0iMzAuMTExNyIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPgo8c3RvcCBzdG9wLWNvbG9yPSIjREQ1OUZGIi8+CjxzdG9wIG9mZnNldD0iMC40NzM5NTgiIHN0b3AtY29sb3I9IiM1MDY5RkYiLz4KPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMDAyNUZGIi8+CjwvbGluZWFyR3JhZGllbnQ+CjwvZGVmcz4KPC9zdmc+Cg==",
+                ),
+                decimals: 18,
+            },
+            block_timestamp_nanos: U64(
+                1670755880658295738,
+            ),
+            block_height: U64(
+                80403774,
+            ),
+        },
+        HistoryItem {
+            event_index: U128(
+                16707557765710790990000000004000001,
+            ),
+            involved_account_id: Some(
+                AccountId(
+                    "fund_allocation.near",
+                ),
+            ),
+            delta_balance: "20874492395697464117",
+            balance: U128(
+                2568752543559560882270091,
+            ),
+            cause: "TRANSFER",
+            status: "SUCCESS",
+            metadata: Metadata {
+                name: "Pulse",
+                symbol: "PULSE",
+                icon: Some(
+                    "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBkPSJNNi41NTAzNSAxOS4xMjM5TDkuMTcxNjYgMTQuOTQ5MkM5LjMyNzMxIDE0LjcwMTMgOS41OTk0OCAxNC41NTA4IDkuODkyMiAxNC41NTA4SDE4LjQxNEMxOS41NDEyIDE0LjU1MDggMjAuNTYxNCAxMy44ODM2IDIxLjAxMzMgMTIuODUwOUMyMS4zNjQ3IDEyLjA0NzYgMjAuNzc2MSAxMS4xNDc3IDE5Ljg5OTMgMTEuMTQ3N0gxMS45NzQyTDExLjU0ODggMTEuMjU0TDEzLjY0NjEgNy40NDA3OEMxMy43OTU2IDcuMTY4OTEgMTQuMDgxMyA3IDE0LjM5MTUgN0gyMi4wNzU0QzI1LjA1NDMgNyAyNy4xMTA3IDkuOTgyNzkgMjYuMDUxMyAxMi43NjdMMjUuODYzMSAxMy4yNjEzQzI0LjU0NDQgMTYuNzI2OSAyMS4yMjE4IDE5LjAxNzYgMTcuNTEzOCAxOS4wMTc2SDYuOTc1NzVMNi41NTAzNSAxOS4xMjM5Wk04LjM2ODg0IDE5Ljk3NDdDNy4wNTA0MiAxOS45NzQ3IDUuODM2NTUgMjAuNjkyNSA1LjIwMTE4IDIxLjg0NzdDNC42MTIyMyAyMi45MTg1IDUuMzg2OTQgMjQuMjI4NyA2LjYwOTAzIDI0LjIyODdIMTAuODA0NEwxMy40NjMxIDE5Ljg2ODRMMTMuMTQ0MSAxOS45NzQ3SDguMzY4ODRaIiBmaWxsPSJ1cmwoI3BhaW50MF9saW5lYXJfMjBfMykiLz4KPGRlZnM+CjxsaW5lYXJHcmFkaWVudCBpZD0icGFpbnQwX2xpbmVhcl8yMF8zIiB4MT0iMTguMDI2NiIgeTE9IjUuNTI5MjYiIHgyPSIyLjI2ODYxIiB5Mj0iMzAuMTExNyIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPgo8c3RvcCBzdG9wLWNvbG9yPSIjREQ1OUZGIi8+CjxzdG9wIG9mZnNldD0iMC40NzM5NTgiIHN0b3AtY29sb3I9IiM1MDY5RkYiLz4KPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMDAyNUZGIi8+CjwvbGluZWFyR3JhZGllbnQ+CjwvZGVmcz4KPC9zdmc+Cg==",
+                ),
+                decimals: 18,
+            },
+            block_timestamp_nanos: U64(
+                1670755776571079099,
+            ),
+            block_height: U64(
+                80403680,
+            ),
+        },
+        HistoryItem {
+            event_index: U128(
+                16705722566523186250000000004000001,
+            ),
+            involved_account_id: Some(
+                AccountId(
+                    "kuanming.near",
+                ),
+            ),
+            delta_balance: "1351576569583942185939",
+            balance: U128(
+                2568731669067165184805974,
+            ),
+            cause: "TRANSFER",
+            status: "SUCCESS",
+            metadata: Metadata {
+                name: "Pulse",
+                symbol: "PULSE",
+                icon: Some(
+                    "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBkPSJNNi41NTAzNSAxOS4xMjM5TDkuMTcxNjYgMTQuOTQ5MkM5LjMyNzMxIDE0LjcwMTMgOS41OTk0OCAxNC41NTA4IDkuODkyMiAxNC41NTA4SDE4LjQxNEMxOS41NDEyIDE0LjU1MDggMjAuNTYxNCAxMy44ODM2IDIxLjAxMzMgMTIuODUwOUMyMS4zNjQ3IDEyLjA0NzYgMjAuNzc2MSAxMS4xNDc3IDE5Ljg5OTMgMTEuMTQ3N0gxMS45NzQyTDExLjU0ODggMTEuMjU0TDEzLjY0NjEgNy40NDA3OEMxMy43OTU2IDcuMTY4OTEgMTQuMDgxMyA3IDE0LjM5MTUgN0gyMi4wNzU0QzI1LjA1NDMgNyAyNy4xMTA3IDkuOTgyNzkgMjYuMDUxMyAxMi43NjdMMjUuODYzMSAxMy4yNjEzQzI0LjU0NDQgMTYuNzI2OSAyMS4yMjE4IDE5LjAxNzYgMTcuNTEzOCAxOS4wMTc2SDYuOTc1NzVMNi41NTAzNSAxOS4xMjM5Wk04LjM2ODg0IDE5Ljk3NDdDNy4wNTA0MiAxOS45NzQ3IDUuODM2NTUgMjAuNjkyNSA1LjIwMTE4IDIxLjg0NzdDNC42MTIyMyAyMi45MTg1IDUuMzg2OTQgMjQuMjI4NyA2LjYwOTAzIDI0LjIyODdIMTAuODA0NEwxMy40NjMxIDE5Ljg2ODRMMTMuMTQ0MSAxOS45NzQ3SDguMzY4ODRaIiBmaWxsPSJ1cmwoI3BhaW50MF9saW5lYXJfMjBfMykiLz4KPGRlZnM+CjxsaW5lYXJHcmFkaWVudCBpZD0icGFpbnQwX2xpbmVhcl8yMF8zIiB4MT0iMTguMDI2NiIgeTE9IjUuNTI5MjYiIHgyPSIyLjI2ODYxIiB5Mj0iMzAuMTExNyIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPgo8c3RvcCBzdG9wLWNvbG9yPSIjREQ1OUZGIi8+CjxzdG9wIG9mZnNldD0iMC40NzM5NTgiIHN0b3AtY29sb3I9IiM1MDY5RkYiLz4KPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMDAyNUZGIi8+CjwvbGluZWFyR3JhZGllbnQ+CjwvZGVmcz4KPC9zdmc+Cg==",
+                ),
+                decimals: 18,
+            },
+            block_timestamp_nanos: U64(
+                1670572256652318625,
+            ),
+            block_height: U64(
+                80246320,
+            ),
+        },
+    ],
+)

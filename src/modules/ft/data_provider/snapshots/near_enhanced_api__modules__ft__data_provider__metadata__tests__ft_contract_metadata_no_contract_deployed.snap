@@ -5,7 +5,7 @@ expression: metadata
 Err(
     Error {
         code: 400,
-        message: "Invalid Input: The account `olga.near` does not implement any suitable contract at block 68000000",
+        message: "Invalid Input: The account `olga.near` does not implement any suitable contract at block 80500000",
         retriable: false,
     },
 )

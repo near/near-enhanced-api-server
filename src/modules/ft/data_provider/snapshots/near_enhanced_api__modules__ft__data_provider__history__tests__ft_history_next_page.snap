@@ -1,0 +1,158 @@
+---
+source: src/modules/ft/data_provider/history.rs
+expression: history
+---
+Ok(
+    [
+        HistoryItem {
+            event_index: U128(
+                16708552662791710330000000004000001,
+            ),
+            involved_account_id: Some(
+                AccountId(
+                    "one-one.near",
+                ),
+            ),
+            delta_balance: "756317587000000000000",
+            balance: U128(
+                37661829273772805394642193,
+            ),
+            cause: "TRANSFER",
+            status: "SUCCESS",
+            metadata: Metadata {
+                name: "Aurora",
+                symbol: "AURORA",
+                icon: Some(
+                    "data:image/svg+xml,%3Csvg version='1.1' id='Layer_1' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' x='0px' y='0px' viewBox='0 0 288 288' style='enable-background:new 0 0 288 288;' xml:space='preserve'%3E %3Cstyle type='text/css'%3E .st0%7Bfill:%2370D44B;%7D .st1%7Bfill:%23FFFFFF;%7D %3C/style%3E %3Cpath class='st0' d='M144,0L144,0c79.5,0,144,64.5,144,144v0c0,79.5-64.5,144-144,144h0C64.5,288,0,223.5,0,144v0 C0,64.5,64.5,0,144,0z'/%3E %3Cpath class='st1' d='M144,58.8c7.6,0,14.5,4.3,17.9,11.1l56.2,112.5c4.9,9.9,0.9,21.9-9,26.8c-2.8,1.4-5.8,2.1-8.9,2.1H87.8 c-11,0-20-9-20-20c0-3.1,0.7-6.2,2.1-8.9l56.2-112.5C129.5,63,136.4,58.7,144,58.8 M144,45c-12.8,0-24.5,7.2-30.2,18.7L57.6,176.2 c-8.3,16.7-1.6,36.9,15.1,45.3c4.7,2.3,9.9,3.6,15.1,3.6h112.5c18.6,0,33.8-15.1,33.8-33.7c0-5.2-1.2-10.4-3.6-15.1L174.2,63.7 C168.5,52.2,156.8,45,144,45z'/%3E %3C/svg%3E",
+                ),
+                decimals: 18,
+            },
+            block_timestamp_nanos: U64(
+                1670855266279171033,
+            ),
+            block_height: U64(
+                80489354,
+            ),
+        },
+        HistoryItem {
+            event_index: U128(
+                16708552642721459080000000004000001,
+            ),
+            involved_account_id: Some(
+                AccountId(
+                    "boobs.zudwa.near",
+                ),
+            ),
+            delta_balance: "141487738687848952843",
+            balance: U128(
+                37661072956185805394642193,
+            ),
+            cause: "TRANSFER",
+            status: "SUCCESS",
+            metadata: Metadata {
+                name: "Aurora",
+                symbol: "AURORA",
+                icon: Some(
+                    "data:image/svg+xml,%3Csvg version='1.1' id='Layer_1' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' x='0px' y='0px' viewBox='0 0 288 288' style='enable-background:new 0 0 288 288;' xml:space='preserve'%3E %3Cstyle type='text/css'%3E .st0%7Bfill:%2370D44B;%7D .st1%7Bfill:%23FFFFFF;%7D %3C/style%3E %3Cpath class='st0' d='M144,0L144,0c79.5,0,144,64.5,144,144v0c0,79.5-64.5,144-144,144h0C64.5,288,0,223.5,0,144v0 C0,64.5,64.5,0,144,0z'/%3E %3Cpath class='st1' d='M144,58.8c7.6,0,14.5,4.3,17.9,11.1l56.2,112.5c4.9,9.9,0.9,21.9-9,26.8c-2.8,1.4-5.8,2.1-8.9,2.1H87.8 c-11,0-20-9-20-20c0-3.1,0.7-6.2,2.1-8.9l56.2-112.5C129.5,63,136.4,58.7,144,58.8 M144,45c-12.8,0-24.5,7.2-30.2,18.7L57.6,176.2 c-8.3,16.7-1.6,36.9,15.1,45.3c4.7,2.3,9.9,3.6,15.1,3.6h112.5c18.6,0,33.8-15.1,33.8-33.7c0-5.2-1.2-10.4-3.6-15.1L174.2,63.7 C168.5,52.2,156.8,45,144,45z'/%3E %3C/svg%3E",
+                ),
+                decimals: 18,
+            },
+            block_timestamp_nanos: U64(
+                1670855264272145908,
+            ),
+            block_height: U64(
+                80489352,
+            ),
+        },
+        HistoryItem {
+            event_index: U128(
+                16708552459610034140000000004000001,
+            ),
+            involved_account_id: Some(
+                AccountId(
+                    "boobs.zudwa.near",
+                ),
+            ),
+            delta_balance: "142131541881394807914",
+            balance: U128(
+                37660931468447117545689350,
+            ),
+            cause: "TRANSFER",
+            status: "SUCCESS",
+            metadata: Metadata {
+                name: "Aurora",
+                symbol: "AURORA",
+                icon: Some(
+                    "data:image/svg+xml,%3Csvg version='1.1' id='Layer_1' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' x='0px' y='0px' viewBox='0 0 288 288' style='enable-background:new 0 0 288 288;' xml:space='preserve'%3E %3Cstyle type='text/css'%3E .st0%7Bfill:%2370D44B;%7D .st1%7Bfill:%23FFFFFF;%7D %3C/style%3E %3Cpath class='st0' d='M144,0L144,0c79.5,0,144,64.5,144,144v0c0,79.5-64.5,144-144,144h0C64.5,288,0,223.5,0,144v0 C0,64.5,64.5,0,144,0z'/%3E %3Cpath class='st1' d='M144,58.8c7.6,0,14.5,4.3,17.9,11.1l56.2,112.5c4.9,9.9,0.9,21.9-9,26.8c-2.8,1.4-5.8,2.1-8.9,2.1H87.8 c-11,0-20-9-20-20c0-3.1,0.7-6.2,2.1-8.9l56.2-112.5C129.5,63,136.4,58.7,144,58.8 M144,45c-12.8,0-24.5,7.2-30.2,18.7L57.6,176.2 c-8.3,16.7-1.6,36.9,15.1,45.3c4.7,2.3,9.9,3.6,15.1,3.6h112.5c18.6,0,33.8-15.1,33.8-33.7c0-5.2-1.2-10.4-3.6-15.1L174.2,63.7 C168.5,52.2,156.8,45,144,45z'/%3E %3C/svg%3E",
+                ),
+                decimals: 18,
+            },
+            block_timestamp_nanos: U64(
+                1670855245961003414,
+            ),
+            block_height: U64(
+                80489335,
+            ),
+        },
+        HistoryItem {
+            event_index: U128(
+                16708543140180973160000000004000000,
+            ),
+            involved_account_id: Some(
+                AccountId(
+                    "banhbot.near",
+                ),
+            ),
+            delta_balance: "-23521847900053856931",
+            balance: U128(
+                37660789336905236150881436,
+            ),
+            cause: "TRANSFER",
+            status: "SUCCESS",
+            metadata: Metadata {
+                name: "Aurora",
+                symbol: "AURORA",
+                icon: Some(
+                    "data:image/svg+xml,%3Csvg version='1.1' id='Layer_1' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' x='0px' y='0px' viewBox='0 0 288 288' style='enable-background:new 0 0 288 288;' xml:space='preserve'%3E %3Cstyle type='text/css'%3E .st0%7Bfill:%2370D44B;%7D .st1%7Bfill:%23FFFFFF;%7D %3C/style%3E %3Cpath class='st0' d='M144,0L144,0c79.5,0,144,64.5,144,144v0c0,79.5-64.5,144-144,144h0C64.5,288,0,223.5,0,144v0 C0,64.5,64.5,0,144,0z'/%3E %3Cpath class='st1' d='M144,58.8c7.6,0,14.5,4.3,17.9,11.1l56.2,112.5c4.9,9.9,0.9,21.9-9,26.8c-2.8,1.4-5.8,2.1-8.9,2.1H87.8 c-11,0-20-9-20-20c0-3.1,0.7-6.2,2.1-8.9l56.2-112.5C129.5,63,136.4,58.7,144,58.8 M144,45c-12.8,0-24.5,7.2-30.2,18.7L57.6,176.2 c-8.3,16.7-1.6,36.9,15.1,45.3c4.7,2.3,9.9,3.6,15.1,3.6h112.5c18.6,0,33.8-15.1,33.8-33.7c0-5.2-1.2-10.4-3.6-15.1L174.2,63.7 C168.5,52.2,156.8,45,144,45z'/%3E %3C/svg%3E",
+                ),
+                decimals: 18,
+            },
+            block_timestamp_nanos: U64(
+                1670854314018097316,
+            ),
+            block_height: U64(
+                80488576,
+            ),
+        },
+        HistoryItem {
+            event_index: U128(
+                16708540479563508290000000004000000,
+            ),
+            involved_account_id: Some(
+                AccountId(
+                    "iiiiiiiii.near",
+                ),
+            ),
+            delta_balance: "-31169211266807315215",
+            balance: U128(
+                37660812858753136204738367,
+            ),
+            cause: "TRANSFER",
+            status: "SUCCESS",
+            metadata: Metadata {
+                name: "Aurora",
+                symbol: "AURORA",
+                icon: Some(
+                    "data:image/svg+xml,%3Csvg version='1.1' id='Layer_1' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' x='0px' y='0px' viewBox='0 0 288 288' style='enable-background:new 0 0 288 288;' xml:space='preserve'%3E %3Cstyle type='text/css'%3E .st0%7Bfill:%2370D44B;%7D .st1%7Bfill:%23FFFFFF;%7D %3C/style%3E %3Cpath class='st0' d='M144,0L144,0c79.5,0,144,64.5,144,144v0c0,79.5-64.5,144-144,144h0C64.5,288,0,223.5,0,144v0 C0,64.5,64.5,0,144,0z'/%3E %3Cpath class='st1' d='M144,58.8c7.6,0,14.5,4.3,17.9,11.1l56.2,112.5c4.9,9.9,0.9,21.9-9,26.8c-2.8,1.4-5.8,2.1-8.9,2.1H87.8 c-11,0-20-9-20-20c0-3.1,0.7-6.2,2.1-8.9l56.2-112.5C129.5,63,136.4,58.7,144,58.8 M144,45c-12.8,0-24.5,7.2-30.2,18.7L57.6,176.2 c-8.3,16.7-1.6,36.9,15.1,45.3c4.7,2.3,9.9,3.6,15.1,3.6h112.5c18.6,0,33.8-15.1,33.8-33.7c0-5.2-1.2-10.4-3.6-15.1L174.2,63.7 C168.5,52.2,156.8,45,144,45z'/%3E %3C/svg%3E",
+                ),
+                decimals: 18,
+            },
+            block_timestamp_nanos: U64(
+                1670854047956350829,
+            ),
+            block_height: U64(
+                80488375,
+            ),
+        },
+    ],
+)

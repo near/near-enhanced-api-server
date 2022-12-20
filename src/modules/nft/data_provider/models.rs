@@ -2,7 +2,7 @@ use crate::BigDecimal;
 
 #[derive(sqlx::FromRow)]
 pub(crate) struct NftHistoryInfo {
-    // pub index: super::types::U128,
+    // pub event_index: super::types::U128,
     pub cause: String,
     pub status: String,
     pub old_account_id: String,

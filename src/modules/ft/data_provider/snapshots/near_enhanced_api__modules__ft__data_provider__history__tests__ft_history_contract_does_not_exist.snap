@@ -1,0 +1,11 @@
+---
+source: src/modules/ft/data_provider/history.rs
+expression: balance
+---
+Err(
+    Error {
+        code: 400,
+        message: "Invalid Input: account_id two-idiots-and-a-half.near does not exist at block_height 80500000",
+        retriable: false,
+    },
+)

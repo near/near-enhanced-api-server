@@ -5,7 +5,7 @@ expression: nft
 Err(
     Error {
         code: 400,
-        message: "Invalid Input: Token `no_such_token` does not exist in contract `x.paras.near`, block_height 68000000",
+        message: "Invalid Input: Token `no_such_token` does not exist in contract `x.paras.near`, block_height 80500000",
         retriable: false,
     },
 )

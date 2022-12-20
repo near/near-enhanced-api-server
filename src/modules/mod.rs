@@ -1,4 +1,4 @@
-use crate::{db_helpers, errors, types};
+use crate::{errors, types};
 
 pub(crate) mod ft;
 pub(crate) mod native;
@@ -51,25 +51,25 @@ pub(crate) async fn check_account_exists(
     .into())
 }
 
-pub(crate) async fn check_and_get_history_pagination_params(
-    pool: &sqlx::Pool<sqlx::Postgres>,
-    pagination_params: types::query_params::HistoryPaginationParams,
-) -> crate::Result<types::query_params::HistoryPagination> {
-    types::query_params::check_limit(pagination_params.limit)?;
-    let pagination = types::query_params::Pagination::from(pagination_params);
-    // if pagination_params.after_block_height.is_some() && pagination_params.after_timestamp_nanos.is_some() {
-    //     return Err(errors::ErrorKind::InvalidInput(
-    //         "Both block_height and block_timestamp_nanos found. Please provide only one of values"
-    //             .to_string(),
-    //     )
-    //         .into());
-    // }
-    // TODO PHASE 2 take the block from pagination_params
-    let block = db_helpers::get_last_block(pool).await?;
-    Ok(types::query_params::HistoryPagination {
-        block_height: block.height,
-        block_timestamp: block.timestamp,
-        limit: pagination.limit,
+/// Validates pagination_params received from the user
+pub(crate) async fn checked_get_pagination_params(
+    pagination_params: &types::query_params::PaginationParams,
+) -> crate::Result<types::query_params::Pagination> {
+    Ok(types::query_params::Pagination {
+        limit: types::query_params::checked_get_limit(pagination_params.limit)?,
+        after_event_index: match pagination_params.after_event_index {
+            None => None,
+            Some(index) => {
+                if index.0 < crate::MIN_EVENT_INDEX {
+                    return Err(errors::ErrorKind::InvalidInput(format!(
+                        "after_event_index {} is too low. Please copy event_index value from the last item in your previous response",
+                        index.0
+                    ))
+                        .into());
+                }
+                Some(index.0)
+            }
+        },
     })
 }
 
@@ -77,13 +77,24 @@ pub(crate) async fn check_and_get_history_pagination_params(
 mod tests {
     use crate::db_helpers;
 
-    pub(crate) async fn init_db() -> sqlx::Pool<sqlx::Postgres> {
+    pub(crate) async fn init_explorer_db() -> db_helpers::ExplorerPool {
         dotenv::dotenv().ok();
-        let db_url = &std::env::var("DATABASE_URL").expect("failed to get database url");
+        let db_url = &std::env::var("EXPLORER_DATABASE_URL").expect("failed to get database url");
 
-        sqlx::PgPool::connect(db_url)
-            .await
-            .expect("failed to connect to the database")
+        db_helpers::ExplorerPool(
+            sqlx::PgPool::connect(db_url).await.expect(
+                "failed to connect to the database from EXPLORER_DATABASE_URL env variable",
+            ),
+        )
+    }
+
+    pub(crate) async fn init_balances_db() -> db_helpers::BalancesPool {
+        dotenv::dotenv().ok();
+        let db_url_balances =
+            &std::env::var("BALANCES_DATABASE_URL").expect("failed to get database url");
+        db_helpers::BalancesPool(sqlx::PgPool::connect(db_url_balances).await.expect(
+            "failed to connect to the balances database from BALANCES_DATABASE_URL env variable",
+        ))
     }
 
     pub(crate) fn init_rpc() -> near_jsonrpc_client::JsonRpcClient {
@@ -95,8 +106,8 @@ mod tests {
 
     pub(crate) fn get_block() -> db_helpers::Block {
         db_helpers::Block {
-            timestamp: 1655571176644255779,
-            height: 68000000,
+            timestamp: 1670867692546051383, // December 12, 2022
+            height: 80500000,
         }
     }
 }

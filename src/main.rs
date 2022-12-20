@@ -14,6 +14,8 @@ mod types;
 
 pub(crate) const LOGGER_MSG: &str = "near_enhanced_api";
 
+pub(crate) const MIN_EVENT_INDEX: u128 = (10_u128).pow(34);
+
 pub(crate) type Result<T> = std::result::Result<T, errors::Error>;
 
 fn get_cors(cors_allowed_origins: &[String]) -> Cors {
@@ -89,26 +91,26 @@ async fn main() -> std::io::Result<()> {
         .build()
         .unwrap();
 
-    let db_url = &std::env::var("DATABASE_URL")
-        .expect("failed to get database url from DATABASE_URL env variable");
-
     // See https://docs.rs/sqlx/latest/sqlx/struct.Pool.html#2-connection-limits-mysql-mssql-postgres
     // for setting connection limits.
     let db_max_connections: u32 = std::env::var("DATABASE_MAX_CONNECTIONS")
         .unwrap_or_else(|_| "97".to_string())
         .parse()
         .expect("Failed to parse DATABASE_MAX_CONNECTIONS value as u32");
-    let pool = sqlx::postgres::PgPoolOptions::new()
+
+    let explorer_db_url = &std::env::var("EXPLORER_DATABASE_URL")
+        .expect("failed to get database url from EXPLORER_DATABASE_URL env variable");
+    let pool_explorer = sqlx::postgres::PgPoolOptions::new()
         .max_connections(db_max_connections)
-        .connect(db_url)
+        .connect(explorer_db_url)
         .await
         .expect("failed to connect to the database");
 
-    let url_balances = &std::env::var("DATABASE_URL_BALANCES")
-        .expect("failed to get database url from DATABASE_URL_BALANCES env variable");
+    let balances_db_url = &std::env::var("BALANCES_DATABASE_URL")
+        .expect("failed to get database url from BALANCES_DATABASE_URL env variable");
     let pool_balances = sqlx::postgres::PgPoolOptions::new()
         .max_connections(db_max_connections)
-        .connect(url_balances)
+        .connect(balances_db_url)
         .await
         .expect("failed to connect to the balances database");
 
@@ -174,10 +176,8 @@ We would love to hear from you on the data APIs you need, please leave feedback 
             .app_data(path_config)
             .wrap(actix_web::middleware::Logger::default())
             .wrap(prometheus.clone())
-            .app_data(web::Data::new(pool.clone()))
-            .app_data(web::Data::new(db_helpers::DBWrapper {
-                pool: pool_balances.clone(),
-            }))
+            .app_data(web::Data::new(db_helpers::ExplorerPool(pool_explorer.clone())))
+            .app_data(web::Data::new(db_helpers::BalancesPool(pool_balances.clone())))
             .app_data(web::Data::new(rpc_client.clone()))
             .wrap(get_cors(&cors_allowed_origins))
             .route("/", actix_web::web::get().to(playground_ui))

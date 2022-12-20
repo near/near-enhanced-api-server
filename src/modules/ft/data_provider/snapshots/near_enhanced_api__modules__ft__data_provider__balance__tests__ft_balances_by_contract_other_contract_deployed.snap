@@ -1,6 +1,6 @@
 ---
-source: src/modules/ft/data_provider/metadata.rs
-expression: metadata
+source: src/modules/ft/data_provider/balance.rs
+expression: balance
 ---
 Err(
     Error {

@@ -3,10 +3,11 @@ use crate::{db_helpers, errors, types};
 
 // TODO PHASE 2 pagination by artificial index added to assets__non_fungible_token_events
 pub(crate) async fn get_nft_history(
-    pool: &sqlx::Pool<sqlx::Postgres>,
+    db_helpers::ExplorerPool(pool_explorer): &db_helpers::ExplorerPool,
     contract_id: &near_primitives::types::AccountId,
     token_id: &str,
-    pagination: &types::query_params::HistoryPagination,
+    block: &db_helpers::Block,
+    limit: u32,
 ) -> crate::Result<Vec<nft::schemas::HistoryItem>> {
     let query = r"
         SELECT
@@ -28,13 +29,13 @@ pub(crate) async fn get_nft_history(
         LIMIT $4::numeric(20, 0)
     ";
     let history_items = db_helpers::select_retry_or_panic::<super::models::NftHistoryInfo>(
-        pool,
+        pool_explorer,
         query,
         &[
             token_id.to_string(),
             contract_id.to_string(),
-            pagination.block_timestamp.to_string(),
-            pagination.limit.to_string(),
+            block.timestamp.to_string(),
+            limit.to_string(),
         ],
     )
     .await?;
@@ -71,49 +72,34 @@ mod tests {
 
     #[tokio::test]
     async fn test_nft_history() {
-        let pool = init_db().await;
+        let pool_explorer = init_explorer_db().await;
         let block = get_block();
         let contract = near_primitives::types::AccountId::from_str("x.paras.near").unwrap();
         let token = "293708:1";
-        let pagination = types::query_params::HistoryPagination {
-            block_height: block.height,
-            block_timestamp: block.timestamp,
-            limit: 10,
-        };
 
-        let history = get_nft_history(&pool, &contract, token, &pagination).await;
+        let history = get_nft_history(&pool_explorer, &contract, token, &block, 10).await;
         insta::assert_debug_snapshot!(history);
     }
 
     #[tokio::test]
     async fn test_nft_history_with_failed_receipts() {
-        let pool = init_db().await;
+        let pool_explorer = init_explorer_db().await;
         let block = get_block();
         let contract = near_primitives::types::AccountId::from_str("thebullishbulls.near").unwrap();
         let token = "1349";
-        let pagination = types::query_params::HistoryPagination {
-            block_height: block.height,
-            block_timestamp: block.timestamp,
-            limit: 10,
-        };
 
-        let history = get_nft_history(&pool, &contract, token, &pagination).await;
+        let history = get_nft_history(&pool_explorer, &contract, token, &block, 10).await;
         insta::assert_debug_snapshot!(history);
     }
 
     #[tokio::test]
     async fn test_nft_history_nft_does_not_exist() {
-        let pool = init_db().await;
+        let pool_explorer = init_explorer_db().await;
         let block = get_block();
         let contract = near_primitives::types::AccountId::from_str("x.paras.near").unwrap();
         let token = "no_such_token";
-        let pagination = types::query_params::HistoryPagination {
-            block_height: block.height,
-            block_timestamp: block.timestamp,
-            limit: 10,
-        };
 
-        let history = get_nft_history(&pool, &contract, token, &pagination)
+        let history = get_nft_history(&pool_explorer, &contract, token, &block, 10)
             .await
             .unwrap();
         assert!(history.is_empty());

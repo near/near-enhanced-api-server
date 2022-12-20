@@ -6,11 +6,11 @@ use serde::{Deserialize, Serialize};
 
 // TODO PHASE 2 pagination by artificial index added to assets__non_fungible_token_events
 pub(crate) async fn get_nfts_count(
-    pool: &sqlx::Pool<sqlx::Postgres>,
+    db_helpers::ExplorerPool(pool_explorer): &db_helpers::ExplorerPool,
     rpc_client: &near_jsonrpc_client::JsonRpcClient,
     block: &db_helpers::Block,
     account_id: &near_primitives::types::AccountId,
-    pagination_params: types::query_params::PaginationParams,
+    limit: u32,
 ) -> crate::Result<Vec<nft::schemas::NftCount>> {
     let query = r"
         WITH relevant_events AS (
@@ -55,14 +55,13 @@ pub(crate) async fn get_nfts_count(
         LIMIT $3::numeric(20, 0)
     ";
 
-    let pagination = types::query_params::Pagination::from(pagination_params);
     let info_by_contract = db_helpers::select_retry_or_panic::<super::models::NftCount>(
-        pool,
+        pool_explorer,
         query,
         &[
             account_id.to_string(),
             block.timestamp.to_string(),
-            pagination.limit.to_string(),
+            limit.to_string(),
         ],
     )
     .await?;
@@ -186,25 +185,23 @@ mod tests {
 
     #[tokio::test]
     async fn test_nfts_count() {
-        let pool = init_db().await;
+        let pool_explorer = init_explorer_db().await;
         let rpc_client = init_rpc();
         let block = get_block();
         let account = near_primitives::types::AccountId::from_str("blondjesus.near").unwrap();
-        let pagination = types::query_params::PaginationParams { limit: Some(10) };
 
-        let nft_count = get_nfts_count(&pool, &rpc_client, &block, &account, pagination).await;
+        let nft_count = get_nfts_count(&pool_explorer, &rpc_client, &block, &account, 10).await;
         insta::assert_debug_snapshot!(nft_count);
     }
 
     #[tokio::test]
     async fn test_nfts_count_empty() {
-        let pool = init_db().await;
+        let pool_explorer = init_explorer_db().await;
         let rpc_client = init_rpc();
         let block = get_block();
-        let account = near_primitives::types::AccountId::from_str("frol.near").unwrap();
-        let pagination = types::query_params::PaginationParams { limit: None };
+        let account = near_primitives::types::AccountId::from_str("cucumber.near").unwrap();
 
-        let nft_count = get_nfts_count(&pool, &rpc_client, &block, &account, pagination)
+        let nft_count = get_nfts_count(&pool_explorer, &rpc_client, &block, &account, 10)
             .await
             .unwrap();
         assert!(nft_count.is_empty());
@@ -212,25 +209,26 @@ mod tests {
 
     #[tokio::test]
     async fn test_nfts_count_with_contracts_with_no_metadata() {
-        let pool = init_db().await;
+        let pool_explorer = init_explorer_db().await;
         let rpc_client = init_rpc();
-        let block = get_block();
+        let block = db_helpers::Block {
+            timestamp: 1655571176644255779,
+            height: 68000000,
+        };
         let account = near_primitives::types::AccountId::from_str("vlad.near").unwrap();
-        let pagination = types::query_params::PaginationParams { limit: Some(10) };
 
-        let nft_count = get_nfts_count(&pool, &rpc_client, &block, &account, pagination).await;
+        let nft_count = get_nfts_count(&pool_explorer, &rpc_client, &block, &account, 10).await;
         insta::assert_debug_snapshot!(nft_count);
     }
 
     #[tokio::test]
     async fn test_nfts_count_with_no_failed_receipts_in_result() {
-        let pool = init_db().await;
+        let pool_explorer = init_explorer_db().await;
         let rpc_client = init_rpc();
         let block = get_block();
         let account = near_primitives::types::AccountId::from_str("kbneoburner3.near").unwrap();
-        let pagination = types::query_params::PaginationParams { limit: None };
 
-        let nft_count = get_nfts_count(&pool, &rpc_client, &block, &account, pagination).await;
+        let nft_count = get_nfts_count(&pool_explorer, &rpc_client, &block, &account, 10).await;
         insta::assert_debug_snapshot!(nft_count);
     }
 

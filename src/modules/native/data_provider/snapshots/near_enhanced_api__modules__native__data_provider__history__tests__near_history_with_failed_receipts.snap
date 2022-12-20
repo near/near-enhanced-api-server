@@ -1,0 +1,158 @@
+---
+source: src/modules/native/data_provider/history.rs
+expression: history
+---
+Ok(
+    [
+        HistoryItem {
+            event_index: U128(
+                16708676800272181160000000010000004,
+            ),
+            involved_account_id: Some(
+                AccountId(
+                    "relay.aurora",
+                ),
+            ),
+            delta_balance: "29217529898100000000",
+            balance: U128(
+                61452995916043405162023995917,
+            ),
+            cause: "CONTRACT_REWARD",
+            status: "FAILURE",
+            metadata: Metadata {
+                name: "NEAR blockchain native token",
+                symbol: "NEAR",
+                icon: Some(
+                    "https://raw.githubusercontent.com/near/near-wallet/7ef3c824404282b76b36da2dff4f3e593e7f928d/packages/frontend/src/images/near.svg",
+                ),
+                decimals: 24,
+            },
+            block_timestamp_nanos: U64(
+                1670867680027218116,
+            ),
+            block_height: U64(
+                80499989,
+            ),
+        },
+        HistoryItem {
+            event_index: U128(
+                16708676800272181160000000010000003,
+            ),
+            involved_account_id: Some(
+                AccountId(
+                    "relay.aurora",
+                ),
+            ),
+            delta_balance: "267789466989500000000",
+            balance: U128(
+                61452995886825875263923995917,
+            ),
+            cause: "CONTRACT_REWARD",
+            status: "SUCCESS",
+            metadata: Metadata {
+                name: "NEAR blockchain native token",
+                symbol: "NEAR",
+                icon: Some(
+                    "https://raw.githubusercontent.com/near/near-wallet/7ef3c824404282b76b36da2dff4f3e593e7f928d/packages/frontend/src/images/near.svg",
+                ),
+                decimals: 24,
+            },
+            block_timestamp_nanos: U64(
+                1670867680027218116,
+            ),
+            block_height: U64(
+                80499989,
+            ),
+        },
+        HistoryItem {
+            event_index: U128(
+                16708676800272181160000000010000001,
+            ),
+            involved_account_id: Some(
+                AccountId(
+                    "relay.aurora",
+                ),
+            ),
+            delta_balance: "0",
+            balance: U128(
+                61452995619036408274423995917,
+            ),
+            cause: "RECEIPT",
+            status: "SUCCESS",
+            metadata: Metadata {
+                name: "NEAR blockchain native token",
+                symbol: "NEAR",
+                icon: Some(
+                    "https://raw.githubusercontent.com/near/near-wallet/7ef3c824404282b76b36da2dff4f3e593e7f928d/packages/frontend/src/images/near.svg",
+                ),
+                decimals: 24,
+            },
+            block_timestamp_nanos: U64(
+                1670867680027218116,
+            ),
+            block_height: U64(
+                80499989,
+            ),
+        },
+        HistoryItem {
+            event_index: U128(
+                16708676800272181160000000010000000,
+            ),
+            involved_account_id: Some(
+                AccountId(
+                    "relay.aurora",
+                ),
+            ),
+            delta_balance: "33361934998300000000",
+            balance: U128(
+                61452995619036408274423995917,
+            ),
+            cause: "CONTRACT_REWARD",
+            status: "FAILURE",
+            metadata: Metadata {
+                name: "NEAR blockchain native token",
+                symbol: "NEAR",
+                icon: Some(
+                    "https://raw.githubusercontent.com/near/near-wallet/7ef3c824404282b76b36da2dff4f3e593e7f928d/packages/frontend/src/images/near.svg",
+                ),
+                decimals: 24,
+            },
+            block_timestamp_nanos: U64(
+                1670867680027218116,
+            ),
+            block_height: U64(
+                80499989,
+            ),
+        },
+        HistoryItem {
+            event_index: U128(
+                16708676788664650200000000030000005,
+            ),
+            involved_account_id: Some(
+                AccountId(
+                    "relay.aurora",
+                ),
+            ),
+            delta_balance: "0",
+            balance: U128(
+                61452995585674473276123995917,
+            ),
+            cause: "TRANSACTION",
+            status: "SUCCESS",
+            metadata: Metadata {
+                name: "NEAR blockchain native token",
+                symbol: "NEAR",
+                icon: Some(
+                    "https://raw.githubusercontent.com/near/near-wallet/7ef3c824404282b76b36da2dff4f3e593e7f928d/packages/frontend/src/images/near.svg",
+                ),
+                decimals: 24,
+            },
+            block_timestamp_nanos: U64(
+                1670867678866465020,
+            ),
+            block_height: U64(
+                80499988,
+            ),
+        },
+    ],
+)
