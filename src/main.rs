@@ -148,7 +148,7 @@ async fn main() -> std::io::Result<()> {
         });
 
         let mut spec = paperclip::v2::models::DefaultApiRaw::default();
-        if let Ok(api_server_public_host) = std::env::var("API_SERVER_PUBLIC_HOST") {
+        if let Ok(api_server_public_host) = std::env::var("HOSTNAME") {
             spec.schemes
                 .insert(paperclip::v2::models::OperationProtocol::Https);
             spec.host = Some(api_server_public_host);
