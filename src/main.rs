@@ -57,7 +57,7 @@ async fn playground_ui() -> impl actix_web::Responder {
                   <body>
 
                     <elements-api
-                      apiDescriptionUrl="{base_path}/spec/v3.json"
+                      apiDescriptionUrl="eapi/spec/v1/v3.json"
                       router="hash"
                       layout="sidebar"
                     />
@@ -187,8 +187,8 @@ We would love to hear from you on the data APIs you need, please leave feedback 
         app = app.configure(modules::ft::register_services);
         app = app.configure(modules::nft::register_services);
 
-        app.with_json_spec_at(format!("{base_path}/spec/v2.json").as_str())
-            .with_json_spec_v3_at(format!("{base_path}/spec/v3.json").as_str())
+        app.with_json_spec_at("eapi/spec/v1/v2.json")
+            .with_json_spec_v3_at("eapi/spec/v1/v3.json")
             .build()
     })
     .bind(addr)
