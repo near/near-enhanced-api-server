@@ -1,9 +1,12 @@
+use tracing::instrument;
+
 use crate::{errors, types};
 
 pub(crate) mod ft;
 pub(crate) mod native;
 pub(crate) mod nft;
 
+#[instrument(skip_all)]
 pub(crate) async fn check_account_exists(
     rpc_client: &near_jsonrpc_client::JsonRpcClient,
     account_id: &near_primitives::types::AccountId,

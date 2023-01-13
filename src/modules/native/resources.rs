@@ -2,10 +2,11 @@ use paperclip::actix::{
     api_v2_operation,
     web::{self, Json},
 };
+use tracing::instrument;
 
 use super::{data_provider, schemas};
 use crate::{db_helpers, modules, types};
-
+#[instrument(skip(pool_explorer, rpc_client, request, block_params))]
 #[api_v2_operation(tags(NEAR))]
 /// Get user's NEAR balance
 ///

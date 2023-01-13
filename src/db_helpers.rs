@@ -1,4 +1,5 @@
 use sqlx::{postgres::PgRow, Arguments};
+use tracing::instrument;
 
 use crate::{errors, types, BigDecimal};
 
@@ -67,6 +68,7 @@ pub(crate) async fn get_block_from_pagination(
     .await
 }
 
+#[instrument(skip_all)]
 /// Validates block_params received from the user, sets the default value if none was provided
 pub(crate) async fn checked_get_block(
     pool_explorer: &ExplorerPool,

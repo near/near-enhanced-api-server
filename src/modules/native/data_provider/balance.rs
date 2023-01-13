@@ -1,6 +1,9 @@
+use tracing::instrument;
+
 use crate::modules::native;
 use crate::{db_helpers, errors, types};
 
+#[instrument(skip_all)]
 // todo change to near_balance_events when we finish collecting the data
 pub(crate) async fn get_near_balance(
     db_helpers::ExplorerPool(pool_explorer): &db_helpers::ExplorerPool,
