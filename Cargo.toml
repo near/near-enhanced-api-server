@@ -26,20 +26,21 @@ serde_json = "1"
 strum = { version = "0.24", features = ["derive"] }
 sqlx = { version = "0.6", features = ["runtime-tokio-native-tls", "postgres", "bigdecimal", "json"] }
 tokio = { version = "1.1", features = ["full"] }
-tracing-actix-web = { version = "0.7.2", features = ["opentelemetry_0_17"] }
-opentelemetry = { version = "0.17", features = ["rt-tokio-current-thread"] }
-opentelemetry-jaeger = { version = "0.16", features = ["rt-tokio-current-thread"] }
-# tracing-opentelemetry = { version = "0.17" }
+# tracing-actix-web = { version = "0.7.2", features = ["opentelemetry_0_17"] }
+# opentelemetry = { version = "0.17", features = ["rt-tokio","rt-tokio-current-thread"] }
+# opentelemetry-jaeger = { version = "0.16", features = ["rt-tokio-current-thread"] }
+# # tracing-opentelemetry = { version = "0.17" }
 tracing = "0.1.19"
-tracing-subscriber = { version = "0.3", features = ["registry", "env-filter"] }
-tracing-bunyan-formatter = "0.3"
+# tracing-subscriber = { version = "0.3", features = ["registry", "env-filter"] }
+# tracing-bunyan-formatter = "0.3"
 validator = { version = "0.14", features = ["derive"] }
-tracing-stackdriver = {version = "0.6.2", features = ['opentelemetry']}
-tracing-opentelemetry = "0.17.0"
-
+# # tracing-stackdriver = {version = "0.6.2", features = ['opentelemetry']}
+# tracing-opentelemetry = "0.17.0"
+# opentelemetry-stackdriver = { version = "0.14.0", default_features = false, features = ["gcp_auth"] }
+# gcp_auth = "0.7"
 near-primitives = "0.14.0"
 near-jsonrpc-client = "0.4.0-beta.0"
 near-jsonrpc-primitives = "0.14.0"
-
+tracing-lib={path = "./tracing-lib/"}
 [dev-dependencies]
 insta = "1"

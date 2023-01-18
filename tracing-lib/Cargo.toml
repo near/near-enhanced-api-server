@@ -1,0 +1,20 @@
+[package]
+name = "tracing-lib"
+version = "0.1.0"
+authors = ["yoshidan <naohiro.y@gmail.com>"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+tracing-stackdriver = { git = "https://github.com/yoshidan/tracing-stackdriver", branch = "feature/with-span-trace-id-fixbug", features=["otel"]}
+tracing-subscriber = {version="0.3", features=["std", "env-filter"]}
+opentelemetry = {version="0.17", features=["rt-tokio", "trace"]}
+opentelemetry-stackdriver = { version= "0.14.0", default-features = false }
+tracing-opentelemetry = "0.17"
+tokio = { version="1.20", features=["rt-multi-thread", "signal"] }
+thiserror = { version="1.0", default-features= false }
+anyhow = { version="1.0", default-features= false }
+google-cloud-auth= { git = "https://github.com/yoshidan/google-cloud-rust", branch = "main"}
+tonic = "0.6"
+async-trait = "0.1"

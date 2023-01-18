@@ -3,13 +3,20 @@ use actix_web::{App, HttpServer, ResponseError};
 use actix_web_prom::PrometheusMetricsBuilder;
 use actix_web_validator::PathConfig;
 // use opentelemetry::{
-//     global, runtime::TokioCurrentThread, sdk::propagation::TraceContextPropagator,
+//     sdk::trace::{Config, Sampler},
+//     trace::TracerProvider,
+// };
+// use opentelemetry_stackdriver::{
+//     GcpAuthorizer, LogContext, MonitoredResource, StackDriverExporter,
+// };
+// use opentelemetry::{
+//     global, runtime::Tokio, sdk::propagation::TraceContextPropagator,
 // };
 use paperclip::actix::{web, OpenApiExt};
 pub(crate) use sqlx::types::BigDecimal;
-use tracing_actix_web::TracingLogger;
+// use tracing_actix_web::TracingLogger;
 // use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
-use tracing_subscriber::layer::SubscriberExt;
+// use tracing_subscriber::{layer::SubscriberExt, reload::Handle};
 // use tracing_subscriber::Registry;
 mod config;
 mod db_helpers;
@@ -17,7 +24,8 @@ mod errors;
 mod modules;
 mod rpc_helpers;
 mod types;
-use tracing_stackdriver::CloudTraceConfiguration;
+// use tracing_stackdriver::CloudTraceConfiguration;
+use tracing_lib::trace::Tracer;
 // use tracing_subscriber::{layer::SubscriberExt, Registry};
 pub(crate) const LOGGER_MSG: &str = "near_enhanced_api";
 
@@ -78,11 +86,34 @@ async fn playground_ui() -> impl actix_web::Responder {
 async fn main() -> std::io::Result<()> {
     dotenv::dotenv().ok();
 
-    init_telemetry();
+    // init_telemetry();
+    // let env_filter = tracing_subscriber::EnvFilter::new(
+    //     std::env::var("RUST_LOG")
+    //         .as_deref()
+    //         .unwrap_or("info,near=info,near_jsonrpc_client=warn,near_enhanced_api=debug"),
+    // );
+    let _tracer = Tracer::default().await;
+    // let authorizer = GcpAuthorizer::new().await.unwrap();
+    // let spawner = TokioSpawner::new(Handle::current());
+    // let exporter = StackDriverExporter::connect(authorizer, &spawner, None, None)
+    //     .await
+    //     .unwrap();
+    // let provider = TracerProvider::builder()
+    //     .with_batch_exporter(exporter.clone(), Tokio)
+    //     .with_config(Config {
+    //         sampler: Box::new(Sampler::TraceIdRatioBased(1.0)),
+    //         ..Default::default()
+    //     })
+    //     .build();
 
+    // let subscriber = tracing_subscriber::Registry::default()
+    //     .with(env_filter)
+    //     .with(tracing_opentelemetry::layer().with_tracer(provider.tracer("tracing")));
+    // tracing::subscriber::set_global_default(subscriber)
+    //     .expect("Failed to install `tracing` subscriber.");
     // set up the root span to trigger Span/Trace ID generation
-    let root = tracing::info_span!("root");
-    let _root = root.enter();
+    // let root = tracing::info_span!("root");
+    // let _root = root.enter();
     tracing::info!("Application starting");
     tracing::debug!(
         target: crate::LOGGER_MSG,
@@ -177,7 +208,7 @@ We would love to hear from you on the data APIs you need, please leave feedback 
         let mut app = App::new()
             .app_data(json_config)
             .app_data(path_config)
-            .wrap(TracingLogger::default())
+            // .wrap(TracingLogger::default())
             .wrap(prometheus.clone())
             .app_data(web::Data::new(db_helpers::ExplorerPool(pool_explorer.clone())))
             .app_data(web::Data::new(db_helpers::BalancesPool(pool_balances.clone())))
@@ -209,26 +240,26 @@ We would love to hear from you on the data APIs you need, please leave feedback 
     server.await
 }
 
-fn init_telemetry() {
-    let env_filter = tracing_subscriber::EnvFilter::new(
-        std::env::var("RUST_LOG")
-            .as_deref()
-            .unwrap_or("info,near=info,near_jsonrpc_client=warn,near_enhanced_api=debug"),
-    );
+// fn init_telemetry() {
+//     let env_filter = tracing_subscriber::EnvFilter::new(
+//         std::env::var("RUST_LOG")
+//             .as_deref()
+//             .unwrap_or("info,near=info,near_jsonrpc_client=warn,near_enhanced_api=debug"),
+//     );
 
-    let opentelemetry = tracing_opentelemetry::layer();
+//     let opentelemetry = tracing_opentelemetry::layer();
 
-    let stackdriver = tracing_stackdriver::layer().enable_cloud_trace(CloudTraceConfiguration {
-        project_id: "my-project-id".to_owned(),
-    });
+//     let stackdriver = tracing_stackdriver::layer().enable_cloud_trace(CloudTraceConfiguration {
+//         project_id: "my-project-id".to_owned(),
+//     });
 
-    let subscriber = tracing_subscriber::Registry::default()
-    .with(env_filter)
-        .with(opentelemetry)
-        .with(stackdriver);
-    tracing::subscriber::set_global_default(subscriber)
-        .expect("Failed to install `tracing` subscriber.")
-}
+//     let subscriber = tracing_subscriber::Registry::default()
+//         .with(env_filter)
+//         .with(opentelemetry)
+//         .with(stackdriver);
+//     tracing::subscriber::set_global_default(subscriber)
+//         .expect("Failed to install `tracing` subscriber.")
+// }
 
 // fn init_telemetry() {
 //     let app_name = "pagoda-data-stack-dev";
