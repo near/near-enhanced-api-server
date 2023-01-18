@@ -39,8 +39,12 @@ fn get_api_base_path() -> String {
     std::env::var("API_BASE_PATH").unwrap_or_else(|_| "".to_string())
 }
 
+fn get_api_spec_base_path() -> String {
+    std::env::var("API_SPEC_BASE_PATH").unwrap_or_else(|_| "".to_string())
+}
+
 async fn playground_ui() -> impl actix_web::Responder {
-    let base_path = get_api_base_path();
+    let spec_base_path = get_api_spec_base_path();
     actix_web::HttpResponse::Ok()
         .insert_header(actix_web::http::header::ContentType::html())
         .body(
@@ -57,7 +61,7 @@ async fn playground_ui() -> impl actix_web::Responder {
                   <body>
 
                     <elements-api
-                      apiDescriptionUrl="{base_path}/spec/v3.json"
+                      apiDescriptionUrl="{spec_base_path}/v3.json"
                       router="hash"
                       layout="sidebar"
                     />
@@ -154,6 +158,7 @@ async fn main() -> std::io::Result<()> {
             spec.host = Some(api_server_public_host);
         }
         let base_path = get_api_base_path();
+        let spec_base_path = get_api_spec_base_path();
         spec.base_path = Some(base_path.clone());
         spec.info = paperclip::v2::models::Info {
             version: "0.1".into(),
@@ -187,8 +192,8 @@ We would love to hear from you on the data APIs you need, please leave feedback 
         app = app.configure(modules::ft::register_services);
         app = app.configure(modules::nft::register_services);
 
-        app.with_json_spec_at(format!("{base_path}/spec/v2.json").as_str())
-            .with_json_spec_v3_at(format!("{base_path}/spec/v3.json").as_str())
+        app.with_json_spec_at(format!("{spec_base_path}/v2.json").as_str())
+            .with_json_spec_v3_at(format!("{spec_base_path}/v3.json").as_str())
             .build()
     })
     .bind(addr)
