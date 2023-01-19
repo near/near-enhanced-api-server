@@ -28,7 +28,6 @@ pub(crate) async fn get_near_history(
             block_height
         FROM near_balance_events
         WHERE affected_account_id = $1 AND event_index < $2::numeric(38, 0)
-           AND event_index >= 16619903149406361800000000000000000 -- todo drop this when we finish collecting the data
         ORDER BY event_index DESC
         LIMIT $3::numeric(20, 0)
     ";
@@ -150,22 +149,20 @@ mod tests {
         assert!(history.is_empty());
     }
 
-    // todo return this when we collect all the history
-    // #[tokio::test]
-    // async fn test_near_history_account_deleted() {
-    //     let pool_balances = init_balances_db().await;
-    //     let account =
-    //         near_primitives::types::AccountId::from_str("tezeract.near").unwrap();
-    //     let pagination = types::query_params::Pagination {
-    //         limit: 5,
-    //         after_event_index: None,
-    //     };
-    //     let block = get_block();
-    //
-    //     let history = get_near_history(&pool_balances, &account, &block, &pagination)
-    //         .await
-    //         .unwrap();
-    //     // we still show the history
-    //     insta::assert_debug_snapshot!(history);
-    // }
+    #[tokio::test]
+    async fn test_near_history_account_deleted() {
+        let pool_balances = init_balances_db().await;
+        let account = near_primitives::types::AccountId::from_str("tezeract.near").unwrap();
+        let pagination = types::query_params::Pagination {
+            limit: 5,
+            after_event_index: None,
+        };
+        let block = get_block();
+
+        let history = get_near_history(&pool_balances, &account, &block, &pagination)
+            .await
+            .unwrap();
+        // we still show the history
+        insta::assert_debug_snapshot!(history);
+    }
 }

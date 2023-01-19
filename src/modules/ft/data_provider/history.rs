@@ -49,7 +49,6 @@ pub(crate) async fn get_ft_history(
              WHERE contract_account_id = $1
                  AND affected_account_id = $2
                  AND event_index < $3::numeric(38, 0)
-                 AND event_index >= 16619903149406361800000000000000000 -- todo drop this when we finish collecting the data
              ORDER BY event_index desc
              LIMIT $4::numeric(20, 0)
          ), timestamps as (
@@ -435,34 +434,32 @@ mod tests {
         insta::assert_debug_snapshot!(balance);
     }
 
-    // TODO write this test again when we finish collecting the data
-    // I can't catch such cases on partially filled DB
-    // #[tokio::test]
-    // async fn test_ft_history_contract_is_inconsistent() {
-    //     let pool_explorer = init_db().await;
-    //     let pool_balances = init_balances_db().await;
-    //     let rpc_client = init_rpc();
-    //
-    //     let contract = near_primitives::types::AccountId::from_str("tezeract.near").unwrap();
-    //     let account = near_primitives::types::AccountId::from_str("puffball.near").unwrap();
-    //     let pagination = types::query_params::Pagination {
-    //         limit: 5,
-    //         after_event_index: Some(16629459979548196140000003001000001),
-    //     };
-    //     let block = db_helpers::checked_get_block_from_pagination(&pool_explorer, &pagination)
-    //         .await
-    //         .unwrap();
-    //
-    //     let balance = get_ft_history(
-    //         &pool_explorer,
-    //         &pool_balances,
-    //         &rpc_client,
-    //         &contract,
-    //         &account,
-    //         &block,
-    //         &pagination,
-    //     )
-    //     .await;
-    //     insta::assert_debug_snapshot!(balance);
-    // }
+    #[tokio::test]
+    async fn test_ft_history_contract_is_inconsistent() {
+        let pool_explorer = init_explorer_db().await;
+        let pool_balances = init_balances_db().await;
+        let rpc_client = init_rpc();
+
+        let contract = near_primitives::types::AccountId::from_str("kongztoken.near").unwrap();
+        let account = near_primitives::types::AccountId::from_str("v2.ref-finance.near").unwrap();
+        let pagination = types::query_params::Pagination {
+            limit: 10,
+            after_event_index: Some(16612455459990000000000000000000000),
+        };
+        let block = db_helpers::get_block_from_pagination(&pool_explorer, &pagination)
+            .await
+            .unwrap();
+
+        let balance = get_ft_history(
+            &pool_explorer,
+            &pool_balances,
+            &rpc_client,
+            &contract,
+            &account,
+            &block,
+            &pagination,
+        )
+        .await;
+        insta::assert_debug_snapshot!(balance);
+    }
 }

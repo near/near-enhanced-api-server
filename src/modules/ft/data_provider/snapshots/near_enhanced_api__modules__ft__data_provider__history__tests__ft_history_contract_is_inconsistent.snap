@@ -1,0 +1,11 @@
+---
+source: src/modules/ft/data_provider/history.rs
+expression: balance
+---
+Err(
+    Error {
+        code: 500,
+        message: "Internal Error: History is not supported for account v2.ref-finance.near. Contract kongztoken.near provides inconsistent events",
+        retriable: true,
+    },
+)

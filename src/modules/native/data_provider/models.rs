@@ -1,7 +1,7 @@
 use crate::BigDecimal;
 
 #[derive(sqlx::FromRow)]
-pub(crate) struct AccountChangesBalance {
+pub(crate) struct Balance {
     pub balance: BigDecimal,
 }
 

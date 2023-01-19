@@ -12,6 +12,7 @@ use crate::{db_helpers, modules, types};
 /// This endpoint returns the NEAR balance of the given `account_id`
 /// at the given `block_timestamp_nanos`/`block_height`.
 pub async fn get_near_balance(
+    pool_balances: web::Data<db_helpers::BalancesPool>,
     pool_explorer: web::Data<db_helpers::ExplorerPool>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     _: crate::types::pagoda_api_key::PagodaApiKey,
@@ -22,7 +23,7 @@ pub async fn get_near_balance(
     modules::check_account_exists(&rpc_client, &request.account_id.0, block.height).await?;
 
     Ok(Json(
-        data_provider::get_near_balance(&pool_explorer, &block, &request.account_id.0).await?,
+        data_provider::get_near_balance(&pool_balances, &block, &request.account_id.0).await?,
     ))
 }
 
@@ -32,10 +33,6 @@ pub async fn get_near_balance(
 /// This endpoint returns the history of NEAR operations
 /// for the given `account_id`, `block_timestamp_nanos`/`block_height`.
 /// For the next page, use `event_index` of the last item in your previous response.
-///
-/// **Limitations**
-/// We currently provide the history only for the last few months.
-/// The history started from genesis will be served soon.
 pub async fn get_near_history(
     pool_explorer: web::Data<db_helpers::ExplorerPool>,
     pool_balances: web::Data<db_helpers::BalancesPool>,

@@ -13,8 +13,6 @@ use crate::{db_helpers, errors, modules, types};
 /// at the given `block_timestamp_nanos`/`block_height`.
 ///
 /// **Limitations**
-/// * We may accidentally skip the contract if the balances wasn't updated in the last few months,
-///   we are still working on the full coverage.
 /// * We currently provide up to 100 items.
 ///   Full-featured pagination will be provided soon.
 pub async fn get_ft_balances(
@@ -88,10 +86,6 @@ pub async fn get_ft_balance_by_contract(
 ///
 /// This endpoint returns the history of FT operations
 /// for the given `account_id`, `contract_account_id`, `block_timestamp_nanos`/`block_height`.
-///
-/// **Limitations**
-/// We currently provide the history only for the last few months.
-/// The history started from genesis will be served soon.
 pub async fn get_ft_history(
     pool_explorer: web::Data<db_helpers::ExplorerPool>,
     pool_balances: web::Data<db_helpers::BalancesPool>,

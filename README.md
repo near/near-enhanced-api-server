@@ -3,34 +3,14 @@
 API for providing useful information about NEAR blockchain.  
 Still under heavy development.
 
-### Phase 1 goals: [development goes here now]
-- Provide NEAR balances information, recent history
-- Provide FT balances information, recent FT history for the contracts implementing Events NEP
+### Supported features
+
+- Provide NEAR balances information, history
+- Provide FT balances information, FT history (*)
 - Provide NFT information and recent history for the contracts implementing Events NEP
 - Provide corresponding Metadata for FT, NFT contracts, NFT items
-- [aspirational] Collect usage statistics which could help us to prioritize next steps
 
-Note, Phase 1 will **not** provide pagination through all the history.  
-Phase 1 also does **not** provide the information about contracts which are not upgraded to Events NEP.
-
-If you are interested in a more detailed development status, use `git clone` and search for `TODO PHASE 1`.  
-See also our thoughts about the proposed [DB design](DB_DESIGN.md) which will help us to achieve Phase 2 goals.
-
-### Future plans. Phase 2 goals:
-- Provide pagination for all existing endpoints where applicable
-- Support contracts which are not upgraded to Events NEP, such as `wrap.near`, `aurora`
-- Add reconciliation logic
-- [aspirational] Show data from failed receipts in the history
-- [aspirational] Support MT contracts 
-- [aspirational] Support of querying the balance/history info by symbol (e.g. `GET "/accounts/{account_id}/FT/USN"`) 
-
-### Future plans. Phase 3+ goals:
-- Make wrappers around existing RPC endpoints for the general blockchain info (blocks, chunks, transactions, etc.)
-
-## How to run it yourself
-
-You need to create `.env` file with 3 variables: `DATABASE_URL`, `DATABASE_URL_BALANCES`, `RPC_URL`.  
-`DATABASE_URL_BALANCES` is a temp solution with the new table, it's under development.
-
-All the other stuff is super standard for Rust world.  
-To modify and then review tests, use `cargo insta review`.
+(*) We support all the FT contracts implementing Events NEP and some popular legacy contracts such as `aurora`, `wrap.near` and few others.
+If your contract is not supported, please update with our new [SDK](https://github.com/near/near-sdk-rs).  
+If it's important for you to collect all the previous history as well, you need to make the contribution and implement your own legacy handler.
+You can use [existing handlers](https://github.com/near/near-microindexers/tree/main/indexer-events/src/db_adapters/coin/legacy) as the example.

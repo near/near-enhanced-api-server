@@ -1,26 +1,25 @@
 use crate::modules::native;
 use crate::{db_helpers, errors, types};
 
-// todo change to near_balance_events when we finish collecting the data
 pub(crate) async fn get_near_balance(
-    db_helpers::ExplorerPool(pool_explorer): &db_helpers::ExplorerPool,
+    db_helpers::BalancesPool(pool_balances): &db_helpers::BalancesPool,
     block: &db_helpers::Block,
     account_id: &near_primitives::types::AccountId,
 ) -> crate::Result<native::schemas::NearBalanceResponse> {
-    let balances =
-        db_helpers::select_retry_or_panic::<super::models::AccountChangesBalance>(
-            pool_explorer,
-            r"
+    let balances = db_helpers::select_retry_or_panic::<super::models::Balance>(
+        pool_balances,
+        r"
                 WITH t AS (
-                    SELECT affected_account_nonstaked_balance + affected_account_staked_balance balance
-                    FROM account_changes
-                    WHERE affected_account_id = $1 AND changed_in_block_timestamp <= $2::numeric(20, 0)
-                    ORDER BY changed_in_block_timestamp DESC
+                    SELECT absolute_nonstaked_amount + absolute_staked_amount balance
+                    FROM near_balance_events
+                    WHERE affected_account_id = $1 AND block_timestamp <= $2::numeric(20, 0)
+                    ORDER BY block_timestamp DESC
                 )
                 SELECT * FROM t LIMIT 1
             ",
-            &[account_id.to_string(), block.timestamp.to_string()],
-        ).await?;
+        &[account_id.to_string(), block.timestamp.to_string()],
+    )
+    .await?;
 
     match balances.first() {
         Some(balance) => Ok(native::schemas::NearBalanceResponse {
@@ -32,7 +31,7 @@ pub(crate) async fn get_near_balance(
             block_height: block.height.into(),
         }),
         None => Err(errors::ErrorKind::DBError(format!(
-            "Could not find the data in account_changes table for account_id {}",
+            "Could not find the data in near_balance_events table for account_id {}",
             account_id
         ))
         .into()),
@@ -47,10 +46,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_near_balance() {
-        let pool_explorer = init_explorer_db().await;
+        let pool_balances = init_balances_db().await;
         let block = get_block();
         let account = near_primitives::types::AccountId::from_str("tomato.near").unwrap();
-        let balance = get_near_balance(&pool_explorer, &block, &account).await;
+        let balance = get_near_balance(&pool_balances, &block, &account).await;
         insta::assert_debug_snapshot!(balance);
     }
 }
