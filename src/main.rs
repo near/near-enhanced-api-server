@@ -2,9 +2,15 @@ use actix_cors::Cors;
 use actix_web::{App, HttpServer, ResponseError};
 use actix_web_prom::PrometheusMetricsBuilder;
 use actix_web_validator::PathConfig;
+use opentelemetry::{
+    global, runtime::TokioCurrentThread, sdk::propagation::TraceContextPropagator,
+};
 use paperclip::actix::{web, OpenApiExt};
 pub(crate) use sqlx::types::BigDecimal;
-
+use tracing_actix_web::TracingLogger;
+use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::Registry;
 mod config;
 mod db_helpers;
 mod errors;
@@ -71,16 +77,7 @@ async fn playground_ui() -> impl actix_web::Responder {
 async fn main() -> std::io::Result<()> {
     dotenv::dotenv().ok();
 
-    let env_filter = tracing_subscriber::EnvFilter::new(
-        std::env::var("RUST_LOG")
-            .as_deref()
-            .unwrap_or("info,near=info,near_jsonrpc_client=warn,near_enhanced_api=debug"),
-    );
-
-    tracing_subscriber::fmt::Subscriber::builder()
-        .with_env_filter(env_filter)
-        .with_writer(std::io::stderr)
-        .init();
+    init_telemetry();
     tracing::debug!(
         target: crate::LOGGER_MSG,
         "NEAR Enhanced API Server is initializing..."
@@ -174,7 +171,7 @@ We would love to hear from you on the data APIs you need, please leave feedback 
         let mut app = App::new()
             .app_data(json_config)
             .app_data(path_config)
-            .wrap(actix_web::middleware::Logger::default())
+            .wrap(TracingLogger::default())
             .wrap(prometheus.clone())
             .app_data(web::Data::new(db_helpers::ExplorerPool(pool_explorer.clone())))
             .app_data(web::Data::new(db_helpers::BalancesPool(pool_balances.clone())))
@@ -202,4 +199,34 @@ We would love to hear from you on the data APIs you need, please leave feedback 
     );
 
     server.await
+}
+
+fn init_telemetry() {
+    let app_name = "enhanced-api-server";
+
+    // Start a new Jaeger trace pipeline.
+    // Spans are exported in batch - recommended setup for a production application.
+    global::set_text_map_propagator(TraceContextPropagator::new());
+    let tracer = opentelemetry_jaeger::new_pipeline()
+        .with_service_name(app_name)
+        .install_batch(TokioCurrentThread)
+        .expect("Failed to install OpenTelemetry tracer.");
+
+    let env_filter = tracing_subscriber::EnvFilter::new(
+        std::env::var("RUST_LOG")
+            .as_deref()
+            .unwrap_or("info,near=info,near_jsonrpc_client=warn,near_enhanced_api=debug"),
+    );
+    // Create a `tracing` layer using the Jaeger tracer
+    let telemetry = tracing_opentelemetry::layer().with_tracer(tracer);
+    // Create a `tracing` layer to emit spans as structured logs to stdout
+    let formatting_layer = BunyanFormattingLayer::new(app_name.into(), std::io::stdout);
+    // Combined them all together in a `tracing` subscriber
+    let subscriber = Registry::default()
+        .with(env_filter)
+        .with(telemetry)
+        .with(JsonStorageLayer)
+        .with(formatting_layer);
+    tracing::subscriber::set_global_default(subscriber)
+        .expect("Failed to install `tracing` subscriber.")
 }
