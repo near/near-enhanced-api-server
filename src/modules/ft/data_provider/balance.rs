@@ -13,7 +13,7 @@ pub(crate) async fn get_ft_balances(
     // todo it's better to query by chunks, this list can bee potentially too big (500+ contracts)
     let query = r"
         SELECT DISTINCT contract_account_id account_id
-        FROM coin_events
+        FROM fungible_token_events
         WHERE affected_account_id = $1
         ORDER BY contract_account_id
     ";
