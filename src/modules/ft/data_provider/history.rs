@@ -34,7 +34,6 @@ pub(crate) async fn get_ft_history(
     // It can be easily solved by ignoring the most fresh block, but it will increase the lag between the response and the current blockchain state.
     // Since we anyway use transactional DB which guarantees that write process goes atomically, I don't want to do anything with that.
     // But, if we meet such issues in production, we may consider cutting the latest block.
-    // TODO check the performance. We may add index on block_timestamp column, or we can hack and change block_timestamp to event_index
     let query = r"
          WITH original_query as (
              SELECT
@@ -68,8 +67,11 @@ pub(crate) async fn get_ft_history(
          FROM coin_events, timestamps
          WHERE contract_account_id = $1
              AND affected_account_id = $2
-             AND block_timestamp >= min_block_timestamp
-             AND block_timestamp <= max_block_timestamp
+             -- We use event_index instead of block_timestamp to get the boost from the index
+             -- Last possible event_index from previous block for the range we request
+             AND event_index > min_block_timestamp * pow(10, 16)::numeric(38, 0) - 1
+             -- First possible event_index from next block for the range we request
+             AND event_index < (max_block_timestamp + 1) * pow(10, 16)::numeric(38, 0)
          ORDER BY event_index desc
      ";
 
