@@ -10,29 +10,26 @@ use super::schemas;
 #[api_v2_operation(tags(NFT))]
 /// Get user's NFT collection overview
 ///
-/// For the given `account_id` and `block_timestamp_nanos` or `block_height`, this endpoint returns
+/// For the given `account_id`, this endpoint returns
 /// the number of NFTs grouped by `contract_account_id`, together with the corresponding NFT contract metadata.
 /// The NFT contract will be present in the response if the `account_id` has at least one NFT there.
 ///
-/// **Note:** `block_timestamp_nanos` helps you choose a moment in time, fixing the blockchain state at that time.
-///
 /// **Limitations**
 /// * We currently provide the most recent 100 items.
-///   Full-featured pagination will be provided in later phases.
+///   Full-featured pagination will be provided soon.
 pub async fn get_nft_collection_overview(
     pool_explorer: web::Data<db_helpers::ExplorerPool>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     _: crate::types::pagoda_api_key::PagodaApiKey,
     request: actix_web_validator::Path<schemas::NftCountsRequest>,
-    block_params: web::Query<types::query_params::BlockParams>,
     limit_params: web::Query<types::query_params::LimitParams>,
 ) -> crate::Result<Json<schemas::NftCountsResponse>> {
     let limit = types::query_params::checked_get_limit(limit_params.limit)?;
-    let block = db_helpers::checked_get_block(&pool_explorer, &block_params).await?;
+    let block = db_helpers::get_last_block(&pool_explorer).await?;
     modules::check_account_exists(&rpc_client, &request.account_id.0, block.height).await?;
 
     Ok(Json(schemas::NftCountsResponse {
-        // TODO PHASE 2 We can data_provider metadata in the DB and update once in 10 minutes
+        // TODO We can save metadata in the DB and update once in 10 minutes
         nft_counts: super::data_provider::get_nfts_count(
             &pool_explorer,
             &rpc_client,
@@ -49,22 +46,21 @@ pub async fn get_nft_collection_overview(
 #[api_v2_operation(tags(NFT))]
 /// Get user's NFT collection by contract
 ///
-/// This endpoint returns the list of NFTs with full details for the given `account_id`, NFT `contract_account_id`, `block_timestamp_nanos`/`block_height`.
+/// This endpoint returns the list of NFTs with full details for the given `account_id`, NFT `contract_account_id`.
 /// You can use the `token_id` from this response and then request the NFT history for that token.
 ///
 /// **Limitations**
 /// * We currently provide the most recent 100 items.
-///   Full-featured pagination will be provided in later phases.
+///   Full-featured pagination will be provided soon.
 pub async fn get_nft_collection_by_contract(
     pool_explorer: web::Data<db_helpers::ExplorerPool>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,
     _: crate::types::pagoda_api_key::PagodaApiKey,
     request: actix_web_validator::Path<schemas::NftCollectionRequest>,
-    block_params: web::Query<types::query_params::BlockParams>,
     limit_params: web::Query<types::query_params::LimitParams>,
 ) -> crate::Result<Json<schemas::NftsResponse>> {
     let limit = types::query_params::checked_get_limit(limit_params.limit)?;
-    let block = db_helpers::checked_get_block(&pool_explorer, &block_params).await?;
+    let block = db_helpers::get_last_block(&pool_explorer).await?;
     modules::check_account_exists(&rpc_client, &request.account_id.0, block.height).await?;
 
     Ok(Json(schemas::NftsResponse {
@@ -123,13 +119,13 @@ pub async fn get_nft(
 #[api_v2_operation(tags(NFT))]
 /// Get NFT history
 ///
-/// This endpoint returns the transaction history for the given NFT and `block_timestamp_nanos`/`block_height`.
-/// **Note:** The result is centered around the history of the specific NFT and will return list of its passing owners and metadata.
+/// This endpoint returns the transaction history for the given NFT.
+/// **Note:** The result is centered around the history of the specific NFT and will return list of its passing owners.
 ///
 /// **Limitations**
 /// * For now, we only support NFT contracts that implement the Events NEP standard.
 /// * We currently provide the most recent 100 items.
-///   Full-featured pagination will be provided in later phases.
+///   Full-featured pagination will be provided soon.
 pub async fn get_nft_history(
     pool_explorer: web::Data<db_helpers::ExplorerPool>,
     rpc_client: web::Data<near_jsonrpc_client::JsonRpcClient>,

@@ -13,8 +13,9 @@ use crate::{db_helpers, errors, modules, types};
 /// at the given `block_timestamp_nanos`/`block_height`.
 ///
 /// **Limitations**
-/// * We currently provide up to 100 items.
-///   Full-featured pagination will be provided soon.
+/// This endpoint scans all the FT contracts.
+/// We currently provide up to 100 results, which covers almost all the potential situations.
+/// Anyway, full-featured pagination will be provided soon.
 pub async fn get_ft_balances(
     pool_explorer: web::Data<db_helpers::ExplorerPool>,
     pool_balances: web::Data<db_helpers::BalancesPool>,
@@ -85,7 +86,8 @@ pub async fn get_ft_balance_by_contract(
 /// Get user's FT history by contract
 ///
 /// This endpoint returns the history of FT operations
-/// for the given `account_id`, `contract_account_id`, `block_timestamp_nanos`/`block_height`.
+/// for the given `account_id`, `contract_account_id`.
+/// For the next page, use `event_index` of the last item in your previous response.
 pub async fn get_ft_history(
     pool_explorer: web::Data<db_helpers::ExplorerPool>,
     pool_balances: web::Data<db_helpers::BalancesPool>,
