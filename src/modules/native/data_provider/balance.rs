@@ -6,18 +6,21 @@ pub(crate) async fn get_near_balance(
     block: &db_helpers::Block,
     account_id: &near_primitives::types::AccountId,
 ) -> crate::Result<native::schemas::NearBalanceResponse> {
+    // +1 because we need to include given timestamp to result. Query has strict less operator
+    let after_event_index = db_helpers::timestamp_to_event_index(block.timestamp + 1);
     let balances = db_helpers::select_retry_or_panic::<super::models::Balance>(
         pool_balances,
         r"
-                WITH t AS (
-                    SELECT absolute_nonstaked_amount + absolute_staked_amount balance
-                    FROM near_balance_events
-                    WHERE affected_account_id = $1 AND block_timestamp <= $2::numeric(20, 0)
-                    ORDER BY block_timestamp DESC
-                )
-                SELECT * FROM t LIMIT 1
-            ",
-        &[account_id.to_string(), block.timestamp.to_string()],
+            WITH t AS (
+                SELECT absolute_nonstaked_amount + absolute_staked_amount balance
+                FROM near_balance_events
+                WHERE affected_account_id = $1
+                    AND event_index < $2::numeric(38, 0)
+                ORDER BY event_index DESC
+            )
+            SELECT * FROM t LIMIT 1
+        ",
+        &[account_id.to_string(), after_event_index.to_string()],
     )
     .await?;
 
