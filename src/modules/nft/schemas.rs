@@ -68,7 +68,7 @@ pub struct NftResponse {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
-pub struct HistoryResponse {
+pub struct NftHistoryResponse {
     pub history: Vec<HistoryItem>,
     pub nft: Nft,
     pub block_timestamp_nanos: types::U64,

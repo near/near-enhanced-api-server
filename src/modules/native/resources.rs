@@ -39,12 +39,12 @@ pub async fn get_near_history(
     _: crate::types::pagoda_api_key::PagodaApiKey,
     request: actix_web_validator::Path<schemas::BalanceRequest>,
     pagination_params: web::Query<types::query_params::PaginationParams>,
-) -> crate::Result<Json<schemas::HistoryResponse>> {
+) -> crate::Result<Json<schemas::NearHistoryResponse>> {
     let pagination = modules::checked_get_pagination_params(&pagination_params).await?;
     let block = db_helpers::get_block_from_pagination(&pool_explorer, &pagination).await?;
     // we don't need to check whether account exists. If not, we can just return the empty history
 
-    Ok(Json(schemas::HistoryResponse {
+    Ok(Json(schemas::NearHistoryResponse {
         history: data_provider::get_near_history(
             &pool_balances,
             &request.account_id,
