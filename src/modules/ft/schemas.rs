@@ -65,7 +65,7 @@ pub struct FtBalance {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Apiv2Schema)]
-pub struct HistoryResponse {
+pub struct FtHistoryResponse {
     pub history: Vec<HistoryItem>,
     pub block_timestamp_nanos: types::U64,
     pub block_height: types::U64,

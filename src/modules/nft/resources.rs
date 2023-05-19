@@ -132,11 +132,11 @@ pub async fn get_nft_history(
     _: crate::types::pagoda_api_key::PagodaApiKey,
     request: actix_web_validator::Path<schemas::NftRequest>,
     limit_params: web::Query<types::query_params::LimitParams>,
-) -> crate::Result<Json<schemas::HistoryResponse>> {
+) -> crate::Result<Json<schemas::NftHistoryResponse>> {
     let limit = types::query_params::checked_get_limit(limit_params.limit)?;
     let block = db_helpers::get_last_block(&pool_explorer).await?;
 
-    Ok(Json(schemas::HistoryResponse {
+    Ok(Json(schemas::NftHistoryResponse {
         history: super::data_provider::get_nft_history(
             &pool_explorer,
             &request.contract_account_id.0,

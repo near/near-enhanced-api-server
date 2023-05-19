@@ -95,7 +95,7 @@ pub async fn get_ft_history(
     _: crate::types::pagoda_api_key::PagodaApiKey,
     request: actix_web_validator::Path<schemas::HistoryRequest>,
     pagination_params: web::Query<types::query_params::PaginationParams>,
-) -> crate::Result<Json<schemas::HistoryResponse>> {
+) -> crate::Result<Json<schemas::FtHistoryResponse>> {
     if request.contract_account_id.to_string() == "near" {
         return Err(errors::ErrorKind::InvalidInput(
             "For native history, please use `/accounts/{account_id}/balances/NEAR/history`"
@@ -107,7 +107,7 @@ pub async fn get_ft_history(
     let block = db_helpers::get_block_from_pagination(&pool_explorer, &pagination).await?;
     // we don't need to check whether account exists. If not, we can just return the empty history
 
-    Ok(Json(schemas::HistoryResponse {
+    Ok(Json(schemas::FtHistoryResponse {
         history: data_provider::get_ft_history(
             &pool_explorer,
             &pool_balances,
